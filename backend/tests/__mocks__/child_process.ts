@@ -2,22 +2,15 @@ import { EventEmitter } from 'events';
 import { Readable, Writable } from 'stream';
 
 export class MockChildProcess extends EventEmitter {
-  public pid: number | undefined = 12345;
+  public pid = 12345;
   public killed = false;
   public stdin: Writable;
   public stdout: Readable;
   public stderr: Readable;
-  private _timeouts: NodeJS.Timeout[] = [];
+  private _timeout?: NodeJS.Timeout;
 
   constructor(command: string, args: string[], options: any) {
     super();
-    
-    // Check for error conditions that should fail at spawn time
-    const addDirIndex = args.indexOf('--add-dir');
-    const workingDir = addDirIndex !== -1 && addDirIndex + 1 < args.length ? args[addDirIndex + 1] : undefined;
-    if (workingDir === '/nonexistent/directory/that/does/not/exist') {
-      this.pid = undefined;
-    }
     
     // Create mock streams
     this.stdin = new Writable({
@@ -48,7 +41,7 @@ export class MockChildProcess extends EventEmitter {
     const workingDir = this.getWorkingDirFromArgs(args);
     const initialPrompt = args[args.length - 1]; // Last argument is the prompt
     
-    // Check for error conditions first - only for runtime errors (not spawn-time failures)
+    // Check for error conditions first
     if (workingDir === '/nonexistent/directory') {
       setImmediate(() => {
         this.stderr.push('Error: Directory does not exist\n');
@@ -80,7 +73,7 @@ export class MockChildProcess extends EventEmitter {
     });
 
     // Send assistant response after a short delay
-    const responseTimeout = setTimeout(() => {
+    setTimeout(() => {
       const responseMessage = {
         type: 'assistant',
         message: {
@@ -100,7 +93,7 @@ export class MockChildProcess extends EventEmitter {
       this.stdout.push(JSON.stringify(responseMessage) + '\n');
       
       // Send result message
-      const resultTimeout = setTimeout(() => {
+      setTimeout(() => {
         const resultMessage = {
           type: 'result',
           subtype: 'success',
@@ -117,10 +110,8 @@ export class MockChildProcess extends EventEmitter {
         
         this.stdout.push(JSON.stringify(resultMessage) + '\n');
         this.stdout.push(null); // End stream
-      }, 25);
-      this._timeouts.push(resultTimeout);
-    }, 25);
-    this._timeouts.push(responseTimeout);
+      }, 100);
+    }, 200);
   }
 
   private getWorkingDirFromArgs(args: string[]): string | undefined {
@@ -148,8 +139,9 @@ export class MockChildProcess extends EventEmitter {
     this.killed = true;
     
     // Clear any pending timeouts
-    this._timeouts.forEach(timeout => clearTimeout(timeout));
-    this._timeouts.length = 0;
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+    }
     
     // Simulate process termination
     setImmediate(() => {
@@ -164,7 +156,7 @@ export class MockChildProcess extends EventEmitter {
   simulateInput(input: string) {
     const sessionId = 'test-session-' + Date.now();
     
-    const inputTimeout = setTimeout(() => {
+    setTimeout(() => {
       const responseMessage = {
         type: 'assistant',
         message: {
@@ -182,8 +174,7 @@ export class MockChildProcess extends EventEmitter {
       };
       
       this.stdout.push(JSON.stringify(responseMessage) + '\n');
-    }, 25);
-    this._timeouts.push(inputTimeout);
+    }, 100);
   }
 }
 
@@ -203,12 +194,6 @@ export function getLastSpawnedProcess(): MockChildProcess | undefined {
 
 // Helper for tests to clean up
 export function clearSpawnedProcesses(): void {
-  // Kill all processes to clean up their timeouts
-  spawnedProcesses.forEach(process => {
-    if (!process.killed) {
-      process.kill();
-    }
-  });
   spawnedProcesses.length = 0;
 }
 

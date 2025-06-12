@@ -167,7 +167,7 @@ describe('ClaudeProcessManager', () => {
       // Session should be tracked as active
       expect(manager.getActiveSessions()).toContain(sessionId);
       expect(manager.isSessionActive(sessionId)).toBe(true);
-    }, 5000);
+    }, 2000);
 
     it('should emit claude-message events', (done) => {
       const config: ConversationConfig = {
@@ -191,7 +191,7 @@ describe('ClaudeProcessManager', () => {
       });
 
       manager.startConversation(config).catch(done);
-    }, 5000);
+    }, 2000);
 
     it('should handle invalid working directory', async () => {
       const config: ConversationConfig = {
@@ -214,8 +214,8 @@ describe('ClaudeProcessManager', () => {
       sessionId = await manager.startConversation(config);
       
       // Wait a moment for the conversation to start
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }, 5000);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }, 2000);
 
     it('should send input to active conversation', async () => {
       const input = 'Please respond with just "received" and nothing else.';
@@ -227,7 +227,7 @@ describe('ClaudeProcessManager', () => {
       if (mockProcess) {
         mockProcess.simulateInput(input);
       }
-    }, 3000);
+    }, 1500);
 
     it('should throw error if session not found', async () => {
       await expect(manager.sendInput('non-existent-session', 'test'))
@@ -248,7 +248,7 @@ describe('ClaudeProcessManager', () => {
       const result = await manager.stopConversation(sessionId);
       expect(result).toBe(true);
       expect(manager.isSessionActive(sessionId)).toBe(false);
-    }, 5000);
+    }, 2000);
 
     it('should return false if session not found', async () => {
       const result = await manager.stopConversation('non-existent');
@@ -274,9 +274,9 @@ describe('ClaudeProcessManager', () => {
       manager.startConversation(config).then(sessionId => {
         setTimeout(() => {
           manager.stopConversation(sessionId);
-        }, 500);
+        }, 200);
       }).catch(done);
-    }, 10000);
+    }, 3000);
   });
 
   describe('session management', () => {
@@ -298,7 +298,7 @@ describe('ClaudeProcessManager', () => {
       expect(activeSessions).toContain(sessionId1);
       expect(activeSessions).toContain(sessionId2);
       expect(activeSessions).toHaveLength(2);
-    }, 5000);
+    }, 2000);
 
     it('should return empty array when no sessions', () => {
       expect(manager.getActiveSessions()).toEqual([]);
@@ -317,7 +317,7 @@ describe('ClaudeProcessManager', () => {
       
       await manager.stopConversation(sessionId);
       expect(manager.isSessionActive(sessionId)).toBe(false);
-    }, 5000);
+    }, 2000);
   });
 
   describe('error handling', () => {
@@ -348,6 +348,6 @@ describe('ClaudeProcessManager', () => {
           }
         }, 1000);
       });
-    }, 5000);
+    }, 2000);
   });
 });

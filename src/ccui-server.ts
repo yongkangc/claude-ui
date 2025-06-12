@@ -29,12 +29,16 @@ export class CCUIServer {
     port?: number;
     mcpConfigPath?: string;
     claudeHomePath?: string;
+    testMode?: boolean;
   }) {
     this.port = config?.port || parseInt(process.env.PORT || '3001');
     this.app = express();
     
-    // Initialize services
-    this.processManager = new ClaudeProcessManager(config?.mcpConfigPath);
+    // Initialize services with test mode support
+    const testMode = config?.testMode || false;
+    const testClaudeHome = testMode ? config?.claudeHomePath : undefined;
+    
+    this.processManager = new ClaudeProcessManager(config?.mcpConfigPath, testMode, testClaudeHome);
     this.streamManager = new StreamManager();
     this.historyReader = new ClaudeHistoryReader(config?.claudeHomePath);
     this.mcpServer = new CCUIMCPServer();

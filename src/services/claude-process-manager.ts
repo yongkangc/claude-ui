@@ -12,10 +12,14 @@ export class ClaudeProcessManager extends EventEmitter {
   private outputBuffers: Map<string, string> = new Map();
   private timeouts: Map<string, NodeJS.Timeout[]> = new Map();
   private mcpConfigPath: string;
+  private testMode: boolean;
+  private testClaudeHome?: string;
 
-  constructor(mcpConfigPath: string = './mcp-config.json') {
+  constructor(mcpConfigPath: string = './mcp-config.json', testMode: boolean = false, testClaudeHome?: string) {
     super();
     this.mcpConfigPath = mcpConfigPath;
+    this.testMode = testMode;
+    this.testClaudeHome = testClaudeHome;
   }
 
   /**
@@ -170,9 +174,15 @@ export class ClaudeProcessManager extends EventEmitter {
 
   private spawnClaudeProcess(config: ConversationConfig, args: string[]): ChildProcess {
     try {
+      // Prepare environment variables
+      const env = this.testMode && this.testClaudeHome ? {
+        ...process.env,  // Preserve all existing environment variables (especially PATH)
+        HOME: this.testClaudeHome  // Override HOME for test isolation
+      } : { ...process.env };
+
       const claudeProcess = spawn('claude', args, {
         cwd: config.workingDirectory || process.cwd(),
-        env: { ...process.env },
+        env,
         stdio: ['pipe', 'pipe', 'pipe'], // We'll handle all I/O streams
         shell: false
       });

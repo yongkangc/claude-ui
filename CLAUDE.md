@@ -86,26 +86,190 @@ Frontend (Browser) ──► CCUI Backend ──► Claude CLI Process
 ## Key Implementation Details
 
 ### Claude Process Management
-- Each conversation runs as a separate `claude` CLI child process
-- Processes communicate via JSONL (newline-delimited JSON) streams
-- The backend parses JSONL output incrementally and forwards to web clients
-- Process lifecycle includes graceful shutdown with SIGTERM/SIGKILL fallback
+Each conversation runs as a separate `claude` CLI child process with these characteristics:
+
+```typescript
+class ClaudeProcessManager {
+  private processes: Map<string, ChildProcess> = new Map();
+  private outputBuffers: Map<string, string> = new Map();
+  
+  async startConversation(config: ConversationConfig): Promise<string> {
+    const sessionId = generateSessionId();
+    
+    // Build Claude CLI command with required flags
+    const args = [
+      '-p',                            // Print mode for programmatic use
+      '--output-format', 'stream-json', // JSONL output format
+      '--mcp-config', this.mcpConfigPath,
+      '--permission-prompt-tool', 'mcp__ccui__permission_prompt',
+      '--add-dir', config.workingDirectory,
+      ...config.initialPrompt
+    ];
+    
+    const process = spawn('claude', args, {
+      cwd: config.workingDirectory,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    this.processes.set(sessionId, process);
+    this.setupProcessHandlers(sessionId, process);
+    return sessionId;
+  }
+}
+```
+
+**Process Lifecycle:**
+- Spawn with `child_process.spawn()` for real-time output streaming
+- Parse JSONL output incrementally using custom `JsonLinesParser`
+- Handle graceful shutdown with SIGTERM/SIGKILL fallback
+- Automatic cleanup on process termination
 
 ### MCP Integration
-- Uses Model Context Protocol for permission requests
-- Claude calls the `permission_prompt` tool when it needs user approval
-- Backend streams permission requests to web clients in real-time
-- User decisions are sent back through REST API to approve/deny tool usage
+Model Context Protocol integration enables permission handling:
+
+```typescript
+class CCUIMCPServer {
+  private server: McpServer;
+  private pendingRequests: Map<string, PermissionRequest> = new Map();
+  
+  constructor() {
+    this.server = new McpServer({
+      name: "ccui-permissions",
+      version: "1.0.0"
+    });
+    
+    // Register permission prompt tool
+    this.server.tool("permission_prompt", {
+      tool_name: z.string(),
+      input: z.object({}).passthrough(),
+      session_id: z.string()
+    }, async ({ tool_name, input, session_id }) => {
+      // Create permission request and wait for user decision
+      const request = await this.createPermissionRequest(tool_name, input, session_id);
+      const decision = await this.waitForDecision(request.id);
+      
+      return decision.approved ? 
+        { content: [{ type: "text", text: JSON.stringify({ behavior: "allow", updatedInput: input }) }] } :
+        { content: [{ type: "text", text: JSON.stringify({ behavior: "deny", message: "Permission denied" }) }] };
+    });
+  }
+}
+```
+
+**Permission Flow:**
+1. Claude requests tool usage via MCP
+2. MCP server creates `PermissionRequest` object
+3. Request streamed to web clients via HTTP streaming
+4. User approves/denies via REST API
+5. Decision returned to Claude for execution
 
 ### Streaming Architecture
-- Uses HTTP streaming with newline-delimited JSON (not Server-Sent Events)
-- Multiple clients can connect to the same conversation session
-- Stream events include: connection confirmation, Claude messages, permission requests, errors
+HTTP streaming with newline-delimited JSON (not Server-Sent Events):
+
+```typescript
+class StreamManager {
+  private clients: Map<string, Set<Response>> = new Map();
+  
+  addClient(sessionId: string, res: Response) {
+    // Configure for streaming
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    
+    // Add to client set for broadcasting
+    if (!this.clients.has(sessionId)) {
+      this.clients.set(sessionId, new Set());
+    }
+    this.clients.get(sessionId)!.add(res);
+    
+    // Send connection confirmation
+    this.sendToClient(res, {
+      type: 'connected',
+      session_id: sessionId,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  broadcast(sessionId: string, event: StreamUpdate) {
+    const clients = this.clients.get(sessionId);
+    if (!clients) return;
+    
+    for (const client of clients) {
+      client.write(`${JSON.stringify(event)}\n`);
+    }
+  }
+}
+```
+
+**Stream Features:**
+- Multiple clients can watch the same conversation
+- Real-time updates as Claude generates responses
+- Automatic client cleanup on disconnect
+- Connection confirmation and error handling
+
+### JSONL Stream Parser
+Custom Transform stream for parsing JSONL incrementally:
+
+```typescript
+class JsonLinesParser extends Transform {
+  private buffer = '';
+  
+  _transform(chunk: Buffer, encoding: string, callback: Function) {
+    this.buffer += chunk.toString();
+    let lines = this.buffer.split('\n');
+    this.buffer = lines.pop() || ''; // Keep incomplete line
+    
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          const parsed = JSON.parse(line);
+          this.push(parsed); // Emit parsed object
+        } catch (error) {
+          this.emit('error', new Error(`Invalid JSON: ${line}`));
+        }
+      }
+    }
+    callback();
+  }
+}
+```
+
+### History File Reader
+Reads conversation history from Claude's local storage:
+
+```typescript
+class ClaudeHistoryReader {
+  private claudeHomePath = path.join(os.homedir(), '.claude');
+  
+  async listConversations(): Promise<ConversationSummary[]> {
+    const projectsPath = path.join(this.claudeHomePath, 'projects');
+    const projects = await fs.readdir(projectsPath);
+    
+    for (const project of projects) {
+      // Process each project directory
+      const files = await fs.readdir(path.join(projectsPath, project));
+      for (const file of files.filter(f => f.endsWith('.jsonl'))) {
+        // Parse conversation files
+        const sessionId = path.basename(file, '.jsonl');
+        const summary = await this.parseConversationSummary(file);
+        // ... build conversation list
+      }
+    }
+  }
+  
+  private decodeProjectPath(encoded: string): string {
+    // Claude encodes paths by replacing '/' with '-'
+    return encoded.replace(/-/g, '/');
+  }
+}
+```
 
 ### Error Handling
 - Custom `CCUIError` class with error codes and HTTP status codes
 - Graceful handling of process failures and cleanup
 - Proper error propagation through Express middleware
+- Comprehensive logging with Pino for debugging
 
 ## Testing Strategy
 
@@ -167,16 +331,144 @@ The `config/mcp-config.json` file configures the MCP server for permission handl
 6. Update this CLAUDE.md file if architectural changes are made
 
 ### Working with Claude CLI
-- Claude CLI must be installed and available in PATH
-- Use `--output-format stream-json` for JSONL output
-- Configure MCP with `--mcp-config` and `--permission-prompt-tool` flags
-- Grant directory access with `--add-dir` flag
+
+#### CLI Flags Reference
+The backend uses these Claude CLI flags for programmatic integration:
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--output-format stream-json` | JSONL output format for parsing | `claude -p "query" --output-format stream-json` |
+| `--mcp-config` | Path to MCP configuration file | `claude --mcp-config ./config/mcp-config.json` |
+| `--permission-prompt-tool` | MCP tool for handling permissions | `claude --permission-prompt-tool mcp__ccui__permission_prompt` |
+| `--add-dir` | Grant directory access | `claude --add-dir /path/to/project` |
+| `--model` | Specify model version | `claude --model claude-sonnet-4-20250514` |
+| `--allowedTools` | Pre-approved tools | `claude --allowedTools "Bash,Read,Write"` |
+| `--disallowedTools` | Blocked tools | `claude --disallowedTools "Bash(rm)"` |
+| `--max-turns` | Limit conversation turns | `claude --max-turns 10` |
+| `--verbose` | Enable detailed logging | `claude --verbose` |
+
+#### Stream JSON Output Format
+When using `--output-format stream-json`, Claude outputs newline-delimited JSON messages:
+
+```json
+{"type":"system","subtype":"init","cwd":"/path","session_id":"abc123","tools":["Bash","Read"],"mcp_servers":[],"model":"claude-sonnet-4-20250514","permissionMode":"default","apiKeySource":"environment"}
+{"type":"assistant","message":{"id":"msg_123","content":[{"type":"text","text":"Hello!"}],"role":"assistant","model":"claude-sonnet-4-20250514","stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":5}},"session_id":"abc123"}
+{"type":"result","subtype":"success","cost_usd":0.003,"is_error":false,"duration_ms":1500,"num_turns":2,"total_cost":0.003,"usage":{"input_tokens":45,"output_tokens":25},"session_id":"abc123"}
+```
+
+#### Claude Data Directory Structure
+Claude stores conversation history in `~/.claude/` with this structure:
+
+```
+~/.claude/
+├── projects/                    # Conversations grouped by working directory
+│   ├── -Users-username-project/ # Encoded directory path
+│   │   ├── session-id-1.jsonl   # Individual conversation files
+│   │   └── session-id-2.jsonl
+│   └── -home-user-another/
+├── settings.json                # User preferences and tool permissions
+└── ...
+```
+
+Each `.jsonl` file contains:
+- First line: Summary metadata (`{"type":"summary","summary":"...","leafUuid":"..."}`)
+- Subsequent lines: Conversation messages with full tool usage details
 
 ### Debugging
 - Check server logs for process spawn failures
 - Verify Claude CLI is properly installed (`claude --version`)
 - Ensure MCP configuration file is valid JSON
 - Monitor process lifecycle through `ClaudeProcessManager` events
+
+## Implementation Flows
+
+### Starting a Conversation
+```
+1. Frontend calls POST /api/conversations/start
+2. Backend spawns Claude CLI process with MCP config:
+   claude -p --output-format stream-json --mcp-config ./config/mcp-config.json 
+   --permission-prompt-tool mcp__ccui__permission_prompt --add-dir /path/to/project "prompt"
+3. Backend returns session ID and stream URL
+4. Frontend connects to GET /api/stream/:sessionId
+5. Claude output is parsed and streamed to frontend in real-time
+```
+
+### Permission Handling Flow
+```
+1. Claude invokes a tool requiring permission
+2. MCP server receives the tool request via permission_prompt tool
+3. MCP server creates pending PermissionRequest object
+4. Backend broadcasts permission request via HTTP stream
+5. Frontend displays permission UI to user
+6. User approves/denies via POST /api/permissions/:id
+7. MCP server returns decision to Claude
+8. Claude continues or stops based on decision
+```
+
+### History Browsing
+```
+1. Frontend calls GET /api/conversations
+2. Backend reads ~/.claude/projects directory structure
+3. Backend parses .jsonl files for conversation summaries
+4. Returns paginated conversation list with metadata
+5. Frontend can fetch full conversation via GET /api/conversations/:id
+6. Backend parses complete .jsonl file and returns message history
+```
+
+## Example Usage
+
+### Conversation Lifecycle
+```typescript
+// Start conversation
+const response = await fetch('/api/conversations/start', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    workingDirectory: '/home/user/project',
+    initialPrompt: 'List files in the current directory',
+    model: 'claude-sonnet-4-20250514'
+  })
+});
+const { sessionId, streamUrl } = await response.json();
+
+// Connect to stream
+const stream = await fetch(streamUrl);
+const reader = stream.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const lines = decoder.decode(value).split('\n');
+  for (const line of lines) {
+    if (line.trim()) {
+      const message = JSON.parse(line);
+      console.log('Stream message:', message);
+    }
+  }
+}
+```
+
+### Permission Handling
+```typescript
+// Listen for permission requests in stream
+if (message.type === 'permission_request') {
+  const { id, toolName, toolInput } = message.data;
+  
+  // Show UI to user, then send decision
+  const decision = await showPermissionDialog(toolName, toolInput);
+  
+  await fetch(`/api/permissions/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: decision ? 'approve' : 'deny',
+      modifiedInput: decision ? toolInput : undefined
+    })
+  });
+}
+```
 
 ## API Documentation
 
@@ -186,4 +478,199 @@ The backend provides REST endpoints for:
 - **Permissions** - Handle MCP permission requests
 - **System** - Status and model information
 
-See the implementation plan (`cc-workfiles/plans/implementation-plan-v1.md`) for detailed API specifications.
+## API Specification
+
+### REST API Endpoints
+
+#### Conversation Management
+
+```typescript
+// Start new conversation
+POST /api/conversations/start
+Request: {
+  workingDirectory: string;    // Absolute path where Claude should operate
+  initialPrompt: string;       // First message to send to Claude
+  model?: string;              // Optional: specific model version (e.g., 'opus', 'sonnet')
+  allowedTools?: string[];     // Optional: whitelist of tools Claude can use without asking
+  disallowedTools?: string[];  // Optional: blacklist of tools Claude cannot use
+  systemPrompt?: string;       // Optional: override default system prompt
+}
+Response: {
+  sessionId: string;           // Unique identifier for this conversation
+  streamUrl: string;           // Streaming endpoint to receive real-time updates
+}
+
+// List all conversations
+GET /api/conversations
+Query: {
+  projectPath?: string;        // Filter by working directory
+  limit?: number;              // Max results per page (default: 20)
+  offset?: number;             // Skip N results for pagination
+  sortBy?: 'created' | 'updated';  // Sort field
+  order?: 'asc' | 'desc';      // Sort direction
+}
+Response: {
+  conversations: ConversationSummary[];  // Array of conversation metadata
+  total: number;               // Total count for pagination
+}
+
+// Get conversation details
+GET /api/conversations/:sessionId
+Response: {
+  messages: ConversationMessage[];  // Complete message history
+  summary: string;             // Conversation summary
+  projectPath: string;         // Working directory
+  metadata: {
+    totalCost: number;         // Sum of all message costs
+    totalDuration: number;     // Total processing time
+    model: string;             // Model used for conversation
+  };
+}
+
+// Continue conversation
+POST /api/conversations/:sessionId/continue
+Request: {
+  prompt: string;              // New message to send to Claude
+}
+Response: {
+  streamUrl: string;           // Same streaming endpoint as before
+}
+
+// Stop active conversation
+POST /api/conversations/:sessionId/stop
+Response: {
+  success: boolean;            // Whether process was successfully terminated
+}
+```
+
+#### Streaming Endpoint
+
+```typescript
+// Stream conversation updates
+GET /api/stream/:sessionId
+Response: Newline-delimited JSON stream
+
+// Stream message types include:
+interface SystemInitMessage {
+  type: 'system';
+  subtype: 'init';
+  cwd: string;
+  tools: string[];
+  mcp_servers: { name: string; status: string; }[];
+  model: string;
+  permissionMode: string;
+  apiKeySource: string;
+  session_id: string;
+}
+
+interface AssistantStreamMessage {
+  type: 'assistant';
+  message: Message; // Full Anthropic Message type
+  session_id: string;
+}
+
+interface UserStreamMessage {
+  type: 'user';
+  message: MessageParam; // Anthropic MessageParam type
+  session_id: string;
+}
+
+interface ResultStreamMessage {
+  type: 'result';
+  subtype: 'success' | 'error_max_turns';
+  cost_usd: number;
+  is_error: boolean;
+  duration_ms: number;
+  duration_api_ms: number;
+  num_turns: number;
+  result?: string;
+  total_cost: number;
+  usage: {
+    input_tokens: number;
+    cache_creation_input_tokens: number;
+    cache_read_input_tokens: number;
+    output_tokens: number;
+    server_tool_use: {
+      web_search_requests: number;
+    };
+  };
+  session_id: string;
+}
+```
+
+#### Permission Management
+
+```typescript
+// List pending permissions
+GET /api/permissions
+Query: {
+  sessionId?: string;          // Filter by conversation
+  status?: 'pending' | 'approved' | 'denied';  // Filter by status
+}
+Response: {
+  permissions: PermissionRequest[];  // Array of permission requests
+}
+
+// Approve/Deny permission
+POST /api/permissions/:requestId
+Request: {
+  action: 'approve' | 'deny';  // User's decision
+  modifiedInput?: any;         // Optional: user can modify tool parameters before approval
+}
+Response: {
+  success: boolean;            // Whether decision was recorded
+}
+```
+
+#### System Management
+
+```typescript
+// Get Claude installation info
+GET /api/system/status
+Response: {
+  claudeVersion: string;       // Version of Claude CLI installed
+  claudePath: string;          // Location of Claude executable
+  configPath: string;          // Location of Claude config directory
+  activeConversations: number; // Number of running Claude processes
+}
+
+// Get available models
+GET /api/models
+Response: {
+  models: string[];            // Array of model identifiers
+  defaultModel: string;        // Which model is used by default
+}
+```
+
+### Data Types
+
+```typescript
+interface ConversationSummary {
+  sessionId: string;        // Unique identifier for the conversation (UUID format)
+  projectPath: string;      // Original working directory where conversation started
+  summary: string;          // Brief description of the conversation
+  createdAt: string;        // ISO 8601 timestamp when conversation file was created
+  updatedAt: string;        // ISO 8601 timestamp of last modification
+  messageCount: number;     // Total number of messages in the conversation
+}
+
+interface ConversationMessage {
+  uuid: string;             // Unique identifier for this specific message
+  type: 'user' | 'assistant' | 'system';  // Who sent the message
+  message: any;             // Anthropic Message or MessageParam type
+  timestamp: string;        // ISO 8601 timestamp when message was created
+  sessionId: string;        // Links message to parent conversation
+  parentUuid?: string;      // For threading - references previous message in chain
+  costUSD?: number;         // API cost for this message (assistant messages only)
+  durationMs?: number;      // Time taken to generate response (assistant messages only)
+}
+
+interface PermissionRequest {
+  id: string;               // Unique request identifier
+  sessionId: string;        // Which conversation triggered this request
+  toolName: string;         // Name of the tool Claude wants to use
+  toolInput: any;           // Parameters Claude wants to pass to the tool
+  timestamp: string;        // When permission was requested
+  status: 'pending' | 'approved' | 'denied';  // Current state of the request
+}
+```
