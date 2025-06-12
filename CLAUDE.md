@@ -330,6 +330,31 @@ The `config/mcp-config.json` file configures the MCP server for permission handl
 5. Write integration tests for API endpoints
 6. Update this CLAUDE.md file if architectural changes are made
 
+### ⚠️ CRITICAL: API Documentation Synchronization
+
+**ALL API changes in the codebase MUST be synchronized in the API documentation file: `cc-workfiles/knowledge/API.md`**
+
+When making any changes to the CCUI backend APIs, you MUST update the API documentation file to reflect those changes. This includes:
+
+- Adding new endpoints
+- Modifying existing endpoints  
+- Changing request/response schemas
+- Adding or removing TypeScript types
+- Updating streaming message formats
+- Changing error codes or messages
+- Adding new query parameters or request body fields
+- Modifying HTTP status codes
+
+**Process for API Changes:**
+1. Make your code changes to the backend
+2. Update the API.md file with corresponding documentation changes
+3. Ensure all examples and type definitions match the implementation
+4. Test that the documentation accurately reflects the new behavior
+
+**Failure to keep the API documentation current will break frontend development workflows and cause integration issues.**
+
+The API documentation serves as the single source of truth for frontend developers integrating with the CCUI backend. Keeping it synchronized is essential for maintaining a productive development environment.
+
 ### Working with Claude CLI
 
 #### CLI Flags Reference
@@ -634,12 +659,6 @@ Response: {
   activeConversations: number; // Number of running Claude processes
 }
 
-// Get available models
-GET /api/models
-Response: {
-  models: string[];            // Array of model identifiers
-  defaultModel: string;        // Which model is used by default
-}
 ```
 
 ### Data Types
