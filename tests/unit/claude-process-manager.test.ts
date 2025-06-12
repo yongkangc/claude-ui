@@ -14,6 +14,11 @@ describe('ClaudeProcessManager', () => {
   let tempDir: string;
   let mcpConfigPath: string;
 
+  afterAll(async () => {
+    // Final cleanup of all mock processes
+    clearSpawnedProcesses();
+  });
+
   beforeEach(async () => {
     // Clear any previous mock processes
     clearSpawnedProcesses();
@@ -37,6 +42,9 @@ describe('ClaudeProcessManager', () => {
     for (const sessionId of activeSessions) {
       await manager.stopConversation(sessionId);
     }
+    
+    // Clean up mock processes
+    clearSpawnedProcesses();
     
     // Clean up temp directory
     await fs.rm(tempDir, { recursive: true, force: true });

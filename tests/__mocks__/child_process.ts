@@ -7,7 +7,7 @@ export class MockChildProcess extends EventEmitter {
   public stdin: Writable;
   public stdout: Readable;
   public stderr: Readable;
-  private _timeout?: NodeJS.Timeout;
+  private _timeouts: NodeJS.Timeout[] = [];
 
   constructor(command: string, args: string[], options: any) {
     super();
@@ -80,7 +80,7 @@ export class MockChildProcess extends EventEmitter {
     });
 
     // Send assistant response after a short delay
-    setTimeout(() => {
+    const responseTimeout = setTimeout(() => {
       const responseMessage = {
         type: 'assistant',
         message: {
@@ -100,7 +100,7 @@ export class MockChildProcess extends EventEmitter {
       this.stdout.push(JSON.stringify(responseMessage) + '\n');
       
       // Send result message
-      setTimeout(() => {
+      const resultTimeout = setTimeout(() => {
         const resultMessage = {
           type: 'result',
           subtype: 'success',
@@ -118,7 +118,9 @@ export class MockChildProcess extends EventEmitter {
         this.stdout.push(JSON.stringify(resultMessage) + '\n');
         this.stdout.push(null); // End stream
       }, 100);
+      this._timeouts.push(resultTimeout);
     }, 200);
+    this._timeouts.push(responseTimeout);
   }
 
   private getWorkingDirFromArgs(args: string[]): string | undefined {
@@ -146,9 +148,8 @@ export class MockChildProcess extends EventEmitter {
     this.killed = true;
     
     // Clear any pending timeouts
-    if (this._timeout) {
-      clearTimeout(this._timeout);
-    }
+    this._timeouts.forEach(timeout => clearTimeout(timeout));
+    this._timeouts.length = 0;
     
     // Simulate process termination
     setImmediate(() => {
@@ -163,7 +164,7 @@ export class MockChildProcess extends EventEmitter {
   simulateInput(input: string) {
     const sessionId = 'test-session-' + Date.now();
     
-    setTimeout(() => {
+    const inputTimeout = setTimeout(() => {
       const responseMessage = {
         type: 'assistant',
         message: {
@@ -182,6 +183,7 @@ export class MockChildProcess extends EventEmitter {
       
       this.stdout.push(JSON.stringify(responseMessage) + '\n');
     }, 100);
+    this._timeouts.push(inputTimeout);
   }
 }
 
@@ -201,6 +203,12 @@ export function getLastSpawnedProcess(): MockChildProcess | undefined {
 
 // Helper for tests to clean up
 export function clearSpawnedProcesses(): void {
+  // Kill all processes to clean up their timeouts
+  spawnedProcesses.forEach(process => {
+    if (!process.killed) {
+      process.kill();
+    }
+  });
   spawnedProcesses.length = 0;
 }
 

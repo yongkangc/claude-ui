@@ -10,6 +10,7 @@ import { JsonLinesParser } from './json-lines-parser';
 export class ClaudeProcessManager extends EventEmitter {
   private processes: Map<string, ChildProcess> = new Map();
   private outputBuffers: Map<string, string> = new Map();
+  private timeouts: Map<string, NodeJS.Timeout[]> = new Map();
   private mcpConfigPath: string;
 
   constructor(mcpConfigPath: string = './mcp-config.json') {
@@ -80,11 +81,23 @@ export class ClaudeProcessManager extends EventEmitter {
         process.kill('SIGTERM');
         
         // If SIGTERM doesn't work, use SIGKILL
-        setTimeout(() => {
+        const killTimeout = setTimeout(() => {
           if (!process.killed) {
             process.kill('SIGKILL');
           }
         }, 5000);
+        
+        // Track timeout for cleanup
+        const sessionTimeouts = this.timeouts.get(sessionId) || [];
+        sessionTimeouts.push(killTimeout);
+        this.timeouts.set(sessionId, sessionTimeouts);
+      }
+
+      // Clean up timeouts
+      const sessionTimeouts = this.timeouts.get(sessionId);
+      if (sessionTimeouts) {
+        sessionTimeouts.forEach(timeout => clearTimeout(timeout));
+        this.timeouts.delete(sessionId);
       }
 
       // Clean up
