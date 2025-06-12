@@ -100,9 +100,9 @@ export class CCUIServer {
     if (activeSessions.length > 0) {
       this.logger.info(`Stopping ${activeSessions.length} active sessions...`);
       await Promise.allSettled(
-        activeSessions.map(sessionId => 
-          this.processManager.stopConversation(sessionId)
-            .catch(error => this.logger.error(`Error stopping session ${sessionId}:`, error))
+        activeSessions.map(streamingId => 
+          this.processManager.stopConversation(streamingId)
+            .catch(error => this.logger.error(`Error stopping session ${streamingId}:`, error))
         )
       );
     }
@@ -160,10 +160,18 @@ export class CCUIServer {
     // Start new conversation
     this.app.post('/api/conversations/start', async (req: Request<{}, {}, StartConversationRequest>, res, next) => {
       try {
-        const sessionId = await this.processManager.startConversation(req.body);
+        // Validate required fields
+        if (!req.body.workingDirectory) {
+          throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+        }
+        if (!req.body.initialPrompt) {
+          throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+        }
+        
+        const streamingId = await this.processManager.startConversation(req.body);
         res.json({ 
-          sessionId, 
-          streamUrl: `/api/stream/${sessionId}` 
+          sessionId: streamingId, 
+          streamUrl: `/api/stream/${streamingId}` 
         });
       } catch (error) {
         next(error);
@@ -208,11 +216,11 @@ export class CCUIServer {
     });
 
     // Continue conversation
-    this.app.post('/api/conversations/:sessionId/continue', async (req: Request<{ sessionId: string }, {}, ContinueConversationRequest>, res, next) => {
+    this.app.post('/api/conversations/:streamingId/continue', async (req: Request<{ streamingId: string }, {}, ContinueConversationRequest>, res, next) => {
       try {
-        await this.processManager.sendInput(req.params.sessionId, req.body.prompt);
+        await this.processManager.sendInput(req.params.streamingId, req.body.prompt);
         res.json({ 
-          streamUrl: `/api/stream/${req.params.sessionId}` 
+          streamUrl: `/api/stream/${req.params.streamingId}` 
         });
       } catch (error) {
         next(error);
@@ -220,9 +228,9 @@ export class CCUIServer {
     });
 
     // Stop conversation
-    this.app.post('/api/conversations/:sessionId/stop', async (req, res, next) => {
+    this.app.post('/api/conversations/:streamingId/stop', async (req, res, next) => {
       try {
-        const success = await this.processManager.stopConversation(req.params.sessionId);
+        const success = await this.processManager.stopConversation(req.params.streamingId);
         res.json({ success });
       } catch (error) {
         next(error);
@@ -234,8 +242,8 @@ export class CCUIServer {
     // List pending permissions
     this.app.get('/api/permissions', (req, res) => {
       const permissions = this.mcpServer.getPendingRequests();
-      const filtered = req.query.sessionId 
-        ? permissions.filter(p => p.sessionId === req.query.sessionId)
+      const filtered = req.query.streamingId 
+        ? permissions.filter(p => p.streamingId === req.query.streamingId)
         : permissions;
       res.json({ permissions: filtered });
     });
@@ -278,19 +286,19 @@ export class CCUIServer {
   }
 
   private setupStreamingRoute(): void {
-    this.app.get('/api/stream/:sessionId', (req, res) => {
-      const { sessionId } = req.params;
-      this.streamManager.addClient(sessionId, res);
+    this.app.get('/api/stream/:streamingId', (req, res) => {
+      const { streamingId } = req.params;
+      this.streamManager.addClient(streamingId, res);
     });
   }
 
   private setupMCPIntegration(): void {
     // Forward permission requests to stream
     this.mcpServer.on('permission-request', (request) => {
-      this.streamManager.broadcast(request.sessionId, {
+      this.streamManager.broadcast(request.streamingId, {
         type: 'permission_request',
         data: request,
-        sessionId: request.sessionId,
+        streamingId: request.streamingId,
         timestamp: new Date().toISOString()
       });
     });
@@ -298,22 +306,22 @@ export class CCUIServer {
 
   private setupProcessManagerIntegration(): void {
     // Forward Claude messages to stream
-    this.processManager.on('claude-message', ({ sessionId, message }) => {
+    this.processManager.on('claude-message', ({ streamingId, message }) => {
       // Stream the Claude message directly as documented
-      this.streamManager.broadcast(sessionId, message);
+      this.streamManager.broadcast(streamingId, message);
     });
 
     // Handle process closure
-    this.processManager.on('process-closed', ({ sessionId }) => {
-      this.streamManager.closeSession(sessionId);
+    this.processManager.on('process-closed', ({ streamingId }) => {
+      this.streamManager.closeSession(streamingId);
     });
 
     // Handle process errors
-    this.processManager.on('process-error', ({ sessionId, error }) => {
-      this.streamManager.broadcast(sessionId, {
+    this.processManager.on('process-error', ({ streamingId, error }) => {
+      this.streamManager.broadcast(streamingId, {
         type: 'error',
         error,
-        sessionId,
+        streamingId: streamingId,
         timestamp: new Date().toISOString()
       });
     });

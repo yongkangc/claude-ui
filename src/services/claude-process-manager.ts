@@ -26,21 +26,21 @@ export class ClaudeProcessManager extends EventEmitter {
    * Start a new Claude conversation
    */
   async startConversation(config: ConversationConfig): Promise<string> {
-    const sessionId = uuidv4();
+    const streamingId = uuidv4(); // CCUI's internal streaming identifier
     
     try {
       const args = this.buildClaudeArgs(config);
       const process = this.spawnClaudeProcess(config, args);
       
-      this.processes.set(sessionId, process);
-      this.setupProcessHandlers(sessionId, process);
+      this.processes.set(streamingId, process);
+      this.setupProcessHandlers(streamingId, process);
       
       // Send initial prompt via stdin
       if (process.stdin && config.initialPrompt) {
         process.stdin.write(config.initialPrompt + '\n');
       }
       
-      return sessionId;
+      return streamingId;
     } catch (error) {
       throw new CCUIError('PROCESS_START_FAILED', `Failed to start Claude process: ${error}`, 500);
     }
@@ -49,10 +49,10 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Send input to a conversation
    */
-  async sendInput(sessionId: string, input: string): Promise<void> {
-    const process = this.processes.get(sessionId);
+  async sendInput(streamingId: string, input: string): Promise<void> {
+    const process = this.processes.get(streamingId);
     if (!process) {
-      throw new CCUIError('SESSION_NOT_FOUND', `No active session found: ${sessionId}`, 404);
+      throw new CCUIError('SESSION_NOT_FOUND', `No active session found: ${streamingId}`, 404);
     }
 
     if (!process.stdin) {
@@ -70,8 +70,8 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Stop a conversation
    */
-  async stopConversation(sessionId: string): Promise<boolean> {
-    const process = this.processes.get(sessionId);
+  async stopConversation(streamingId: string): Promise<boolean> {
+    const process = this.processes.get(streamingId);
     if (!process) {
       return false;
     }
@@ -97,25 +97,25 @@ export class ClaudeProcessManager extends EventEmitter {
         }, 5000);
         
         // Track timeout for cleanup
-        const sessionTimeouts = this.timeouts.get(sessionId) || [];
+        const sessionTimeouts = this.timeouts.get(streamingId) || [];
         sessionTimeouts.push(killTimeout);
-        this.timeouts.set(sessionId, sessionTimeouts);
+        this.timeouts.set(streamingId, sessionTimeouts);
       }
 
       // Clean up timeouts
-      const sessionTimeouts = this.timeouts.get(sessionId);
+      const sessionTimeouts = this.timeouts.get(streamingId);
       if (sessionTimeouts) {
         sessionTimeouts.forEach(timeout => clearTimeout(timeout));
-        this.timeouts.delete(sessionId);
+        this.timeouts.delete(streamingId);
       }
 
       // Clean up
-      this.processes.delete(sessionId);
-      this.outputBuffers.delete(sessionId);
+      this.processes.delete(streamingId);
+      this.outputBuffers.delete(streamingId);
       
       return true;
     } catch (error) {
-      console.error(`Error stopping conversation ${sessionId}:`, error);
+      console.error(`Error stopping conversation ${streamingId}:`, error);
       return false;
     }
   }
@@ -130,8 +130,8 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Check if a session is active
    */
-  isSessionActive(sessionId: string): boolean {
-    return this.processes.has(sessionId);
+  isSessionActive(streamingId: string): boolean {
+    return this.processes.has(streamingId);
   }
 
   private buildClaudeArgs(config: ConversationConfig): string[] {
@@ -219,12 +219,12 @@ export class ClaudeProcessManager extends EventEmitter {
     }
   }
 
-  private setupProcessHandlers(sessionId: string, process: ChildProcess): void {
+  private setupProcessHandlers(streamingId: string, process: ChildProcess): void {
     // Create JSONL parser for Claude output
     const parser = new JsonLinesParser();
     
     // Initialize output buffer for this session
-    this.outputBuffers.set(sessionId, '');
+    this.outputBuffers.set(streamingId, '');
 
     // Pipe stdout through JSONL parser
     if (process.stdout) {
@@ -232,58 +232,58 @@ export class ClaudeProcessManager extends EventEmitter {
 
       // Handle parsed JSONL messages from Claude
       parser.on('data', (message) => {
-        this.handleClaudeMessage(sessionId, message);
+        this.handleClaudeMessage(streamingId, message);
       });
 
       parser.on('error', (error) => {
-        this.handleProcessError(sessionId, error);
+        this.handleProcessError(streamingId, error);
       });
     }
 
     // Handle stderr output
     if (process.stderr) {
       process.stderr.on('data', (data) => {
-        this.handleProcessError(sessionId, data);
+        this.handleProcessError(streamingId, data);
       });
     }
 
     // Handle process termination
     process.on('close', (code, _signal) => {
-      this.handleProcessClose(sessionId, code);
+      this.handleProcessClose(streamingId, code);
     });
 
     process.on('error', (error) => {
-      this.handleProcessError(sessionId, error);
+      this.handleProcessError(streamingId, error);
     });
 
     // Handle process exit
     process.on('exit', (code, _signal) => {
-      this.handleProcessClose(sessionId, code);
+      this.handleProcessClose(streamingId, code);
     });
   }
 
-  private handleClaudeMessage(sessionId: string, message: any): void {
+  private handleClaudeMessage(streamingId: string, message: any): void {
     // Log Claude output for debugging
     if (this.testMode) {
-      console.log(`[Claude ${sessionId}]:`, JSON.stringify(message, null, 2));
+      console.log(`[Claude ${streamingId}]:`, JSON.stringify(message, null, 2));
     }
-    this.emit('claude-message', { sessionId, message });
+    this.emit('claude-message', { streamingId, message });
   }
 
-  private handleProcessClose(sessionId: string, code: number | null): void {
+  private handleProcessClose(streamingId: string, code: number | null): void {
     if (this.testMode) {
-      console.log(`[Claude ${sessionId}]: Process closed with code ${code}`);
+      console.log(`[Claude ${streamingId}]: Process closed with code ${code}`);
     }
-    this.processes.delete(sessionId);
-    this.outputBuffers.delete(sessionId);
-    this.emit('process-closed', { sessionId, code });
+    this.processes.delete(streamingId);
+    this.outputBuffers.delete(streamingId);
+    this.emit('process-closed', { streamingId, code });
   }
 
-  private handleProcessError(sessionId: string, error: Error | Buffer): void {
+  private handleProcessError(streamingId: string, error: Error | Buffer): void {
     const errorMessage = error.toString();
     if (this.testMode) {
-      console.error(`[Claude ${sessionId}]: Error -`, errorMessage);
+      console.error(`[Claude ${streamingId}]: Error -`, errorMessage);
     }
-    this.emit('process-error', { sessionId, error: errorMessage });
+    this.emit('process-error', { streamingId, error: errorMessage });
   }
 }

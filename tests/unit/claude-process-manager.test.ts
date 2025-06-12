@@ -39,8 +39,8 @@ describe('ClaudeProcessManager', () => {
   afterEach(async () => {
     // Clean up any active sessions
     const activeSessions = manager.getActiveSessions();
-    for (const sessionId of activeSessions) {
-      await manager.stopConversation(sessionId);
+    for (const streamingId of activeSessions) {
+      await manager.stopConversation(streamingId);
     }
     
     // Clean up mock processes
@@ -152,21 +152,21 @@ describe('ClaudeProcessManager', () => {
   });
 
   describe('startConversation', () => {
-    it('should start a conversation and return session ID', async () => {
+    it('should start a conversation and return streaming ID', async () => {
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
         initialPrompt: 'Hello, Claude! Please respond with just "Hello" and nothing else.'
       };
 
-      const sessionId = await manager.startConversation(config);
+      const streamingId = await manager.startConversation(config);
       
-      expect(sessionId).toBeDefined();
-      expect(typeof sessionId).toBe('string');
-      expect(sessionId.length).toBeGreaterThan(0);
+      expect(streamingId).toBeDefined();
+      expect(typeof streamingId).toBe('string');
+      expect(streamingId.length).toBeGreaterThan(0);
       
       // Session should be tracked as active
-      expect(manager.getActiveSessions()).toContain(sessionId);
-      expect(manager.isSessionActive(sessionId)).toBe(true);
+      expect(manager.getActiveSessions()).toContain(streamingId);
+      expect(manager.isSessionActive(streamingId)).toBe(true);
     }, 2000);
 
     it('should emit claude-message events', (done) => {
@@ -176,10 +176,10 @@ describe('ClaudeProcessManager', () => {
       };
 
       let messageReceived = false;
-      manager.on('claude-message', ({ sessionId, message }) => {
+      manager.on('claude-message', ({ streamingId, message }) => {
         if (messageReceived) return; // Prevent multiple done() calls
         
-        expect(sessionId).toBeDefined();
+        expect(streamingId).toBeDefined();
         expect(message).toBeDefined();
         
         // Should receive Claude's response messages
@@ -204,14 +204,14 @@ describe('ClaudeProcessManager', () => {
   });
 
   describe('sendInput', () => {
-    let sessionId: string;
+    let streamingId: string;
 
     beforeEach(async () => {
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
         initialPrompt: 'Hello, I will send you more messages. Please respond briefly.'
       };
-      sessionId = await manager.startConversation(config);
+      streamingId = await manager.startConversation(config);
       
       // Wait a moment for the conversation to start
       await new Promise(resolve => setTimeout(resolve, 25));
@@ -220,7 +220,7 @@ describe('ClaudeProcessManager', () => {
     it('should send input to active conversation', async () => {
       const input = 'Please respond with just "received" and nothing else.';
       
-      await expect(manager.sendInput(sessionId, input)).resolves.toBeUndefined();
+      await expect(manager.sendInput(streamingId, input)).resolves.toBeUndefined();
       
       // Simulate the response to the input
       const mockProcess = getLastSpawnedProcess();
@@ -242,12 +242,12 @@ describe('ClaudeProcessManager', () => {
         initialPrompt: 'Hello Claude'
       };
       
-      const sessionId = await manager.startConversation(config);
-      expect(manager.isSessionActive(sessionId)).toBe(true);
+      const streamingId = await manager.startConversation(config);
+      expect(manager.isSessionActive(streamingId)).toBe(true);
       
-      const result = await manager.stopConversation(sessionId);
+      const result = await manager.stopConversation(streamingId);
       expect(result).toBe(true);
-      expect(manager.isSessionActive(sessionId)).toBe(false);
+      expect(manager.isSessionActive(streamingId)).toBe(false);
     }, 2000);
 
     it('should return false if session not found', async () => {
@@ -262,18 +262,18 @@ describe('ClaudeProcessManager', () => {
       };
 
       let eventReceived = false;
-      manager.on('process-closed', ({ sessionId, code }) => {
+      manager.on('process-closed', ({ streamingId, code }) => {
         if (eventReceived) return; // Prevent multiple done() calls
         
-        expect(sessionId).toBeDefined();
+        expect(streamingId).toBeDefined();
         expect(typeof code).toBe('number');
         eventReceived = true;
         done();
       });
 
-      manager.startConversation(config).then(sessionId => {
+      manager.startConversation(config).then(streamingId => {
         setTimeout(() => {
-          manager.stopConversation(sessionId);
+          manager.stopConversation(streamingId);
         }, 100);
       }).catch(done);
     }, 3000);
@@ -291,12 +291,12 @@ describe('ClaudeProcessManager', () => {
         initialPrompt: 'Session 2'
       };
 
-      const sessionId1 = await manager.startConversation(config1);
-      const sessionId2 = await manager.startConversation(config2);
+      const streamingId1 = await manager.startConversation(config1);
+      const streamingId2 = await manager.startConversation(config2);
 
       const activeSessions = manager.getActiveSessions();
-      expect(activeSessions).toContain(sessionId1);
-      expect(activeSessions).toContain(sessionId2);
+      expect(activeSessions).toContain(streamingId1);
+      expect(activeSessions).toContain(streamingId2);
       expect(activeSessions).toHaveLength(2);
     }, 2000);
 
@@ -312,11 +312,11 @@ describe('ClaudeProcessManager', () => {
 
       expect(manager.isSessionActive('non-existent')).toBe(false);
       
-      const sessionId = await manager.startConversation(config);
-      expect(manager.isSessionActive(sessionId)).toBe(true);
+      const streamingId = await manager.startConversation(config);
+      expect(manager.isSessionActive(streamingId)).toBe(true);
       
-      await manager.stopConversation(sessionId);
-      expect(manager.isSessionActive(sessionId)).toBe(false);
+      await manager.stopConversation(streamingId);
+      expect(manager.isSessionActive(streamingId)).toBe(false);
     }, 2000);
   });
 
@@ -328,10 +328,10 @@ describe('ClaudeProcessManager', () => {
       };
 
       let errorReceived = false;
-      manager.on('process-error', ({ sessionId, error }) => {
+      manager.on('process-error', ({ streamingId, error }) => {
         if (errorReceived) return; // Prevent multiple done() calls
         
-        expect(sessionId).toBeDefined();
+        expect(streamingId).toBeDefined();
         expect(error).toBeDefined();
         errorReceived = true;
         done();

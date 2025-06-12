@@ -83,7 +83,7 @@ const response = await fetch('/api/conversations/start', {
 **Response:**
 ```typescript
 interface StartConversationResponse {
-  sessionId: string;           // Unique identifier for this conversation
+  streamingId: string;         // CCUI's internal streaming identifier
   streamUrl: string;           // Streaming endpoint to receive real-time updates
 }
 ```
@@ -91,10 +91,12 @@ interface StartConversationResponse {
 **Example Response:**
 ```json
 {
-  "sessionId": "abc123-def456-ghi789",
+  "streamingId": "abc123-def456-ghi789",
   "streamUrl": "/api/stream/abc123-def456-ghi789"
 }
 ```
+
+**Note:** The `streamingId` is CCUI's internal identifier for managing the streaming connection. This is separate from Claude CLI's own session ID that appears in the stream messages.
 
 #### `GET /api/conversations`
 
@@ -124,7 +126,7 @@ interface ConversationListResponse {
 }
 
 interface ConversationSummary {
-  sessionId: string;        // Unique identifier for the conversation
+  sessionId: string;        // Claude CLI's actual session ID (used for history files)
   projectPath: string;      // Original working directory
   summary: string;          // Brief description of the conversation
   createdAt: string;        // ISO 8601 timestamp when conversation started
@@ -155,16 +157,16 @@ interface ConversationMessage {
   type: 'user' | 'assistant' | 'system';  // Who sent the message
   message: any;             // Anthropic Message or MessageParam type
   timestamp: string;        // ISO 8601 timestamp when message was created
-  sessionId: string;        // Links message to parent conversation
+  sessionId: string;        // Claude CLI's actual session ID
   parentUuid?: string;      // For threading - references previous message in chain
   costUSD?: number;         // API cost for this message (assistant messages only)
   durationMs?: number;      // Time taken to generate response (assistant messages only)
 }
 ```
 
-#### `POST /api/conversations/:sessionId/continue`
+#### `POST /api/conversations/:streamingId/continue`
 
-Continue an existing conversation with a new message.
+Continue an existing conversation with a new message using CCUI's streaming ID.
 
 **Request Body:**
 ```typescript
@@ -180,9 +182,9 @@ interface ContinueConversationResponse {
 }
 ```
 
-#### `POST /api/conversations/:sessionId/stop`
+#### `POST /api/conversations/:streamingId/stop`
 
-Stop an active conversation.
+Stop an active conversation using CCUI's streaming ID.
 
 **Response:**
 ```typescript
@@ -200,7 +202,7 @@ List pending permission requests.
 **Query Parameters:**
 ```typescript
 interface PermissionListQuery {
-  sessionId?: string;          // Filter by conversation
+  streamingId?: string;        // Filter by CCUI streaming ID
   status?: 'pending' | 'approved' | 'denied';  // Filter by status
 }
 ```
@@ -213,7 +215,7 @@ interface PermissionListResponse {
 
 interface PermissionRequest {
   id: string;               // Unique request identifier
-  sessionId: string;        // Which conversation triggered this request
+  streamingId: string;      // CCUI's streaming ID that triggered this request
   toolName: string;         // Name of the tool Claude wants to use
   toolInput: any;           // Parameters Claude wants to pass to the tool
   timestamp: string;        // When permission was requested
@@ -272,9 +274,9 @@ interface ModelsResponse {
 
 ## Real-Time Streaming
 
-### `GET /api/stream/:sessionId`
+### `GET /api/stream/:streamingId`
 
-Establish a real-time streaming connection to receive conversation updates.
+Establish a real-time streaming connection to receive conversation updates using CCUI's streaming ID.
 
 **Connection Type:** HTTP streaming with newline-delimited JSON (not Server-Sent Events)
 
@@ -289,8 +291,8 @@ X-Accel-Buffering: no
 ### Frontend Streaming Implementation
 
 ```javascript
-// Connect to stream
-const response = await fetch(`/api/stream/${sessionId}`);
+// Connect to stream (using streamingId from start conversation response)
+const response = await fetch(`/api/stream/${streamingId}`);
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
 
@@ -314,10 +316,12 @@ All stream messages include these base fields:
 ```typescript
 interface StreamMessage {
   type: string;
-  session_id: string;
+  session_id: string;  // Claude CLI's session ID (in stream messages)
   parent_tool_use_id?: string | null;
 }
 ```
+
+**Important Note:** The `session_id` field in stream messages is Claude CLI's internal session ID, not CCUI's `streamingId`. The streaming connection itself is identified by the `streamingId` used in the URL path.
 
 #### Connection Events
 
@@ -325,7 +329,7 @@ interface StreamMessage {
 ```typescript
 interface ConnectedEvent {
   type: 'connected';
-  session_id: string;
+  streaming_id: string;  // CCUI's streaming ID
   timestamp: string;
 }
 ```
@@ -335,7 +339,7 @@ interface ConnectedEvent {
 interface ErrorEvent {
   type: 'error';
   error: string;
-  sessionId: string;
+  streamingId: string;  // CCUI's streaming ID
   timestamp: string;
 }
 ```
@@ -344,7 +348,7 @@ interface ErrorEvent {
 ```typescript
 interface ClosedEvent {
   type: 'closed';
-  sessionId: string;
+  streamingId: string;  // CCUI's streaming ID
   timestamp: string;
 }
 ```
@@ -429,7 +433,7 @@ interface ResultStreamMessage {
 interface PermissionRequestEvent {
   type: 'permission_request';
   data: PermissionRequest;
-  sessionId: string;
+  streamingId: string;  // CCUI's streaming ID
   timestamp: string;
 }
 ```
@@ -458,7 +462,7 @@ class CCUIError extends Error {
 interface MCPPermissionToolInput {
   tool_name: string;
   input: Record<string, any>;
-  session_id: string;
+  session_id: string;  // Claude CLI's session ID
 }
 
 interface MCPPermissionResponse {

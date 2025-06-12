@@ -7,6 +7,20 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import { spawn } from 'child_process';
 
+/**
+ * Integration tests for CCUI API endpoints
+ * 
+ * These tests require Claude CLI to be installed for full functionality.
+ * Dependencies:
+ * - @anthropic-ai/claude-code: ^1.0.19 (minimum required version)
+ * 
+ * Installation: npm install -g @anthropic-ai/claude-code@^1.0.19
+ * 
+ * Tests that require Claude CLI will be automatically skipped if:
+ * - Claude CLI is not installed
+ * - Version is below minimum requirement (1.0.19)
+ * - Installation is corrupted or inaccessible
+ */
 describe('API Endpoints Integration', () => {
   let server: CCUIServer;
   let httpServer: Server;
@@ -15,12 +29,82 @@ describe('API Endpoints Integration', () => {
   let tempClaudeHome: string;
   let mcpConfigPath: string;
 
-  // Helper function to check if Claude CLI is available
-  const isClaudeAvailable = (): Promise<boolean> => {
+  // Global setup to validate Claude CLI availability
+  beforeAll(async () => {
+    console.log('🔍 Validating Claude CLI dependency...');
+    const claudeCheck = await isClaudeAvailable();
+    
+    if (!claudeCheck.available) {
+      console.warn(`⚠️  Claude CLI dependency check failed: ${claudeCheck.error}`);
+      console.warn('   Tests requiring Claude CLI will be skipped.');
+      console.warn('   To run all tests, ensure Claude CLI is installed:');
+      console.warn('   npm install -g @anthropic-ai/claude-code@^1.0.19');
+    } else {
+      console.log(`✅ Claude CLI version ${claudeCheck.version} detected and ready`);
+    }
+  }, 15000);
+
+  // Helper function to check if Claude CLI is available with minimum version requirement
+  const isClaudeAvailable = (): Promise<{ available: boolean; version?: string; error?: string }> => {
     return new Promise((resolve) => {
-      const claudeProcess = spawn('claude', ['--version'], { stdio: 'ignore' });
-      claudeProcess.on('error', () => resolve(false));
-      claudeProcess.on('close', (code) => resolve(code === 0));
+      const claudeProcess = spawn('claude', ['--version'], { stdio: ['pipe', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+      
+      claudeProcess.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      claudeProcess.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      claudeProcess.on('error', (error) => {
+        resolve({ 
+          available: false, 
+          error: `Claude CLI not found. Please install with: npm install -g @anthropic-ai/claude-code@^1.0.19. Error: ${error.message}` 
+        });
+      });
+      
+      claudeProcess.on('close', (code) => {
+        if (code !== 0) {
+          resolve({ 
+            available: false, 
+            error: `Claude CLI returned exit code ${code}. stderr: ${stderr}` 
+          });
+          return;
+        }
+        
+        // Extract version from output (format: "X.X.X (Claude Code)" or "claude version X.X.X")
+        const versionMatch = stdout.match(/(?:version\s+)?(\d+\.\d+\.\d+)/i);
+        if (!versionMatch) {
+          resolve({ 
+            available: false, 
+            error: `Could not parse Claude CLI version from output: ${stdout}` 
+          });
+          return;
+        }
+        
+        const version = versionMatch[1];
+        const [major, minor, patch] = version.split('.').map(Number);
+        const requiredVersion = [1, 0, 19]; // Minimum required version
+        
+        // Check if version meets minimum requirement
+        const isVersionValid = major > requiredVersion[0] || 
+          (major === requiredVersion[0] && minor > requiredVersion[1]) ||
+          (major === requiredVersion[0] && minor === requiredVersion[1] && patch >= requiredVersion[2]);
+        
+        if (!isVersionValid) {
+          resolve({ 
+            available: false, 
+            version,
+            error: `Claude CLI version ${version} is below minimum required version 1.0.19. Please update with: npm install -g @anthropic-ai/claude-code@^1.0.19` 
+          });
+          return;
+        }
+        
+        resolve({ available: true, version });
+      });
     });
   };
 
@@ -257,11 +341,12 @@ describe('API Endpoints Integration', () => {
   describe('Conversation Management', () => {
     describe('POST /api/conversations/start', () => {
       it('should start a new conversation with real Claude CLI', async () => {
-        const claudeAvailable = await isClaudeAvailable();
-        if (!claudeAvailable) {
-          console.log('Skipping test: Claude CLI not available');
+        const claudeCheck = await isClaudeAvailable();
+        if (!claudeCheck.available) {
+          console.log(`Skipping test: ${claudeCheck.error}`);
           return;
         }
+        console.log(`Using Claude CLI version: ${claudeCheck.version}`);
 
         const requestBody = {
           workingDirectory: tempDir, // Use isolated test directory
@@ -287,11 +372,12 @@ describe('API Endpoints Integration', () => {
       }, 30000);
 
       it('should save conversation to history and be readable via API', async () => {
-        const claudeAvailable = await isClaudeAvailable();
-        if (!claudeAvailable) {
-          console.log('Skipping test: Claude CLI not available');
+        const claudeCheck = await isClaudeAvailable();
+        if (!claudeCheck.available) {
+          console.log(`Skipping test: ${claudeCheck.error}`);
           return;
         }
+        console.log(`Using Claude CLI version: ${claudeCheck.version}`);
 
         const requestBody = {
           workingDirectory: tempDir,
@@ -392,9 +478,9 @@ describe('API Endpoints Integration', () => {
       }, 45000);
 
       it('should handle start conversation errors', async () => {
-        const claudeAvailable = await isClaudeAvailable();
-        if (!claudeAvailable) {
-          console.log('Skipping test: Claude CLI not available');
+        const claudeCheck = await isClaudeAvailable();
+        if (!claudeCheck.available) {
+          console.log(`Skipping test: ${claudeCheck.error}`);
           return;
         }
 
@@ -507,9 +593,9 @@ describe('API Endpoints Integration', () => {
 
     describe('POST /api/conversations/:sessionId/continue', () => {
       it('should continue conversation with real Claude CLI', async () => {
-        const claudeAvailable = await isClaudeAvailable();
-        if (!claudeAvailable) {
-          console.log('Skipping test: Claude CLI not available');
+        const claudeCheck = await isClaudeAvailable();
+        if (!claudeCheck.available) {
+          console.log(`Skipping test: ${claudeCheck.error}`);
           return;
         }
 
@@ -553,9 +639,9 @@ describe('API Endpoints Integration', () => {
 
     describe('POST /api/conversations/:sessionId/stop', () => {
       it('should stop conversation with real Claude CLI', async () => {
-        const claudeAvailable = await isClaudeAvailable();
-        if (!claudeAvailable) {
-          console.log('Skipping test: Claude CLI not available');
+        const claudeCheck = await isClaudeAvailable();
+        if (!claudeCheck.available) {
+          console.log(`Skipping test: ${claudeCheck.error}`);
           return;
         }
 
@@ -600,9 +686,9 @@ describe('API Endpoints Integration', () => {
 
   describe('Streaming Integration', () => {
     it('should stream conversation updates with real Claude CLI', async () => {
-      const claudeAvailable = await isClaudeAvailable();
-      if (!claudeAvailable) {
-        console.log('Skipping test: Claude CLI not available');
+      const claudeCheck = await isClaudeAvailable();
+      if (!claudeCheck.available) {
+        console.log(`Skipping test: ${claudeCheck.error}`);
         return;
       }
 
@@ -632,9 +718,9 @@ describe('API Endpoints Integration', () => {
     }, 60000);
 
     it('should handle multiple clients on same stream', async () => {
-      const claudeAvailable = await isClaudeAvailable();
-      if (!claudeAvailable) {
-        console.log('Skipping test: Claude CLI not available');
+      const claudeCheck = await isClaudeAvailable();
+      if (!claudeCheck.available) {
+        console.log(`Skipping test: ${claudeCheck.error}`);
         return;
       }
 

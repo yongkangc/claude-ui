@@ -138,7 +138,7 @@ export class CCUIMCPServer extends EventEmitter {
       // Create permission request object
       const permissionRequest: PermissionRequest = {
         id: requestId,
-        sessionId: session_id,
+        streamingId: session_id,
         toolName: tool_name,
         toolInput: input,
         timestamp: new Date().toISOString(),

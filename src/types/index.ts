@@ -2,7 +2,7 @@
 
 // Base conversation types
 export interface ConversationSummary {
-  sessionId: string;
+  sessionId: string; // Claude CLI's actual session ID (used for history files)
   projectPath: string;
   summary: string;
   createdAt: string;
@@ -15,7 +15,7 @@ export interface ConversationMessage {
   type: 'user' | 'assistant' | 'system';
   message: any; // Anthropic Message or MessageParam type
   timestamp: string;
-  sessionId: string;
+  sessionId: string; // Claude CLI's actual session ID
   parentUuid?: string;
   costUSD?: number;
   durationMs?: number;
@@ -24,7 +24,7 @@ export interface ConversationMessage {
 // Stream message types
 export interface StreamMessage {
   type: 'system' | 'assistant' | 'user' | 'result';
-  session_id: string;
+  session_id: string; // Claude CLI's session ID (in stream messages)
   parent_tool_use_id?: string | null;
 }
 
@@ -73,7 +73,7 @@ export interface ResultStreamMessage extends StreamMessage {
 // Permission types
 export interface PermissionRequest {
   id: string;
-  sessionId: string;
+  streamingId: string; // CCUI's internal streaming identifier
   toolName: string;
   toolInput: any;
   timestamp: string;
@@ -103,7 +103,7 @@ export interface StartConversationRequest {
 }
 
 export interface StartConversationResponse {
-  sessionId: string;
+  sessionId: string; // CCUI's internal streaming identifier (exposed as sessionId in API)
   streamUrl: string;
 }
 
@@ -151,7 +151,7 @@ export interface ModelsResponse {
 export interface MCPPermissionToolInput {
   tool_name: string;
   input: Record<string, any>;
-  session_id: string;
+  session_id: string; // Claude CLI's session ID
 }
 
 export interface MCPPermissionResponse {
@@ -162,10 +162,10 @@ export interface MCPPermissionResponse {
 
 // Stream event types
 export type StreamEvent = 
-  | { type: 'connected'; session_id: string; timestamp: string }
-  | { type: 'permission_request'; data: PermissionRequest; sessionId: string; timestamp: string }
-  | { type: 'error'; error: string; sessionId: string; timestamp: string }
-  | { type: 'closed'; sessionId: string; timestamp: string }
+  | { type: 'connected'; streaming_id: string; timestamp: string }
+  | { type: 'permission_request'; data: PermissionRequest; streamingId: string; timestamp: string }
+  | { type: 'error'; error: string; streamingId: string; timestamp: string }
+  | { type: 'closed'; streamingId: string; timestamp: string }
   | SystemInitMessage
   | AssistantStreamMessage
   | UserStreamMessage

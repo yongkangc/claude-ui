@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 
 interface ClientConnection {
   response: Response;
-  sessionId: string;
+  streamingId: string; // CCUI's internal streaming identifier
   connectedAt: Date;
 }
 
@@ -18,7 +18,7 @@ export class StreamManager extends EventEmitter {
   /**
    * Add a client to receive stream updates
    */
-  addClient(sessionId: string, res: Response): void {
+  addClient(streamingId: string, res: Response): void {
     // Configure response for streaming
     res.setHeader('Content-Type', 'application/x-ndjson');
     res.setHeader('Cache-Control', 'no-cache');
@@ -27,56 +27,56 @@ export class StreamManager extends EventEmitter {
     res.setHeader('Access-Control-Allow-Origin', '*');
     
     // Initialize client set if needed
-    if (!this.clients.has(sessionId)) {
-      this.clients.set(sessionId, new Set());
+    if (!this.clients.has(streamingId)) {
+      this.clients.set(streamingId, new Set());
     }
     
     // Add this client to the session
-    this.clients.get(sessionId)!.add(res);
+    this.clients.get(streamingId)!.add(res);
     this.clientMetadata.set(res, {
       response: res,
-      sessionId,
+      streamingId,
       connectedAt: new Date()
     });
     
     // Send initial connection confirmation
     this.sendToClient(res, {
       type: 'connected',
-      session_id: sessionId,
+      streaming_id: streamingId,
       timestamp: new Date().toISOString()
     });
     
     // Clean up when client disconnects
     res.on('close', () => {
-      this.removeClient(sessionId, res);
+      this.removeClient(streamingId, res);
     });
 
     res.on('error', (error) => {
-      console.error(`Stream error for session ${sessionId}:`, error);
-      this.removeClient(sessionId, res);
+      console.error(`Stream error for session ${streamingId}:`, error);
+      this.removeClient(streamingId, res);
     });
   }
 
   /**
    * Remove a client connection
    */
-  removeClient(sessionId: string, res: Response): void {
-    const clients = this.clients.get(sessionId);
+  removeClient(streamingId: string, res: Response): void {
+    const clients = this.clients.get(streamingId);
     if (clients) {
       clients.delete(res);
       if (clients.size === 0) {
-        this.clients.delete(sessionId);
+        this.clients.delete(streamingId);
       }
     }
     this.clientMetadata.delete(res);
-    this.emit('client-disconnected', { sessionId });
+    this.emit('client-disconnected', { streamingId });
   }
 
   /**
    * Broadcast an event to all clients watching a session
    */
-  broadcast(sessionId: string, event: StreamEvent): void {
-    const clients = this.clients.get(sessionId);
+  broadcast(streamingId: string, event: StreamEvent): void {
+    const clients = this.clients.get(streamingId);
     if (!clients || clients.size === 0) {
       return;
     }
@@ -93,7 +93,7 @@ export class StreamManager extends EventEmitter {
     }
     
     // Clean up dead clients
-    deadClients.forEach(client => this.removeClient(sessionId, client));
+    deadClients.forEach(client => this.removeClient(streamingId, client));
   }
 
   /**
@@ -111,8 +111,8 @@ export class StreamManager extends EventEmitter {
   /**
    * Get number of clients connected to a session
    */
-  getClientCount(sessionId: string): number {
-    return this.clients.get(sessionId)?.size || 0;
+  getClientCount(streamingId: string): number {
+    return this.clients.get(streamingId)?.size || 0;
   }
 
   /**
@@ -125,13 +125,13 @@ export class StreamManager extends EventEmitter {
   /**
    * Close all connections for a session
    */
-  closeSession(sessionId: string): void {
-    const clients = this.clients.get(sessionId);
+  closeSession(streamingId: string): void {
+    const clients = this.clients.get(streamingId);
     if (!clients) return;
     
     const closeEvent: StreamEvent = {
       type: 'closed',
-      sessionId,
+      streamingId: streamingId,
       timestamp: new Date().toISOString()
     };
     
@@ -144,15 +144,15 @@ export class StreamManager extends EventEmitter {
       }
     }
     
-    this.clients.delete(sessionId);
+    this.clients.delete(streamingId);
   }
 
   /**
    * Get metadata about connected clients
    */
-  getClientMetadata(): Array<{ sessionId: string; connectedAt: Date }> {
-    return Array.from(this.clientMetadata.values()).map(({ sessionId, connectedAt }) => ({
-      sessionId,
+  getClientMetadata(): Array<{ streamingId: string; connectedAt: Date }> {
+    return Array.from(this.clientMetadata.values()).map(({ streamingId, connectedAt }) => ({
+      streamingId,
       connectedAt
     }));
   }
@@ -161,8 +161,8 @@ export class StreamManager extends EventEmitter {
    * Disconnect all clients from all sessions
    */
   disconnectAll(): void {
-    for (const sessionId of this.clients.keys()) {
-      this.closeSession(sessionId);
+    for (const streamingId of this.clients.keys()) {
+      this.closeSession(streamingId);
     }
     this.clientMetadata.clear();
   }

@@ -35,9 +35,9 @@ describe('StreamManager', () => {
 
   describe('addClient', () => {
     it('should add client and configure headers', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
+      manager.addClient(streamingId, mockResponse);
 
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/x-ndjson');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
@@ -47,9 +47,9 @@ describe('StreamManager', () => {
     });
 
     it('should send connection confirmation', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
+      manager.addClient(streamingId, mockResponse);
 
       expect(mockResponse.write).toHaveBeenCalledWith(
         expect.stringContaining('"type":"connected"')
@@ -57,95 +57,95 @@ describe('StreamManager', () => {
     });
 
     it('should track client count', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      expect(manager.getClientCount(streamingId)).toBe(0);
       
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
     });
 
     it('should handle multiple clients for same session', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const mockResponse2 = createMockResponse();
       
-      manager.addClient(sessionId, mockResponse);
-      manager.addClient(sessionId, mockResponse2);
+      manager.addClient(streamingId, mockResponse);
+      manager.addClient(streamingId, mockResponse2);
       
-      expect(manager.getClientCount(sessionId)).toBe(2);
+      expect(manager.getClientCount(streamingId)).toBe(2);
     });
 
     it('should auto-remove client on close event', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
       
       mockResponse.emit('close');
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      expect(manager.getClientCount(streamingId)).toBe(0);
     });
 
     it('should auto-remove client on error event', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
       
       mockResponse.emit('error', new Error('Connection error'));
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      expect(manager.getClientCount(streamingId)).toBe(0);
     });
   });
 
   describe('removeClient', () => {
     it('should remove specific client', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const mockResponse2 = createMockResponse();
       
-      manager.addClient(sessionId, mockResponse);
-      manager.addClient(sessionId, mockResponse2);
-      expect(manager.getClientCount(sessionId)).toBe(2);
+      manager.addClient(streamingId, mockResponse);
+      manager.addClient(streamingId, mockResponse2);
+      expect(manager.getClientCount(streamingId)).toBe(2);
       
-      manager.removeClient(sessionId, mockResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.removeClient(streamingId, mockResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
     });
 
     it('should remove session when no clients remain', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getActiveSessions()).toContain(sessionId);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getActiveSessions()).toContain(streamingId);
       
-      manager.removeClient(sessionId, mockResponse);
-      expect(manager.getActiveSessions()).not.toContain(sessionId);
+      manager.removeClient(streamingId, mockResponse);
+      expect(manager.getActiveSessions()).not.toContain(streamingId);
     });
 
     it('should emit client-disconnected event', (done) => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
       manager.on('client-disconnected', (event) => {
-        expect(event.sessionId).toBe(sessionId);
+        expect(event.streamingId).toBe(streamingId);
         done();
       });
       
-      manager.addClient(sessionId, mockResponse);
-      manager.removeClient(sessionId, mockResponse);
+      manager.addClient(streamingId, mockResponse);
+      manager.removeClient(streamingId, mockResponse);
     });
   });
 
   describe('broadcast', () => {
     it('should send event to all clients in session', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const mockResponse2 = createMockResponse();
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456', // Claude's internal session ID
         message: { role: 'assistant', content: 'Hello' }
       };
       
-      manager.addClient(sessionId, mockResponse);
-      manager.addClient(sessionId, mockResponse2);
+      manager.addClient(streamingId, mockResponse);
+      manager.addClient(streamingId, mockResponse2);
       
-      manager.broadcast(sessionId, streamMessage);
+      manager.broadcast(streamingId, streamMessage);
       
       const expectedData = JSON.stringify(streamMessage) + '\n';
       expect(mockResponse.write).toHaveBeenCalledWith(expectedData);
@@ -156,7 +156,7 @@ describe('StreamManager', () => {
       const event: StreamEvent = {
         type: 'error',
         error: 'Test error',
-        sessionId: 'non-existent',
+        streamingId: 'non-existent',
         timestamp: new Date().toISOString()
       };
       
@@ -164,11 +164,11 @@ describe('StreamManager', () => {
     });
 
     it('should clean up dead clients during broadcast', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
       // Set up the mock to throw error after being added
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
       
       // Now set up the mock to throw error on write
       mockResponse.write.mockImplementation(() => {
@@ -177,48 +177,48 @@ describe('StreamManager', () => {
       
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456',
         message: { role: 'assistant', content: 'test' }
       };
       
-      manager.broadcast(sessionId, streamMessage);
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      manager.broadcast(streamingId, streamMessage);
+      expect(manager.getClientCount(streamingId)).toBe(0);
     });
 
     it('should handle writableEnded responses', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
       // Create response that will be ended after adding
       const endedResponse = createMockResponse();
       
       // Add client first (this succeeds)
-      manager.addClient(sessionId, endedResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, endedResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
       
       // Now mark it as ended
       (endedResponse as any).writableEnded = true;
       
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456',
         message: { role: 'assistant', content: 'test' }
       };
       
       // Broadcasting should detect the ended response and clean it up
-      manager.broadcast(sessionId, streamMessage);
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      manager.broadcast(streamingId, streamMessage);
+      expect(manager.getClientCount(streamingId)).toBe(0);
     });
   });
 
   describe('closeSession', () => {
     it('should send close event to all clients', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const mockResponse2 = createMockResponse();
       
-      manager.addClient(sessionId, mockResponse);
-      manager.addClient(sessionId, mockResponse2);
+      manager.addClient(streamingId, mockResponse);
+      manager.addClient(streamingId, mockResponse2);
       
-      manager.closeSession(sessionId);
+      manager.closeSession(streamingId);
       
       expect(mockResponse.write).toHaveBeenCalledWith(
         expect.stringContaining('"type":"closed"')
@@ -229,40 +229,40 @@ describe('StreamManager', () => {
     });
 
     it('should end all client connections', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const mockResponse2 = createMockResponse();
       
-      manager.addClient(sessionId, mockResponse);
-      manager.addClient(sessionId, mockResponse2);
+      manager.addClient(streamingId, mockResponse);
+      manager.addClient(streamingId, mockResponse2);
       
-      manager.closeSession(sessionId);
+      manager.closeSession(streamingId);
       
       expect(mockResponse.end).toHaveBeenCalled();
       expect(mockResponse2.end).toHaveBeenCalled();
     });
 
     it('should remove session from active sessions', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
-      manager.addClient(sessionId, mockResponse);
-      expect(manager.getActiveSessions()).toContain(sessionId);
+      manager.addClient(streamingId, mockResponse);
+      expect(manager.getActiveSessions()).toContain(streamingId);
       
-      manager.closeSession(sessionId);
-      expect(manager.getActiveSessions()).not.toContain(sessionId);
+      manager.closeSession(streamingId);
+      expect(manager.getActiveSessions()).not.toContain(streamingId);
     });
 
     it('should handle errors during client close gracefully', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       
       // Add client first
-      manager.addClient(sessionId, mockResponse);
+      manager.addClient(streamingId, mockResponse);
       
       // Then set up the mock to throw error on subsequent writes
       mockResponse.write.mockImplementation(() => {
         throw new Error('Write error');
       });
       
-      expect(() => manager.closeSession(sessionId)).not.toThrow();
+      expect(() => manager.closeSession(streamingId)).not.toThrow();
     });
   });
 
@@ -291,14 +291,14 @@ describe('StreamManager', () => {
     });
 
     it('should return client metadata with connection times', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const beforeConnect = new Date();
       
-      manager.addClient(sessionId, mockResponse);
+      manager.addClient(streamingId, mockResponse);
       
       const metadata = manager.getClientMetadata();
       expect(metadata).toHaveLength(1);
-      expect(metadata[0].sessionId).toBe(sessionId);
+      expect(metadata[0].streamingId).toBe(streamingId);
       expect(metadata[0].connectedAt).toBeInstanceOf(Date);
       expect(metadata[0].connectedAt.getTime()).toBeGreaterThanOrEqual(beforeConnect.getTime());
     });
@@ -306,38 +306,38 @@ describe('StreamManager', () => {
 
   describe('edge cases', () => {
     it('should handle destroyed response objects', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const destroyedResponse = createMockResponse();
       
       // Add client first (this succeeds)
-      manager.addClient(sessionId, destroyedResponse);
-      expect(manager.getClientCount(sessionId)).toBe(1);
+      manager.addClient(streamingId, destroyedResponse);
+      expect(manager.getClientCount(streamingId)).toBe(1);
       
       // Now mark it as destroyed
       destroyedResponse.destroyed = true;
       
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456',
         message: { role: 'assistant', content: 'test' }
       };
       
       // Broadcasting should detect the destroyed response and clean it up
-      manager.broadcast(sessionId, streamMessage);
-      expect(manager.getClientCount(sessionId)).toBe(0);
+      manager.broadcast(streamingId, streamMessage);
+      expect(manager.getClientCount(streamingId)).toBe(0);
     });
 
     it('should handle large event payloads', () => {
-      const sessionId = 'test-session-123';
+      const streamingId = 'test-streaming-123';
       const largeContent = Array(1000).fill(0).map((_, i) => `Line ${i}: This is a very long line with lots of content to make the payload large enough to test streaming capabilities.`).join('\n');
       const largeStreamMessage: AssistantStreamMessage = {
         type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456',
         message: { role: 'assistant', content: largeContent }
       };
       
-      manager.addClient(sessionId, mockResponse);
-      manager.broadcast(sessionId, largeStreamMessage);
+      manager.addClient(streamingId, mockResponse);
+      manager.broadcast(streamingId, largeStreamMessage);
       
       expect(mockResponse.write).toHaveBeenCalledWith(
         expect.stringContaining(largeContent.substring(0, 100))
