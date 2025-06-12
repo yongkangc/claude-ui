@@ -35,6 +35,11 @@ export class ClaudeProcessManager extends EventEmitter {
       this.processes.set(sessionId, process);
       this.setupProcessHandlers(sessionId, process);
       
+      // Send initial prompt via stdin
+      if (process.stdin && config.initialPrompt) {
+        process.stdin.write(config.initialPrompt + '\n');
+      }
+      
       return sessionId;
     } catch (error) {
       throw new CCUIError('PROCESS_START_FAILED', `Failed to start Claude process: ${error}`, 500);
@@ -133,10 +138,12 @@ export class ClaudeProcessManager extends EventEmitter {
     const args: string[] = [
       '-p', // Print mode - required for programmatic use
       '--output-format', 'stream-json', // JSONL output format
+      '--verbose', // Required when using stream-json with print mode
+      '--max-turns', '5', // Allow multiple turns to see Claude responses in tests
     ];
 
-    // Add MCP configuration if available
-    if (this.mcpConfigPath) {
+    // Add MCP configuration if available (skip in test mode to avoid MCP server dependency)
+    if (this.mcpConfigPath && !this.testMode) {
       args.push('--mcp-config', this.mcpConfigPath);
       args.push('--permission-prompt-tool', 'mcp__ccui__permission_prompt');
     }
@@ -166,8 +173,7 @@ export class ClaudeProcessManager extends EventEmitter {
       args.push('--system-prompt', config.systemPrompt);
     }
 
-    // Add the initial prompt as the final argument
-    args.push(config.initialPrompt);
+    // Note: In print mode (-p), the prompt should be sent via stdin, not as an argument
 
     return args;
   }
@@ -180,6 +186,10 @@ export class ClaudeProcessManager extends EventEmitter {
         HOME: this.testClaudeHome  // Override HOME for test isolation
       } : { ...process.env };
 
+      if (this.testMode) {
+        console.log(`[Claude]: Spawning process with args:`, ['claude', ...args]);
+      }
+
       const claudeProcess = spawn('claude', args, {
         cwd: config.workingDirectory || process.cwd(),
         env,
@@ -187,12 +197,24 @@ export class ClaudeProcessManager extends EventEmitter {
         shell: false
       });
       
+      // Handle spawn errors (like ENOENT when claude is not found)
+      claudeProcess.on('error', (error: any) => {
+        if (error.code === 'ENOENT') {
+          throw new CCUIError('CLAUDE_NOT_FOUND', 'Claude CLI not found. Please ensure Claude is installed and in PATH.', 500);
+        } else {
+          throw new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error.message}`, 500);
+        }
+      });
+      
       if (!claudeProcess.pid) {
-        throw new Error('Failed to spawn Claude process');
+        throw new Error('Failed to spawn Claude process - no PID assigned');
       }
 
       return claudeProcess;
     } catch (error) {
+      if (error instanceof CCUIError) {
+        throw error;
+      }
       throw new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error}`, 500);
     }
   }
@@ -241,16 +263,27 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   private handleClaudeMessage(sessionId: string, message: any): void {
+    // Log Claude output for debugging
+    if (this.testMode) {
+      console.log(`[Claude ${sessionId}]:`, JSON.stringify(message, null, 2));
+    }
     this.emit('claude-message', { sessionId, message });
   }
 
   private handleProcessClose(sessionId: string, code: number | null): void {
+    if (this.testMode) {
+      console.log(`[Claude ${sessionId}]: Process closed with code ${code}`);
+    }
     this.processes.delete(sessionId);
     this.outputBuffers.delete(sessionId);
     this.emit('process-closed', { sessionId, code });
   }
 
   private handleProcessError(sessionId: string, error: Error | Buffer): void {
-    this.emit('process-error', { sessionId, error: error.toString() });
+    const errorMessage = error.toString();
+    if (this.testMode) {
+      console.error(`[Claude ${sessionId}]: Error -`, errorMessage);
+    }
+    this.emit('process-error', { sessionId, error: errorMessage });
   }
 }
