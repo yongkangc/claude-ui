@@ -22,25 +22,16 @@ export class ClaudeProcessManager extends EventEmitter {
    */
   async startConversation(config: ConversationConfig): Promise<string> {
     const sessionId = uuidv4();
-    console.log(`[DEBUG] Starting conversation with sessionId: ${sessionId}`);
     
     try {
-      console.log(`[DEBUG] Building claude args for config:`, config);
       const args = this.buildClaudeArgs(config);
-      console.log(`[DEBUG] Claude args built:`, args);
-      
-      console.log(`[DEBUG] Spawning claude process...`);
       const process = this.spawnClaudeProcess(config, args);
-      console.log(`[DEBUG] Claude process spawned with PID: ${process.pid}`);
       
       this.processes.set(sessionId, process);
-      console.log(`[DEBUG] Setting up process handlers...`);
       this.setupProcessHandlers(sessionId, process);
-      console.log(`[DEBUG] Process handlers set up. Returning sessionId: ${sessionId}`);
       
       return sessionId;
     } catch (error) {
-      console.log(`[DEBUG] Error starting conversation:`, error);
       throw new CCUIError('PROCESS_START_FAILED', `Failed to start Claude process: ${error}`, 500);
     }
   }
@@ -166,85 +157,64 @@ export class ClaudeProcessManager extends EventEmitter {
 
   private spawnClaudeProcess(config: ConversationConfig, args: string[]): ChildProcess {
     try {
-      console.log(`[DEBUG] Spawning claude with args:`, args);
-      console.log(`[DEBUG] Working directory:`, config.workingDirectory || process.cwd());
-      
       const claudeProcess = spawn('claude', args, {
         cwd: config.workingDirectory || process.cwd(),
         env: { ...process.env },
         stdio: ['pipe', 'pipe', 'pipe'], // We'll handle all I/O streams
         shell: false
       });
-
-      console.log(`[DEBUG] Spawn result - PID: ${claudeProcess.pid}`);
       
       if (!claudeProcess.pid) {
         throw new Error('Failed to spawn Claude process');
       }
 
-      console.log(`[DEBUG] Claude process spawned successfully`);
       return claudeProcess;
     } catch (error) {
-      console.log(`[DEBUG] Spawn error:`, error);
       throw new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error}`, 500);
     }
   }
 
   private setupProcessHandlers(sessionId: string, process: ChildProcess): void {
-    console.log(`[DEBUG] Setting up handlers for session: ${sessionId}`);
-    
     // Create JSONL parser for Claude output
     const parser = new JsonLinesParser();
-    console.log(`[DEBUG] Created JSONL parser`);
     
     // Initialize output buffer for this session
     this.outputBuffers.set(sessionId, '');
-    console.log(`[DEBUG] Initialized output buffer`);
 
     // Pipe stdout through JSONL parser
     if (process.stdout) {
-      console.log(`[DEBUG] Setting up stdout pipe`);
       process.stdout.pipe(parser);
 
       // Handle parsed JSONL messages from Claude
       parser.on('data', (message) => {
-        console.log(`[DEBUG] Received parsed message:`, message);
         this.handleClaudeMessage(sessionId, message);
       });
 
       parser.on('error', (error) => {
-        console.log(`[DEBUG] Parser error:`, error);
         this.handleProcessError(sessionId, error);
       });
     }
 
     // Handle stderr output
     if (process.stderr) {
-      console.log(`[DEBUG] Setting up stderr handler`);
       process.stderr.on('data', (data) => {
-        console.log(`[DEBUG] Stderr data:`, data.toString());
         this.handleProcessError(sessionId, data);
       });
     }
 
     // Handle process termination
     process.on('close', (code, signal) => {
-      console.log(`[DEBUG] Process closed - code: ${code}, signal: ${signal}`);
       this.handleProcessClose(sessionId, code);
     });
 
     process.on('error', (error) => {
-      console.log(`[DEBUG] Process error:`, error);
       this.handleProcessError(sessionId, error);
     });
 
     // Handle process exit
     process.on('exit', (code, signal) => {
-      console.log(`[DEBUG] Process exit - code: ${code}, signal: ${signal}`);
       this.handleProcessClose(sessionId, code);
     });
-    
-    console.log(`[DEBUG] All handlers set up for session: ${sessionId}`);
   }
 
   private handleClaudeMessage(sessionId: string, message: any): void {
