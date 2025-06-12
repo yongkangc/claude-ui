@@ -156,4 +156,14 @@ export class StreamManager extends EventEmitter {
       connectedAt
     }));
   }
+
+  /**
+   * Disconnect all clients from all sessions
+   */
+  disconnectAll(): void {
+    for (const sessionId of this.clients.keys()) {
+      this.closeSession(sessionId);
+    }
+    this.clientMetadata.clear();
+  }
 }

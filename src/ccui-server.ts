@@ -9,6 +9,9 @@ import {
   ConversationListQuery,
   ContinueConversationRequest,
   PermissionDecisionRequest,
+  ConversationDetailsResponse,
+  SystemStatusResponse,
+  ModelsResponse,
   CCUIError 
 } from './types';
 import pino from 'pino';
@@ -18,6 +21,7 @@ import pino from 'pino';
  */
 export class CCUIServer {
   private app: Express;
+  private server?: import('http').Server;
   private processManager: ClaudeProcessManager;
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
@@ -59,7 +63,7 @@ export class CCUIServer {
       
       // Start Express server
       await new Promise<void>((resolve) => {
-        this.app.listen(this.port, () => {
+        this.server = this.app.listen(this.port, () => {
           this.logger.info(`CCUI backend server running on port ${this.port}`);
           resolve();
         });
@@ -71,11 +75,45 @@ export class CCUIServer {
   }
 
   /**
-   * Stop the server
+   * Stop the server gracefully
    */
   async stop(): Promise<void> {
+    this.logger.info('Starting graceful shutdown...');
+    
+    // Stop accepting new connections
+    if (this.server) {
+      await new Promise<void>((resolve, reject) => {
+        this.server!.close((error) => {
+          if (error) {
+            this.logger.error('Error closing HTTP server:', error);
+            reject(error);
+          } else {
+            this.logger.info('HTTP server closed');
+            resolve();
+          }
+        });
+      });
+    }
+    
+    // Stop all active Claude processes
+    const activeSessions = this.processManager.getActiveSessions();
+    if (activeSessions.length > 0) {
+      this.logger.info(`Stopping ${activeSessions.length} active sessions...`);
+      await Promise.allSettled(
+        activeSessions.map(sessionId => 
+          this.processManager.stopConversation(sessionId)
+            .catch(error => this.logger.error(`Error stopping session ${sessionId}:`, error))
+        )
+      );
+    }
+    
+    // Disconnect all streaming clients
+    this.streamManager.disconnectAll();
+    
+    // Stop MCP server
     await this.mcpServer.stop();
-    // TODO: Implement graceful shutdown
+    
+    this.logger.info('Graceful shutdown complete');
   }
 
   private setupMiddleware(): void {
@@ -152,10 +190,18 @@ export class CCUIServer {
           throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
         }
         
-        res.json({
+        const response: ConversationDetailsResponse = {
           messages,
-          ...metadata
-        });
+          summary: metadata.summary,
+          projectPath: metadata.projectPath,
+          metadata: {
+            totalCost: metadata.totalCost,
+            totalDuration: metadata.totalDuration,
+            model: metadata.model
+          }
+        };
+        
+        res.json(response);
       } catch (error) {
         next(error);
       }
@@ -213,25 +259,21 @@ export class CCUIServer {
     // Get system status
     this.app.get('/api/system/status', async (req, res, next) => {
       try {
-        // TODO: Implement actual system status checks
-        res.json({
-          claudeVersion: '1.0.0',
-          claudePath: '/usr/local/bin/claude',
-          configPath: process.env.CLAUDE_HOME_PATH || '~/.claude',
-          activeConversations: this.processManager.getActiveSessions().length
-        });
+        const systemStatus = await this.getSystemStatus();
+        res.json(systemStatus);
       } catch (error) {
         next(error);
       }
     });
 
     // Get available models
-    this.app.get('/api/models', (req, res) => {
-      // TODO: Get actual available models
-      res.json({
-        models: ['claude-opus-4-20250514', 'claude-3-5-sonnet-20241022'],
-        defaultModel: 'claude-opus-4-20250514'
-      });
+    this.app.get('/api/models', async (req, res, next) => {
+      try {
+        const models = await this.getAvailableModels();
+        res.json(models);
+      } catch (error) {
+        next(error);
+      }
     });
   }
 
@@ -257,12 +299,8 @@ export class CCUIServer {
   private setupProcessManagerIntegration(): void {
     // Forward Claude messages to stream
     this.processManager.on('claude-message', ({ sessionId, message }) => {
-      this.streamManager.broadcast(sessionId, {
-        type: 'claude_message',
-        data: message,
-        sessionId,
-        timestamp: new Date().toISOString()
-      });
+      // Stream the Claude message directly as documented
+      this.streamManager.broadcast(sessionId, message);
     });
 
     // Handle process closure
@@ -279,5 +317,83 @@ export class CCUIServer {
         timestamp: new Date().toISOString()
       });
     });
+  }
+
+  /**
+   * Get system status including Claude version and active conversations
+   */
+  private async getSystemStatus(): Promise<SystemStatusResponse> {
+    const { execSync } = require('child_process');
+    
+    try {
+      // Get Claude version
+      let claudeVersion = 'unknown';
+      let claudePath = 'unknown';
+      
+      try {
+        claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
+        claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim();
+      } catch (error) {
+        this.logger.warn('Failed to get Claude version information');
+      }
+      
+      return {
+        claudeVersion,
+        claudePath,
+        configPath: this.historyReader.homePath,
+        activeConversations: this.processManager.getActiveSessions().length
+      };
+    } catch (error) {
+      throw new CCUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
+    }
+  }
+
+  /**
+   * Get available Claude models
+   */
+  private async getAvailableModels(): Promise<ModelsResponse> {
+    const { execSync } = require('child_process');
+    
+    try {
+      // Try to get models from Claude CLI help output
+      let availableModels: string[] = [];
+      let defaultModel = 'claude-opus-4-20250514';
+      
+      try {
+        const helpOutput = execSync('claude --help', { encoding: 'utf-8' });
+        
+        // Parse help output for model information
+        // Look for --model option description which typically lists available models
+        const modelMatch = helpOutput.match(/--model.*?\[(.*?)\]/);
+        if (modelMatch) {
+          availableModels = modelMatch[1].split('|').map((m: string) => m.trim());
+        }
+        
+        // If that fails, try claude --version to see what's available
+        if (availableModels.length === 0) {
+          const versionOutput = execSync('claude --version', { encoding: 'utf-8' });
+          // Claude version output might contain model information
+          this.logger.debug('Claude version output:', versionOutput);
+        }
+      } catch (error) {
+        this.logger.warn('Failed to get model information from Claude CLI');
+      }
+      
+      // Fall back to known models if we couldn't parse them
+      if (availableModels.length === 0) {
+        availableModels = [
+          'claude-opus-4-20250514',
+          'claude-3-5-sonnet-20241022', 
+          'claude-3-5-haiku-20241022'
+        ];
+      }
+      
+      return {
+        models: availableModels,
+        defaultModel: availableModels.includes(defaultModel) ? defaultModel : availableModels[0]
+      };
+    } catch (error) {
+      throw new CCUIError('MODELS_ERROR', 'Failed to get available models', 500);
+    }
   }
 }

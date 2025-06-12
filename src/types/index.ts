@@ -164,9 +164,12 @@ export interface MCPPermissionResponse {
 export type StreamEvent = 
   | { type: 'connected'; session_id: string; timestamp: string }
   | { type: 'permission_request'; data: PermissionRequest; sessionId: string; timestamp: string }
-  | { type: 'claude_message'; data: StreamMessage; sessionId: string; timestamp: string }
   | { type: 'error'; error: string; sessionId: string; timestamp: string }
-  | { type: 'closed'; sessionId: string; timestamp: string };
+  | { type: 'closed'; sessionId: string; timestamp: string }
+  | SystemInitMessage
+  | AssistantStreamMessage
+  | UserStreamMessage
+  | ResultStreamMessage;
 
 // Error types
 export class CCUIError extends Error {

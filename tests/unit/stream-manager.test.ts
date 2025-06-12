@@ -141,19 +141,13 @@ describe('StreamManager', () => {
         session_id: sessionId,
         message: { role: 'assistant', content: 'Hello' }
       };
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: streamMessage,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
       
       manager.addClient(sessionId, mockResponse);
       manager.addClient(sessionId, mockResponse2);
       
-      manager.broadcast(sessionId, event);
+      manager.broadcast(sessionId, streamMessage);
       
-      const expectedData = JSON.stringify(event) + '\n';
+      const expectedData = JSON.stringify(streamMessage) + '\n';
       expect(mockResponse.write).toHaveBeenCalledWith(expectedData);
       expect(mockResponse2.write).toHaveBeenCalledWith(expectedData);
     });
@@ -186,14 +180,8 @@ describe('StreamManager', () => {
         session_id: sessionId,
         message: { role: 'assistant', content: 'test' }
       };
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: streamMessage,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
       
-      manager.broadcast(sessionId, event);
+      manager.broadcast(sessionId, streamMessage);
       expect(manager.getClientCount(sessionId)).toBe(0);
     });
 
@@ -215,15 +203,9 @@ describe('StreamManager', () => {
         session_id: sessionId,
         message: { role: 'assistant', content: 'test' }
       };
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: streamMessage,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
       
       // Broadcasting should detect the ended response and clean it up
-      manager.broadcast(sessionId, event);
+      manager.broadcast(sessionId, streamMessage);
       expect(manager.getClientCount(sessionId)).toBe(0);
     });
   });
@@ -339,15 +321,9 @@ describe('StreamManager', () => {
         session_id: sessionId,
         message: { role: 'assistant', content: 'test' }
       };
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: streamMessage,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
       
       // Broadcasting should detect the destroyed response and clean it up
-      manager.broadcast(sessionId, event);
+      manager.broadcast(sessionId, streamMessage);
       expect(manager.getClientCount(sessionId)).toBe(0);
     });
 
@@ -359,15 +335,9 @@ describe('StreamManager', () => {
         session_id: sessionId,
         message: { role: 'assistant', content: largeContent }
       };
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: largeStreamMessage,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
       
       manager.addClient(sessionId, mockResponse);
-      manager.broadcast(sessionId, event);
+      manager.broadcast(sessionId, largeStreamMessage);
       
       expect(mockResponse.write).toHaveBeenCalledWith(
         expect.stringContaining(largeContent.substring(0, 100))

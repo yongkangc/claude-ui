@@ -3,7 +3,7 @@ import { CCUIServer } from '@/ccui-server';
 import { StreamManager } from '@/services/stream-manager';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { CCUIMCPServer } from '@/mcp-server/ccui-mcp-server';
-import { StreamEvent } from '@/types';
+import { StreamEvent, AssistantStreamMessage } from '@/types';
 
 // Mock the services
 jest.mock('@/services/claude-process-manager');
@@ -147,15 +147,10 @@ describe('Streaming Integration - Simplified', () => {
 
       streamManager.addClient(sessionId, mockResponse);
       
-      const event: StreamEvent = {
-        type: 'claude_message',
-        data: {
-          type: 'assistant',
-          session_id: sessionId,
-          message: { content: 'test' }
-        } as any,
-        sessionId,
-        timestamp: new Date().toISOString()
+      const event: AssistantStreamMessage = {
+        type: 'assistant',
+        session_id: sessionId,
+        message: { content: 'test' }
       };
 
       streamManager.broadcast(sessionId, event);
