@@ -337,15 +337,38 @@ The backend uses these Claude CLI flags for programmatic integration:
 
 | Flag | Description | Example |
 |------|-------------|---------|
+| `-p, --print` | Print response and exit (useful for pipes) | `claude -p "query"` |
 | `--output-format stream-json` | JSONL output format for parsing | `claude -p "query" --output-format stream-json` |
-| `--mcp-config` | Path to MCP configuration file | `claude --mcp-config ./config/mcp-config.json` |
-| `--permission-prompt-tool` | MCP tool for handling permissions | `claude --permission-prompt-tool mcp__ccui__permission_prompt` |
-| `--add-dir` | Grant directory access | `claude --add-dir /path/to/project` |
+| `--input-format stream-json` | Realtime streaming input format | `claude --input-format stream-json` |
+| `--mcp-config` | Load MCP servers from JSON file or string | `claude --mcp-config ./config/mcp-config.json` |
+| `--add-dir` | Grant directory access (absolute paths) | `claude --add-dir /path/to/project` |
 | `--model` | Specify model version | `claude --model claude-sonnet-4-20250514` |
-| `--allowedTools` | Pre-approved tools | `claude --allowedTools "Bash,Read,Write"` |
-| `--disallowedTools` | Blocked tools | `claude --disallowedTools "Bash(rm)"` |
-| `--max-turns` | Limit conversation turns | `claude --max-turns 10` |
-| `--verbose` | Enable detailed logging | `claude --verbose` |
+| `--allowedTools` | Pre-approved tools (comma/space separated) | `claude --allowedTools "Bash,Read,Write"` |
+| `--disallowedTools` | Blocked tools (comma/space separated) | `claude --disallowedTools "Bash(rm)"` |
+| `--dangerously-skip-permissions` | Bypass all permission checks | `claude --dangerously-skip-permissions` |
+| `--verbose` | Enable verbose mode | `claude --verbose` |
+| `-d, --debug` | Enable debug mode | `claude --debug` |
+| `-c, --continue` | Continue most recent conversation | `claude --continue` |
+| `-r, --resume` | Resume a conversation by session ID | `claude --resume session-id` |
+
+#### Additional CLI Commands
+```bash
+# Configuration management
+claude config                    # Manage configuration settings
+claude config set -g theme dark  # Set global theme to dark
+
+# MCP server management  
+claude mcp                       # Configure and manage MCP servers
+
+# System maintenance
+claude doctor                    # Check Claude Code health
+claude update                    # Check for and install updates
+claude migrate-installer         # Migrate from npm to local installation
+
+# Get version and help
+claude --version                 # Show version number
+claude --help                   # Display help information
+```
 
 #### Stream JSON Output Format
 When using `--output-format stream-json`, Claude outputs newline-delimited JSON messages:

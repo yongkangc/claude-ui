@@ -11,7 +11,6 @@ import {
   PermissionDecisionRequest,
   ConversationDetailsResponse,
   SystemStatusResponse,
-  ModelsResponse,
   CCUIError 
 } from './types';
 import pino from 'pino';
@@ -266,15 +265,6 @@ export class CCUIServer {
       }
     });
 
-    // Get available models
-    this.app.get('/api/models', async (req, res, next) => {
-      try {
-        const models = await this.getAvailableModels();
-        res.json(models);
-      } catch (error) {
-        next(error);
-      }
-    });
   }
 
   private setupStreamingRoute(): void {
@@ -348,52 +338,4 @@ export class CCUIServer {
     }
   }
 
-  /**
-   * Get available Claude models
-   */
-  private async getAvailableModels(): Promise<ModelsResponse> {
-    const { execSync } = require('child_process');
-    
-    try {
-      // Try to get models from Claude CLI help output
-      let availableModels: string[] = [];
-      let defaultModel = 'claude-opus-4-20250514';
-      
-      try {
-        const helpOutput = execSync('claude --help', { encoding: 'utf-8' });
-        
-        // Parse help output for model information
-        // Look for --model option description which typically lists available models
-        const modelMatch = helpOutput.match(/--model.*?\[(.*?)\]/);
-        if (modelMatch) {
-          availableModels = modelMatch[1].split('|').map((m: string) => m.trim());
-        }
-        
-        // If that fails, try claude --version to see what's available
-        if (availableModels.length === 0) {
-          const versionOutput = execSync('claude --version', { encoding: 'utf-8' });
-          // Claude version output might contain model information
-          this.logger.debug('Claude version output:', versionOutput);
-        }
-      } catch (error) {
-        this.logger.warn('Failed to get model information from Claude CLI');
-      }
-      
-      // Fall back to known models if we couldn't parse them
-      if (availableModels.length === 0) {
-        availableModels = [
-          'claude-opus-4-20250514',
-          'claude-3-5-sonnet-20241022', 
-          'claude-3-5-haiku-20241022'
-        ];
-      }
-      
-      return {
-        models: availableModels,
-        defaultModel: availableModels.includes(defaultModel) ? defaultModel : availableModels[0]
-      };
-    } catch (error) {
-      throw new CCUIError('MODELS_ERROR', 'Failed to get available models', 500);
-    }
-  }
 }

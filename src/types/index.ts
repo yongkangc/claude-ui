@@ -142,10 +142,6 @@ export interface SystemStatusResponse {
   activeConversations: number;
 }
 
-export interface ModelsResponse {
-  models: string[];
-  defaultModel: string;
-}
 
 // MCP types
 export interface MCPPermissionToolInput {
