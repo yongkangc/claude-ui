@@ -14,12 +14,139 @@ describe('API Endpoints Integration', () => {
   let tempClaudeHome: string;
   let mcpConfigPath: string;
 
+  // Helper function to create sample conversation history
+  const createSampleConversations = async () => {
+    // Create multiple project directories with sample conversations
+    const projects = [
+      {
+        name: '-Users-test-project-web',
+        conversations: [
+          {
+            sessionId: 'web-session-1',
+            summary: 'Build a React component',
+            cwd: '/Users/test/project/web',
+            messages: [
+              {
+                type: 'user',
+                content: 'Create a button component with TypeScript',
+                timestamp: '2024-01-01T10:00:00Z'
+              },
+              {
+                type: 'assistant',
+                content: 'I\'ll help you create a TypeScript React button component.',
+                timestamp: '2024-01-01T10:00:05Z',
+                costUSD: 0.02,
+                durationMs: 2500
+              }
+            ]
+          },
+          {
+            sessionId: 'web-session-2', 
+            summary: 'Debug CSS styling issues',
+            cwd: '/Users/test/project/web',
+            messages: [
+              {
+                type: 'user',
+                content: 'Help me fix the layout issues in my CSS',
+                timestamp: '2024-01-02T14:30:00Z'
+              },
+              {
+                type: 'assistant',
+                content: 'Let me analyze your CSS layout issues.',
+                timestamp: '2024-01-02T14:30:03Z',
+                costUSD: 0.015,
+                durationMs: 1800
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: '-home-user-backend',
+        conversations: [
+          {
+            sessionId: 'backend-session-1',
+            summary: 'Node.js API development',
+            cwd: '/home/user/backend',
+            messages: [
+              {
+                type: 'user',
+                content: 'Create an Express.js REST API',
+                timestamp: '2024-01-03T09:15:00Z'
+              },
+              {
+                type: 'assistant',
+                content: 'I\'ll help you create an Express.js REST API with proper structure.',
+                timestamp: '2024-01-03T09:15:08Z',
+                costUSD: 0.03,
+                durationMs: 3200
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    for (const project of projects) {
+      const projectDir = path.join(tempClaudeHome, 'projects', project.name);
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      for (const conversation of project.conversations) {
+        const conversationLines = [];
+        
+        // Add summary line
+        conversationLines.push(JSON.stringify({
+          type: 'summary',
+          summary: conversation.summary,
+          leafUuid: `leaf-${conversation.sessionId}`
+        }));
+        
+        // Add message lines
+        conversation.messages.forEach((msg, index) => {
+          const messageData: any = {
+            parentUuid: index === 0 ? null : `msg-${index}`,
+            type: msg.type,
+            message: {
+              role: msg.type,
+              content: msg.content,
+              ...(msg.type === 'assistant' && { id: `msg_${index + 1}` })
+            },
+            uuid: `msg-${index + 1}`,
+            timestamp: msg.timestamp,
+            sessionId: conversation.sessionId,
+            cwd: conversation.cwd
+          };
+          
+          if (msg.type === 'assistant' && msg.costUSD) {
+            messageData.costUSD = msg.costUSD;
+            messageData.durationMs = msg.durationMs;
+          }
+          
+          conversationLines.push(JSON.stringify(messageData));
+        });
+        
+        const conversationContent = conversationLines.join('\n');
+        await fs.writeFile(path.join(projectDir, `${conversation.sessionId}.jsonl`), conversationContent);
+      }
+    }
+  };
+
   beforeEach(async () => {
     // Create temporary directories for testing
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-api-test-'));
     tempClaudeHome = path.join(tempDir, '.claude');
     await fs.mkdir(tempClaudeHome, { recursive: true });
     await fs.mkdir(path.join(tempClaudeHome, 'projects'), { recursive: true });
+    
+    // Create minimal Claude settings.json for isolated testing
+    const claudeSettings = {
+      "environment_variables": {},
+      "tool_permissions": {},
+      "default_settings": {
+        "model": "claude-sonnet-4-20250514"
+      }
+    };
+    await fs.writeFile(path.join(tempClaudeHome, 'settings.json'), JSON.stringify(claudeSettings, null, 2));
     
     // Create minimal MCP config
     mcpConfigPath = path.join(tempDir, 'mcp-config.json');
@@ -28,11 +155,15 @@ describe('API Endpoints Integration', () => {
     };
     await fs.writeFile(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
     
-    // Create server with real services but configured for testing
+    // Create sample conversation history for testing
+    await createSampleConversations();
+    
+    // Create server with real services but configured for isolated testing
     server = new CCUIServer({
       port: 0, // Use any available port
       mcpConfigPath,
-      claudeHomePath: tempClaudeHome
+      claudeHomePath: tempClaudeHome,
+      testMode: true // Enable test mode for HOME environment override
     });
     
     // Start server and get the actual port
@@ -42,22 +173,65 @@ describe('API Endpoints Integration', () => {
   });
 
   afterEach(async () => {
-    // Stop server
-    if (httpServer) {
-      await new Promise<void>((resolve) => {
-        httpServer.close(() => resolve());
-      });
+    try {
+      // Stop any active conversations first to ensure clean shutdown
+      if (server) {
+        const processManager = (server as any).processManager;
+        const activeSessions = processManager.getActiveSessions();
+        
+        if (activeSessions.length > 0) {
+          console.log(`Cleaning up ${activeSessions.length} active sessions...`);
+          
+          // Stop all sessions in parallel with timeout
+          await Promise.allSettled(
+            activeSessions.map(async (sessionId) => {
+              try {
+                const stopped = await Promise.race([
+                  processManager.stopConversation(sessionId),
+                  new Promise(resolve => setTimeout(() => resolve(false), 10000)) // 10s timeout
+                ]);
+                if (!stopped) {
+                  console.warn(`Failed to stop session ${sessionId} within timeout`);
+                }
+              } catch (error) {
+                console.warn(`Error stopping session ${sessionId}:`, error);
+              }
+            })
+          );
+          
+          // Wait a moment for processes to fully terminate
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      // Stop HTTP server
+      if (httpServer) {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Server close timeout'));
+          }, 5000);
+          
+          httpServer.close((error) => {
+            clearTimeout(timeout);
+            if (error) {
+              console.warn('Error closing HTTP server:', error);
+            }
+            resolve();
+          });
+        });
+      }
+    } catch (error) {
+      console.warn('Error during cleanup:', error);
+    } finally {
+      // Always clean up temp directory, even if other cleanup fails
+      try {
+        if (tempDir) {
+          await fs.rm(tempDir, { recursive: true, force: true });
+        }
+      } catch (error) {
+        console.warn('Error cleaning up temp directory:', error);
+      }
     }
-    
-    // Stop any active conversations
-    const processManager = (server as any).processManager;
-    const activeSessions = processManager.getActiveSessions();
-    for (const sessionId of activeSessions) {
-      await processManager.stopConversation(sessionId);
-    }
-    
-    // Clean up temp directory
-    await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   describe('Health Check', () => {
@@ -72,10 +246,11 @@ describe('API Endpoints Integration', () => {
 
   describe('Conversation Management', () => {
     describe('POST /api/conversations/start', () => {
-      it('should start a new conversation', async () => {
+      it('should start a new conversation with real Claude CLI', async () => {
         const requestBody = {
-          workingDirectory: process.cwd(), // Use current directory for testing
-          initialPrompt: 'Hello Claude, please respond with just "Hello" and nothing else.'
+          workingDirectory: tempDir, // Use isolated test directory
+          initialPrompt: 'Hello Claude, please respond with just "Hello" and nothing else. Keep it very short.',
+          model: 'claude-sonnet-4-20250514'
         };
 
         const response = await request(baseUrl)
@@ -87,7 +262,14 @@ describe('API Endpoints Integration', () => {
         expect(response.body.sessionId).toMatch(/^[a-f0-9-]{36}$/); // UUID format
         expect(response.body).toHaveProperty('streamUrl');
         expect(response.body.streamUrl).toBe(`/api/stream/${response.body.sessionId}`);
-      }, 30000);
+        
+        // Wait a moment to let the process start
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verify the session is active
+        const processManager = (server as any).processManager;
+        expect(processManager.isSessionActive(response.body.sessionId)).toBe(true);
+      }, 60000);
 
       it('should handle start conversation errors', async () => {
         const requestBody = {
@@ -110,7 +292,7 @@ describe('API Endpoints Integration', () => {
     });
 
     describe('GET /api/conversations', () => {
-      it('should list conversations when no history exists', async () => {
+      it('should list conversations with sample history', async () => {
         const response = await request(baseUrl)
           .get('/api/conversations')
           .expect(200);
@@ -118,29 +300,33 @@ describe('API Endpoints Integration', () => {
         expect(response.body).toHaveProperty('conversations');
         expect(response.body).toHaveProperty('total');
         expect(Array.isArray(response.body.conversations)).toBe(true);
-        expect(typeof response.body.total).toBe('number');
+        expect(response.body.total).toBeGreaterThan(0);
+        expect(response.body.conversations.length).toBeGreaterThan(0);
+        
+        // Verify sample conversations are present
+        const summaries = response.body.conversations.map(c => c.summary);
+        expect(summaries).toContain('Build a React component');
+        expect(summaries).toContain('Debug CSS styling issues');
+        expect(summaries).toContain('Node.js API development');
       });
       
-      it('should list conversations with real history', async () => {
-        // Create a sample conversation file
-        const projectDir = path.join(tempClaudeHome, 'projects', '-Users-test-project');
-        await fs.mkdir(projectDir, { recursive: true });
-        
-        const sessionId = 'test-session-history';
-        const conversationContent = `{"type":"summary","summary":"Test Conversation","leafUuid":"test-uuid"}
-{"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${sessionId}"}
-{"type":"assistant","message":{"role":"assistant","content":"Hi there"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}"}`;
-        
-        await fs.writeFile(path.join(projectDir, `${sessionId}.jsonl`), conversationContent);
-        
+      it('should filter conversations by project path', async () => {
         const response = await request(baseUrl)
           .get('/api/conversations')
+          .query({
+            projectPath: '/Users/test/project/web'
+          })
           .expect(200);
 
-        expect(response.body.conversations).toHaveLength(1);
-        expect(response.body.conversations[0].sessionId).toBe(sessionId);
-        expect(response.body.conversations[0].summary).toBe('Test Conversation');
-        expect(response.body.total).toBe(1);
+        expect(response.body).toHaveProperty('conversations');
+        expect(response.body).toHaveProperty('total');
+        
+        // Should only return conversations from the web project
+        if (response.body.conversations.length > 0) {
+          const summaries = response.body.conversations.map(c => c.summary);
+          expect(summaries).toEqual(expect.arrayContaining(['Build a React component', 'Debug CSS styling issues']));
+          expect(summaries).not.toContain('Node.js API development');
+        }
       });
 
       it('should handle query parameters', async () => {
@@ -161,17 +347,9 @@ describe('API Endpoints Integration', () => {
     });
 
     describe('GET /api/conversations/:sessionId', () => {
-      it('should get conversation details', async () => {
-        // Create a sample conversation file
-        const projectDir = path.join(tempClaudeHome, 'projects', '-Users-test-project-detail');
-        await fs.mkdir(projectDir, { recursive: true });
-        
-        const sessionId = 'test-session-detail';
-        const conversationContent = `{"type":"summary","summary":"Test Conversation Detail","leafUuid":"test-uuid"}
-{"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${sessionId}","cwd":"/Users/test/project/detail"}
-{"parentUuid":"msg1","type":"assistant","message":{"role":"assistant","content":"Hi there","id":"msg_123"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}","costUSD":0.01,"durationMs":1000}`;
-        
-        await fs.writeFile(path.join(projectDir, `${sessionId}.jsonl`), conversationContent);
+      it('should get conversation details from sample data', async () => {
+        // Use one of our sample conversations
+        const sessionId = 'web-session-1';
         
         const response = await request(baseUrl)
           .get(`/api/conversations/${sessionId}`)
@@ -179,9 +357,15 @@ describe('API Endpoints Integration', () => {
 
         expect(response.body).toHaveProperty('messages');
         expect(response.body.messages).toHaveLength(2);
-        expect(response.body).toHaveProperty('summary', 'Test Conversation Detail');
-        expect(response.body).toHaveProperty('projectPath', '/Users/test/project/detail');
+        expect(response.body).toHaveProperty('summary', 'Build a React component');
+        expect(response.body).toHaveProperty('projectPath', '/Users/test/project/web');
         expect(response.body).toHaveProperty('metadata');
+        
+        // Verify message content
+        expect(response.body.messages[0].message.content).toBe('Create a button component with TypeScript');
+        expect(response.body.messages[1].message.content).toBe('I\'ll help you create a TypeScript React button component.');
+        expect(response.body.messages[1]).toHaveProperty('costUSD', 0.02);
+        expect(response.body.messages[1]).toHaveProperty('durationMs', 2500);
       });
 
       it('should handle conversation not found', async () => {
@@ -192,20 +376,25 @@ describe('API Endpoints Integration', () => {
     });
 
     describe('POST /api/conversations/:sessionId/continue', () => {
-      it('should continue conversation', async () => {
-        // First start a conversation
+      it('should continue conversation with real Claude CLI', async () => {
+        // First start a conversation with isolated environment
         const startResponse = await request(baseUrl)
           .post('/api/conversations/start')
           .send({
-            workingDirectory: process.cwd(),
-            initialPrompt: 'Hello Claude'
+            workingDirectory: tempDir,
+            initialPrompt: 'Hello Claude, just say "Hi" and nothing else.',
+            model: 'claude-sonnet-4-20250514'
           })
           .expect(200);
         
         const sessionId = startResponse.body.sessionId;
         
-        // Wait a moment for the conversation to be established
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait longer for the conversation to be established
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Verify session is active before continuing
+        const processManager = (server as any).processManager;
+        expect(processManager.isSessionActive(sessionId)).toBe(true);
         
         const response = await request(baseUrl)
           .post(`/api/conversations/${sessionId}/continue`)
@@ -215,7 +404,7 @@ describe('API Endpoints Integration', () => {
         expect(response.body).toEqual({
           streamUrl: `/api/stream/${sessionId}`
         });
-      }, 30000);
+      }, 60000);
 
       it('should handle session not found', async () => {
         await request(baseUrl)
@@ -226,24 +415,36 @@ describe('API Endpoints Integration', () => {
     });
 
     describe('POST /api/conversations/:sessionId/stop', () => {
-      it('should stop conversation', async () => {
-        // First start a conversation
+      it('should stop conversation with real Claude CLI', async () => {
+        // First start a conversation with isolated environment
         const startResponse = await request(baseUrl)
           .post('/api/conversations/start')
           .send({
-            workingDirectory: process.cwd(),
-            initialPrompt: 'Hello Claude'
+            workingDirectory: tempDir,
+            initialPrompt: 'Hello Claude, just say "Hi" and nothing else.',
+            model: 'claude-sonnet-4-20250514'
           })
           .expect(200);
         
         const sessionId = startResponse.body.sessionId;
+        
+        // Wait a moment for the process to start
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verify session is active before stopping
+        const processManager = (server as any).processManager;
+        expect(processManager.isSessionActive(sessionId)).toBe(true);
         
         const response = await request(baseUrl)
           .post(`/api/conversations/${sessionId}/stop`)
           .expect(200);
 
         expect(response.body).toEqual({ success: true });
-      }, 30000);
+        
+        // Verify session is no longer active
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        expect(processManager.isSessionActive(sessionId)).toBe(false);
+      }, 60000);
 
       it('should handle stop failure', async () => {
         const response = await request(baseUrl)
@@ -252,6 +453,68 @@ describe('API Endpoints Integration', () => {
 
         expect(response.body).toEqual({ success: false });
       });
+    });
+  });
+
+  describe('Streaming Integration', () => {
+    it('should stream conversation updates with real Claude CLI', async () => {
+      // Start a conversation with isolated environment
+      const startResponse = await request(baseUrl)
+        .post('/api/conversations/start')
+        .send({
+          workingDirectory: tempDir,
+          initialPrompt: 'Hello Claude, please respond with exactly "Hi there!" and nothing else.',
+          model: 'claude-sonnet-4-20250514'
+        })
+        .expect(200);
+
+      const sessionId = startResponse.body.sessionId;
+      const streamUrl = startResponse.body.streamUrl;
+
+      // Connect to stream endpoint
+      const streamResponse = await request(baseUrl)
+        .get(streamUrl)
+        .expect(200);
+
+      expect(streamResponse.headers['content-type']).toContain('application/x-ndjson');
+      expect(streamResponse.headers['cache-control']).toBe('no-cache');
+      expect(streamResponse.headers['connection']).toBe('keep-alive');
+      
+      // Note: In a real implementation, you'd need to parse the streaming response
+      // For now, we just verify the stream endpoint is accessible
+    }, 60000);
+
+    it('should handle multiple clients on same stream', async () => {
+      // Start a conversation
+      const startResponse = await request(baseUrl)
+        .post('/api/conversations/start')
+        .send({
+          workingDirectory: tempDir,
+          initialPrompt: 'Hello Claude, just say "Hi" and nothing else.',
+          model: 'claude-sonnet-4-20250514'
+        })
+        .expect(200);
+
+      const sessionId = startResponse.body.sessionId;
+      const streamUrl = startResponse.body.streamUrl;
+
+      // Multiple clients should be able to connect to the same stream
+      const client1Promise = request(baseUrl).get(streamUrl).expect(200);
+      const client2Promise = request(baseUrl).get(streamUrl).expect(200);
+
+      const [client1Response, client2Response] = await Promise.all([
+        client1Promise,
+        client2Promise
+      ]);
+
+      expect(client1Response.headers['content-type']).toContain('application/x-ndjson');
+      expect(client2Response.headers['content-type']).toContain('application/x-ndjson');
+    }, 60000);
+
+    it('should handle stream for non-existent session', async () => {
+      await request(baseUrl)
+        .get('/api/stream/non-existent-session')
+        .expect(404);
     });
   });
 

@@ -214,7 +214,7 @@ describe('ClaudeProcessManager', () => {
       sessionId = await manager.startConversation(config);
       
       // Wait a moment for the conversation to start
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 25));
     }, 2000);
 
     it('should send input to active conversation', async () => {
@@ -274,7 +274,7 @@ describe('ClaudeProcessManager', () => {
       manager.startConversation(config).then(sessionId => {
         setTimeout(() => {
           manager.stopConversation(sessionId);
-        }, 200);
+        }, 100);
       }).catch(done);
     }, 3000);
   });
@@ -346,7 +346,7 @@ describe('ClaudeProcessManager', () => {
             errorReceived = true;
             done();
           }
-        }, 1000);
+        }, 100);
       });
     }, 2000);
   });

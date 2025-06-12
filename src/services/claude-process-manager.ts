@@ -78,7 +78,7 @@ export class ClaudeProcessManager extends EventEmitter {
       }
 
       // Wait a bit for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Force kill if still running
       if (!process.killed) {
@@ -226,7 +226,7 @@ export class ClaudeProcessManager extends EventEmitter {
     }
 
     // Handle process termination
-    process.on('close', (code, signal) => {
+    process.on('close', (code, _signal) => {
       this.handleProcessClose(sessionId, code);
     });
 
@@ -235,7 +235,7 @@ export class ClaudeProcessManager extends EventEmitter {
     });
 
     // Handle process exit
-    process.on('exit', (code, signal) => {
+    process.on('exit', (code, _signal) => {
       this.handleProcessClose(sessionId, code);
     });
   }
