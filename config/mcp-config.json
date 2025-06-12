@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ccui": {
+      "command": "node",
+      "args": ["./dist/mcp-server/index.js"],
+      "env": {
+        "CCUI_API_URL": "http://localhost:3001"
+      }
+    }
+  }
+}
