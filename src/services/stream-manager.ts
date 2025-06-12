@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { StreamEvent, CCUIError } from '@/types';
+import { StreamEvent } from '@/types';
 import { EventEmitter } from 'events';
 
 interface ClientConnection {
