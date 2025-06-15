@@ -886,6 +886,119 @@ describe('API Endpoints Integration', () => {
     });
   });
 
+  describe('MCP Permission Integration', () => {
+    it('should handle MCP server startup and connectivity', async () => {
+      // The server should already be running with MCP server
+      const response = await request(baseUrl)
+        .get('/api/system/status')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('activeConversations');
+      expect(typeof response.body.activeConversations).toBe('number');
+    });
+
+    it('should validate permission request structure', async () => {
+      const invalidRequestId = 'invalid-request-id';
+      
+      // Test with missing action
+      await request(baseUrl)
+        .post(`/api/permissions/${invalidRequestId}`)
+        .send({})
+        .expect(400);
+
+      // Test with invalid action
+      await request(baseUrl)
+        .post(`/api/permissions/${invalidRequestId}`)
+        .send({ action: 'invalid' })
+        .expect(400);
+    });
+
+    it('should handle permission requests with proper error codes', async () => {
+      const nonExistentRequestId = 'non-existent-request-id';
+      
+      const response = await request(baseUrl)
+        .post(`/api/permissions/${nonExistentRequestId}`)
+        .send({ action: 'approve' })
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('not found');
+    });
+
+    it('should filter permissions by streamingId', async () => {
+      const testStreamingId = 'test-streaming-id';
+      
+      const response = await request(baseUrl)
+        .get('/api/permissions')
+        .query({ streamingId: testStreamingId })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('permissions');
+      expect(Array.isArray(response.body.permissions)).toBe(true);
+      
+      // All returned permissions should match the filter
+      response.body.permissions.forEach((permission: any) => {
+        expect(permission.streamingId).toBe(testStreamingId);
+      });
+    });
+
+    it('should handle modified input in permission decisions', async () => {
+      const nonExistentRequestId = 'test-request-with-input';
+      const modifiedInput = { command: 'ls -la', safe: true };
+      
+      const response = await request(baseUrl)
+        .post(`/api/permissions/${nonExistentRequestId}`)
+        .send({ 
+          action: 'approve',
+          modifiedInput 
+        })
+        .expect(404);
+
+      // Should still fail because request doesn't exist, but should accept the structure
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('should handle concurrent permission requests', async () => {
+      const requests = Array.from({ length: 5 }, (_, i) => 
+        request(baseUrl)
+          .post(`/api/permissions/concurrent-test-${i}`)
+          .send({ action: 'deny' })
+      );
+
+      const responses = await Promise.all(requests);
+      
+      // All should respond with 404 (not found) but should handle concurrency
+      responses.forEach(response => {
+        expect(response.status).toBe(404);
+      });
+    });
+
+    it('should maintain permission request isolation between sessions', async () => {
+      const session1 = 'session-1';
+      const session2 = 'session-2';
+      
+      // Get permissions for each session
+      const response1 = await request(baseUrl)
+        .get('/api/permissions')
+        .query({ streamingId: session1 })
+        .expect(200);
+
+      const response2 = await request(baseUrl)
+        .get('/api/permissions')
+        .query({ streamingId: session2 })
+        .expect(200);
+
+      // Verify isolation (no cross-contamination)
+      response1.body.permissions.forEach((permission: any) => {
+        expect(permission.streamingId).not.toBe(session2);
+      });
+
+      response2.body.permissions.forEach((permission: any) => {
+        expect(permission.streamingId).not.toBe(session1);
+      });
+    });
+  });
+
   describe('CORS', () => {
     it('should include CORS headers', async () => {
       const response = await request(baseUrl)

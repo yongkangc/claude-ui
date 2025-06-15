@@ -4,6 +4,7 @@ import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { CCUIMCPServer } from './mcp-server/ccui-mcp-server';
+import { MCPConfigValidator } from './utils/mcp-config-validator';
 import { 
   StartConversationRequest, 
   ConversationListQuery,
@@ -58,19 +59,47 @@ export class CCUIServer {
    */
   async start(): Promise<void> {
     try {
-      // Start MCP server
+      // Validate MCP configuration before starting
+      if (this.processManager['mcpConfigPath']) {
+        this.logger.info('Validating MCP configuration...');
+        try {
+          await MCPConfigValidator.validateConfig(this.processManager['mcpConfigPath']);
+          this.logger.info('MCP configuration validated successfully');
+        } catch (error) {
+          this.logger.warn('MCP configuration validation failed:', error);
+          // Don't fail startup, just warn - some features may not work
+        }
+      }
+
+      // Start MCP server with detailed error handling
+      this.logger.info('Starting MCP server...');
       await this.mcpServer.start();
+      this.logger.info('MCP server started successfully');
       
       // Start Express server
-      await new Promise<void>((resolve) => {
+      this.logger.info(`Starting HTTP server on port ${this.port}...`);
+      await new Promise<void>((resolve, reject) => {
         this.server = this.app.listen(this.port, () => {
           this.logger.info(`CCUI backend server running on port ${this.port}`);
           resolve();
         });
+
+        this.server.on('error', (error: Error) => {
+          this.logger.error('Failed to start HTTP server:', error);
+          reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
+        });
       });
     } catch (error) {
       this.logger.error('Failed to start server:', error);
-      throw error;
+      
+      // Attempt cleanup on startup failure
+      await this.cleanup();
+      
+      if (error instanceof CCUIError) {
+        throw error;
+      } else {
+        throw new CCUIError('SERVER_START_FAILED', `Server startup failed: ${error}`, 500);
+      }
     }
   }
 
@@ -114,6 +143,40 @@ export class CCUIServer {
     await this.mcpServer.stop();
     
     this.logger.info('Graceful shutdown complete');
+  }
+
+  /**
+   * Cleanup resources during failed startup
+   */
+  private async cleanup(): Promise<void> {
+    this.logger.info('Performing cleanup after startup failure...');
+    
+    try {
+      // Close HTTP server if it was started
+      if (this.server) {
+        await new Promise<void>((resolve) => {
+          this.server!.close(() => {
+            this.logger.info('HTTP server closed during cleanup');
+            resolve();
+          });
+        });
+      }
+
+      // Stop MCP server if it was started
+      try {
+        await this.mcpServer.stop();
+        this.logger.info('MCP server stopped during cleanup');
+      } catch (error) {
+        this.logger.warn('Failed to stop MCP server during cleanup:', error);
+      }
+
+      // Disconnect streaming clients
+      this.streamManager.disconnectAll();
+      
+      this.logger.info('Cleanup completed');
+    } catch (error) {
+      this.logger.error('Error during cleanup:', error);
+    }
   }
 
   private setupMiddleware(): void {
@@ -218,6 +281,11 @@ export class CCUIServer {
     // Continue conversation
     this.app.post('/api/conversations/:streamingId/continue', async (req: Request<{ streamingId: string }, {}, ContinueConversationRequest>, res, next) => {
       try {
+        // Validate required fields
+        if (!req.body.prompt) {
+          throw new CCUIError('MISSING_PROMPT', 'prompt is required', 400);
+        }
+        
         await this.processManager.sendInput(req.params.streamingId, req.body.prompt);
         res.json({ 
           streamUrl: `/api/stream/${req.params.streamingId}` 
@@ -240,25 +308,45 @@ export class CCUIServer {
 
   private setupPermissionRoutes(): void {
     // List pending permissions
-    this.app.get('/api/permissions', (req, res) => {
-      const permissions = this.mcpServer.getPendingRequests();
-      const filtered = req.query.streamingId 
-        ? permissions.filter(p => p.streamingId === req.query.streamingId)
-        : permissions;
-      res.json({ permissions: filtered });
+    this.app.get('/api/permissions', (req, res, next) => {
+      try {
+        const permissions = this.mcpServer.getPendingRequests();
+        const filtered = req.query.streamingId 
+          ? permissions.filter(p => p.streamingId === req.query.streamingId)
+          : permissions;
+        res.json({ permissions: filtered });
+      } catch (error) {
+        this.logger.error('Failed to list permissions:', error);
+        next(new CCUIError('PERMISSION_LIST_FAILED', 'Failed to retrieve permission requests', 500));
+      }
     });
 
     // Handle permission decision
     this.app.post('/api/permissions/:requestId', (req: Request<{ requestId: string }, {}, PermissionDecisionRequest>, res, next) => {
       try {
+        // Validate request body
+        if (!req.body.action || !['approve', 'deny'].includes(req.body.action)) {
+          throw new CCUIError('INVALID_ACTION', 'Action must be either "approve" or "deny"', 400);
+        }
+
         const success = this.mcpServer.handleDecision(
           req.params.requestId,
           req.body.action,
           req.body.modifiedInput
         );
+
+        if (!success) {
+          throw new CCUIError('PERMISSION_NOT_FOUND', 'Permission request not found or already processed', 404);
+        }
+
         res.json({ success });
       } catch (error) {
-        next(error);
+        if (error instanceof CCUIError) {
+          next(error);
+        } else {
+          this.logger.error('Failed to handle permission decision:', error);
+          next(new CCUIError('PERMISSION_DECISION_FAILED', 'Failed to process permission decision', 500));
+        }
       }
     });
   }
@@ -295,12 +383,48 @@ export class CCUIServer {
   private setupMCPIntegration(): void {
     // Forward permission requests to stream
     this.mcpServer.on('permission-request', (request) => {
-      this.streamManager.broadcast(request.streamingId, {
-        type: 'permission_request',
-        data: request,
-        streamingId: request.streamingId,
-        timestamp: new Date().toISOString()
+      try {
+        this.streamManager.broadcast(request.streamingId, {
+          type: 'permission_request',
+          data: request,
+          streamingId: request.streamingId,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        this.logger.error('Failed to broadcast permission request:', error);
+        
+        // Automatically deny the request if we can't broadcast it
+        try {
+          this.mcpServer.handleDecision(request.id, 'deny');
+        } catch (decisionError) {
+          this.logger.error('Failed to auto-deny permission request after broadcast failure:', decisionError);
+        }
+      }
+    });
+
+    // Handle MCP server errors
+    this.mcpServer.on('error', (error) => {
+      this.logger.error('MCP server error:', error);
+      
+      // Broadcast error to all active sessions
+      const activeSessions = this.processManager.getActiveSessions();
+      activeSessions.forEach(streamingId => {
+        this.streamManager.broadcast(streamingId, {
+          type: 'error',
+          error: 'MCP server error: Permission handling may be unavailable',
+          streamingId,
+          timestamp: new Date().toISOString()
+        });
       });
+    });
+
+    // Handle MCP server start/stop events
+    this.mcpServer.on('started', () => {
+      this.logger.info('MCP server started successfully');
+    });
+
+    this.mcpServer.on('stopped', () => {
+      this.logger.info('MCP server stopped');
     });
   }
 

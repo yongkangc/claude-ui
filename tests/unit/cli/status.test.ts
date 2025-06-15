@@ -1,3 +1,15 @@
+// Create mock promisify function before imports
+const mockPromisify = jest.fn();
+
+// Mock the entire util module
+jest.mock('util', () => {
+  const actualUtil = jest.requireActual('util');
+  return {
+    ...actualUtil,
+    promisify: mockPromisify
+  };
+});
+
 import { statusCommand } from '@/cli/commands/status';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -5,14 +17,13 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-// Mock dependencies
+// Mock other dependencies
 jest.mock('child_process');
 jest.mock('fs/promises');
 jest.mock('os');
 jest.mock('path');
 
 const mockExec = exec as jest.MockedFunction<typeof exec>;
-const mockExecAsync = promisify(mockExec);
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockOs = os as jest.Mocked<typeof os>;
 const mockPath = path as jest.Mocked<typeof path>;
@@ -41,6 +52,12 @@ describe('CLI Status Command', () => {
   });
 
   afterEach(() => {
+    consoleSpy.log.mockClear();
+    consoleSpy.error.mockClear();
+    mockExit.mockClear();
+  });
+
+  afterAll(() => {
     consoleSpy.log.mockRestore();
     consoleSpy.error.mockRestore();
     mockExit.mockRestore();
@@ -49,7 +66,7 @@ describe('CLI Status Command', () => {
   describe('statusCommand with successful Claude CLI detection', () => {
     beforeEach(() => {
       // Mock successful Claude CLI detection
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           if (cmd === 'claude --version') {
             return { stdout: 'claude version 1.0.19\n', stderr: '' };
@@ -111,7 +128,7 @@ describe('CLI Status Command', () => {
   describe('statusCommand with Claude CLI not found', () => {
     beforeEach(() => {
       // Mock failed Claude CLI detection
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           throw new Error('Command not found');
         });
@@ -158,7 +175,7 @@ describe('CLI Status Command', () => {
   describe('statusCommand with partial file system access', () => {
     beforeEach(() => {
       // Mock successful Claude CLI detection
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           if (cmd === 'claude --version') {
             return { stdout: 'claude version 1.0.20\n', stderr: '' };
@@ -206,7 +223,7 @@ describe('CLI Status Command', () => {
 
     it('should handle file system errors during checks', async () => {
       // Mock successful Claude CLI detection
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           if (cmd === 'claude --version') {
             return { stdout: 'claude version 1.0.19\n', stderr: '' };
@@ -233,7 +250,7 @@ describe('CLI Status Command', () => {
   describe('statusCommand with Claude path detection', () => {
     beforeEach(() => {
       // Mock Claude version failing but which succeeding
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           if (cmd === 'claude --version') {
             throw new Error('Version command failed');
@@ -264,7 +281,7 @@ describe('CLI Status Command', () => {
       mockOs.platform.mockReturnValue('win32');
       mockOs.arch.mockReturnValue('x64');
 
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async () => {
           throw new Error('Command not found');
         });
@@ -281,7 +298,7 @@ describe('CLI Status Command', () => {
     });
 
     it('should handle empty stdout from commands', async () => {
-      jest.mocked(promisify).mockImplementation((fn: any) => {
+      mockPromisify.mockImplementation((fn: any) => {
         return jest.fn().mockImplementation(async (cmd: string) => {
           if (cmd === 'claude --version') {
             return { stdout: '', stderr: '' };

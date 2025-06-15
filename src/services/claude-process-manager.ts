@@ -3,6 +3,7 @@ import { ConversationConfig, CCUIError } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { JsonLinesParser } from './json-lines-parser';
+import { MCPConfigValidator } from '@/utils/mcp-config-validator';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -23,12 +24,52 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   /**
+   * Validate MCP configuration if not in test mode
+   */
+  async validateMCPConfig(): Promise<void> {
+    if (this.testMode || !this.mcpConfigPath) {
+      return; // Skip validation in test mode or if no config path
+    }
+
+    try {
+      const config = await MCPConfigValidator.validateConfig(this.mcpConfigPath);
+      const validation = await MCPConfigValidator.validateAllServers(config);
+      
+      // Log warnings for invalid servers but don't fail
+      Object.entries(validation.errors).forEach(([serverName, error]) => {
+        console.warn(`MCP server '${serverName}' validation warning: ${error}`);
+      });
+      
+      // Check if the CCUI server is configured correctly
+      if (!config.mcpServers.ccui) {
+        throw new CCUIError(
+          'MCP_CCUI_SERVER_NOT_CONFIGURED',
+          'CCUI MCP server not found in configuration. Permission handling will not work.',
+          400
+        );
+      }
+    } catch (error) {
+      if (error instanceof CCUIError) {
+        throw error;
+      }
+      throw new CCUIError(
+        'MCP_CONFIG_VALIDATION_FAILED',
+        `MCP configuration validation failed: ${error}`,
+        500
+      );
+    }
+  }
+
+  /**
    * Start a new Claude conversation
    */
   async startConversation(config: ConversationConfig): Promise<string> {
     const streamingId = uuidv4(); // CCUI's internal streaming identifier
     
     try {
+      // Validate MCP configuration before starting if using MCP
+      await this.validateMCPConfig();
+      
       const args = this.buildClaudeArgs(config);
       const process = this.spawnClaudeProcess(config, args);
       
