@@ -10,12 +10,3 @@ TestHelpers.setupTestLogging(false);
 
 // Configure Jest timeout for integration tests
 jest.setTimeout(30000);
-
-// Global test configuration
-beforeAll(() => {
-  TestHelpers.logTestInfo('Global test setup started');
-});
-
-afterAll(() => {
-  TestHelpers.logTestInfo('Global test cleanup completed');
-});

@@ -177,9 +177,9 @@ async function simulateClaudeResponse(config) {
   // Output the messages with delays
   if (config.outputFormat === 'stream-json') {
     outputJson(initMessage);
-    await delay(500);
+    await delay(50);
     outputJson(assistantMessage);
-    await delay(500);
+    await delay(50);
     outputJson(resultMessage);
   } else if (config.outputFormat === 'json') {
     outputJson(resultMessage);

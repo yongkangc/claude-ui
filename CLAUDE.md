@@ -57,23 +57,13 @@ The backend follows a service-oriented architecture with these key components:
 - **ClaudeProcessManager** (`src/services/claude-process-manager.ts`) - Manages Claude CLI process lifecycle
 - **StreamManager** (`src/services/stream-manager.ts`) - Handles client streaming connections  
 - **ClaudeHistoryReader** (`src/services/claude-history-reader.ts`) - Reads conversation history from ~/.claude
-- **CCUIMCPServer** (`src/mcp-server/ccui-mcp-server.ts`) - MCP server for permission handling
 - **JsonLinesParser** (`src/services/json-lines-parser.ts`) - Parses JSONL streams from Claude CLI
 
 ### Data Flow Architecture
 
-```
-Frontend (Browser) ──► CCUI Backend ──► Claude CLI Process
-        │                     │                │
-        │                     ▼                │
-        └──────────────► MCP Server ◄──────────┘
-                    (Permission Handling)
-```
-
 1. **Frontend** makes REST API calls to start/manage conversations
 2. **Backend** spawns Claude CLI processes independently
 3. **Claude CLI** outputs JSONL streams that are parsed and forwarded
-4. **MCP Server** handles permission requests between Claude and the web interface
 5. **Streaming** provides real-time updates to connected web clients
 
 ### File Structure Conventions
@@ -110,7 +100,7 @@ class ClaudeProcessManager {
     
     const process = spawn('claude', args, {
       cwd: config.workingDirectory,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['inherit', 'pipe', 'pipe']
     });
     
     this.processes.set(sessionId, process);
@@ -129,15 +119,6 @@ class ClaudeProcessManager {
 
 **Important:** Claude CLI in print mode (`-p`) runs once and exits. It does not accept stdin input for continuing conversations.
 
-**MCP Integration:** ClaudeProcessManager is now MCP-agnostic. MCP functionality is handled separately by the CCUIMCPServer component.
-
-### MCP Integration (Isolated Component)
-We keep isolated MCP implementation as we are going to implement them in the future. This means the MCP integration will be a separate, standalone component that can be developed and integrated modularly.
-
-The rest of the architectural details and code remain the same as in the previous documentation. The key point is that the MCP implementation will be kept isolated to allow for future flexible development.
-
 ## Code Practices and Guidelines
 
 - **Testing Guideline:** Avoid create mocks when testing. Always use real service/code unless it's very unconvenient
-
-[Rest of the documentation remains unchanged]
