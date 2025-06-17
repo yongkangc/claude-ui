@@ -1,12 +1,12 @@
-// Create mock promisify function before imports
-const mockPromisify = jest.fn();
+// Mock the execAsync function directly
+const mockExecAsync = jest.fn();
 
 // Mock the entire util module
 jest.mock('util', () => {
   const actualUtil = jest.requireActual('util');
   return {
     ...actualUtil,
-    promisify: mockPromisify
+    promisify: jest.fn(() => mockExecAsync)
   };
 });
 
@@ -66,21 +66,19 @@ describe('CLI Status Command', () => {
   describe('statusCommand with successful Claude CLI detection', () => {
     beforeEach(() => {
       // Mock successful Claude CLI detection
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          if (cmd === 'claude --version') {
-            return { stdout: 'claude version 1.0.19\n', stderr: '' };
-          }
-          if (cmd === 'which claude') {
-            return { stdout: '/usr/local/bin/claude\n', stderr: '' };
-          }
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        if (cmd === 'claude --version') {
+          return { stdout: 'claude version 1.0.19\n', stderr: '' };
+        }
+        if (cmd === 'which claude') {
+          return { stdout: '/usr/local/bin/claude\n', stderr: '' };
+        }
+        throw new Error('Command not found');
       });
 
       // Mock file system checks
       mockFs.access.mockImplementation(async (path: any) => {
-        if (path.includes('.claude') || path.includes('config') || path.includes('mcp-config.json')) {
+        if (path.includes('.claude') || path.includes('config')) {
           return; // Files exist
         }
         throw new Error('Not found');
@@ -96,7 +94,6 @@ describe('CLI Status Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Path: Not found');
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude Home Directory: ✓ Found (/home/user/.claude)');
       expect(consoleSpy.log).toHaveBeenCalledWith('Config Directory: ✓ Found (./config)');
-      expect(consoleSpy.log).toHaveBeenCalledWith('MCP Config: ✓ Found (./config/mcp-config.json)');
       expect(consoleSpy.log).toHaveBeenCalledWith('Node.js Version: v18.17.0');
       expect(consoleSpy.log).toHaveBeenCalledWith('Platform: darwin');
       expect(consoleSpy.log).toHaveBeenCalledWith('Architecture: x64');
@@ -113,8 +110,6 @@ describe('CLI Status Command', () => {
         claudeHomeExists: true,
         configPath: './config',
         configExists: true,
-        mcpConfigPath: './config/mcp-config.json',
-        mcpConfigExists: true,
         nodeVersion: 'v18.17.0',
         platform: 'darwin',
         architecture: 'x64'
@@ -128,10 +123,8 @@ describe('CLI Status Command', () => {
   describe('statusCommand with Claude CLI not found', () => {
     beforeEach(() => {
       // Mock failed Claude CLI detection
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        throw new Error('Command not found');
       });
 
       // Mock file system checks - no files exist
@@ -161,8 +154,6 @@ describe('CLI Status Command', () => {
         claudeHomeExists: false,
         configPath: './config',
         configExists: false,
-        mcpConfigPath: './config/mcp-config.json',
-        mcpConfigExists: false,
         nodeVersion: 'v18.17.0',
         platform: 'darwin',
         architecture: 'x64'
@@ -175,16 +166,14 @@ describe('CLI Status Command', () => {
   describe('statusCommand with partial file system access', () => {
     beforeEach(() => {
       // Mock successful Claude CLI detection
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          if (cmd === 'claude --version') {
-            return { stdout: 'claude version 1.0.20\n', stderr: '' };
-          }
-          if (cmd === 'which claude') {
-            return { stdout: '/opt/homebrew/bin/claude\n', stderr: '' };
-          }
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        if (cmd === 'claude --version') {
+          return { stdout: 'claude version 1.0.20\n', stderr: '' };
+        }
+        if (cmd === 'which claude') {
+          return { stdout: '/opt/homebrew/bin/claude\n', stderr: '' };
+        }
+        throw new Error('Command not found');
       });
 
       // Mock partial file system access
@@ -192,7 +181,7 @@ describe('CLI Status Command', () => {
         if (path.includes('.claude')) {
           return; // Claude home exists
         }
-        if (path.includes('config') && !path.includes('mcp-config.json')) {
+        if (path.includes('config')) {
           return; // Config dir exists
         }
         throw new Error('Not found');
@@ -204,7 +193,6 @@ describe('CLI Status Command', () => {
 
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude Home Directory: ✓ Found (/home/user/.claude)');
       expect(consoleSpy.log).toHaveBeenCalledWith('Config Directory: ✓ Found (./config)');
-      expect(consoleSpy.log).toHaveBeenCalledWith('MCP Config: ✗ Not found (./config/mcp-config.json)');
     });
   });
 
@@ -223,13 +211,11 @@ describe('CLI Status Command', () => {
 
     it('should handle file system errors during checks', async () => {
       // Mock successful Claude CLI detection
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          if (cmd === 'claude --version') {
-            return { stdout: 'claude version 1.0.19\n', stderr: '' };
-          }
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        if (cmd === 'claude --version') {
+          return { stdout: 'claude version 1.0.19\n', stderr: '' };
+        }
+        throw new Error('Command not found');
       });
 
       // Mock file system access throwing unexpected errors
@@ -250,16 +236,14 @@ describe('CLI Status Command', () => {
   describe('statusCommand with Claude path detection', () => {
     beforeEach(() => {
       // Mock Claude version failing but which succeeding
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          if (cmd === 'claude --version') {
-            throw new Error('Version command failed');
-          }
-          if (cmd === 'which claude') {
-            return { stdout: '/usr/local/bin/claude\n', stderr: '' };
-          }
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        if (cmd === 'claude --version') {
+          throw new Error('Version command failed');
+        }
+        if (cmd === 'which claude') {
+          return { stdout: '/usr/local/bin/claude\n', stderr: '' };
+        }
+        throw new Error('Command not found');
       });
 
       mockFs.access.mockImplementation(async () => {
@@ -271,7 +255,7 @@ describe('CLI Status Command', () => {
       await statusCommand({});
 
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Version: Not found');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Path: Not found');
+      expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Path: /usr/local/bin/claude');
       expect(consoleSpy.log).toHaveBeenCalledWith('\n✗ Claude CLI not found. Please ensure it is installed and in your PATH.');
     });
   });
@@ -281,10 +265,8 @@ describe('CLI Status Command', () => {
       mockOs.platform.mockReturnValue('win32');
       mockOs.arch.mockReturnValue('x64');
 
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async () => {
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async () => {
+        throw new Error('Command not found');
       });
 
       mockFs.access.mockImplementation(async () => {
@@ -298,13 +280,11 @@ describe('CLI Status Command', () => {
     });
 
     it('should handle empty stdout from commands', async () => {
-      mockPromisify.mockImplementation((fn: any) => {
-        return jest.fn().mockImplementation(async (cmd: string) => {
-          if (cmd === 'claude --version') {
-            return { stdout: '', stderr: '' };
-          }
-          throw new Error('Command not found');
-        });
+      mockExecAsync.mockImplementation(async (cmd: string) => {
+        if (cmd === 'claude --version') {
+          return { stdout: '', stderr: '' };
+        }
+        throw new Error('Command not found');
       });
 
       mockFs.access.mockImplementation(async () => {
@@ -313,7 +293,7 @@ describe('CLI Status Command', () => {
 
       await statusCommand({});
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Version: '); // Empty version
+      expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Version: Not found'); // Empty version should show "Not found"
     });
   });
 });

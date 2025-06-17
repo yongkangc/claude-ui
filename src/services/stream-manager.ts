@@ -135,15 +135,21 @@ export class StreamManager extends EventEmitter {
       timestamp: new Date().toISOString()
     };
     
-    for (const client of clients) {
+    // Create array to avoid modifying set while iterating
+    const clientsArray = Array.from(clients);
+    
+    for (const client of clientsArray) {
       try {
         this.sendToClient(client, closeEvent);
         client.end();
+        // Clean up metadata for this client
+        this.clientMetadata.delete(client);
       } catch (error) {
         console.error(`Error closing client connection:`, error);
       }
     }
     
+    // Remove the entire session
     this.clients.delete(streamingId);
   }
 

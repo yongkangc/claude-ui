@@ -83,7 +83,6 @@ describe('CLI Status Command (Working)', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude CLI Path: Not found');
       expect(consoleSpy.log).toHaveBeenCalledWith('Claude Home Directory: ✓ Found (/home/user/.claude)');
       expect(consoleSpy.log).toHaveBeenCalledWith('Config Directory: ✓ Found (./config)');
-      expect(consoleSpy.log).toHaveBeenCalledWith('MCP Config: ✓ Found (./config/mcp-config.json)');
       expect(consoleSpy.log).toHaveBeenCalledWith('Node.js Version: v18.17.0');
       expect(consoleSpy.log).toHaveBeenCalledWith('Platform: darwin');
       expect(consoleSpy.log).toHaveBeenCalledWith('Architecture: x64');
@@ -100,8 +99,6 @@ describe('CLI Status Command (Working)', () => {
         claudeHomeExists: true,
         configPath: './config',
         configExists: true,
-        mcpConfigPath: './config/mcp-config.json',
-        mcpConfigExists: true,
         nodeVersion: 'v18.17.0',
         platform: 'darwin',
         architecture: 'x64'

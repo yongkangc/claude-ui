@@ -53,15 +53,12 @@ describe('CLI Serve Command', () => {
     it('should start server with default options', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
 
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 3001,
-        mcpConfigPath: './config/mcp-config.json',
-        claudeHomePath: undefined
+        port: 3001
       });
 
       expect(mockServer.start).toHaveBeenCalled();
@@ -69,19 +66,15 @@ describe('CLI Serve Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith('CCUI server is running at http://localhost:3001');
     });
 
-    it('should start server with all options provided', async () => {
+    it('should start server with custom port', async () => {
       const options = {
-        port: '8080',
-        mcpConfig: '/custom/path/mcp-config.json',
-        claudeHome: '/custom/.claude'
+        port: '8080'
       };
 
       await serveCommand(options);
 
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 8080,
-        mcpConfigPath: '/custom/path/mcp-config.json',
-        claudeHomePath: '/custom/.claude'
+        port: 8080
       });
 
       expect(mockServer.start).toHaveBeenCalled();
@@ -92,7 +85,6 @@ describe('CLI Serve Command', () => {
     it('should register SIGTERM handler for graceful shutdown', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
@@ -104,7 +96,6 @@ describe('CLI Serve Command', () => {
     it('should handle SIGTERM signal correctly', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       mockServer.stop.mockResolvedValue(undefined);
@@ -133,7 +124,6 @@ describe('CLI Serve Command', () => {
     it('should handle SIGINT signal correctly', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       mockServer.stop.mockResolvedValue(undefined);
@@ -167,7 +157,6 @@ describe('CLI Serve Command', () => {
 
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
@@ -177,19 +166,17 @@ describe('CLI Serve Command', () => {
     });
 
     it('should handle server instantiation errors', async () => {
-      const constructorError = new Error('Invalid config');
       MockedCCUIServer.mockImplementation(() => {
-        throw constructorError;
+        throw new Error('Invalid config');
       });
 
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
 
-      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', constructorError);
+      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', expect.any(Error));
       expect(mockExit).toHaveBeenCalledWith(1);
     });
   });
@@ -198,11 +185,9 @@ describe('CLI Serve Command', () => {
     it('should handle server stop errors during SIGTERM', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
-      const stopError = new Error('Failed to stop server');
-      mockServer.stop.mockRejectedValue(stopError);
+      mockServer.stop.mockRejectedValue(new Error('Failed to stop server'));
 
       // Capture the SIGTERM handler
       let sigtermHandler: Function;
@@ -226,11 +211,9 @@ describe('CLI Serve Command', () => {
     it('should handle server stop errors during SIGINT', async () => {
       const options = {
         port: '3001',
-        mcpConfig: './config/mcp-config.json'
       };
 
-      const stopError = new Error('Failed to stop server');
-      mockServer.stop.mockRejectedValue(stopError);
+      mockServer.stop.mockRejectedValue(new Error('Failed to stop server'));
 
       // Capture the SIGINT handler
       let sigintHandler: Function;
@@ -256,89 +239,60 @@ describe('CLI Serve Command', () => {
     it('should correctly parse string port to number', async () => {
       const options = {
         port: '9000',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
 
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 9000,
-        mcpConfigPath: './config/mcp-config.json',
-        claudeHomePath: undefined
+        port: 9000
       });
     });
 
     it('should handle invalid port numbers', async () => {
       // Mock the server constructor to throw an error when given NaN port
-      const portError = new Error('Invalid port number');
       MockedCCUIServer.mockImplementation(() => {
-        throw portError;
+        throw new Error('Invalid port number');
       });
 
       const options = {
         port: 'invalid-port',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
 
       // parseInt('invalid-port') returns NaN
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: NaN,
-        mcpConfigPath: './config/mcp-config.json',
-        claudeHomePath: undefined
+        port: NaN
       });
 
       // Should exit with error code when constructor throws
       expect(mockExit).toHaveBeenCalledWith(1);
-      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', portError);
+      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', expect.any(Error));
     });
 
     it('should handle port number with whitespace', async () => {
       const options = {
         port: '  3000  ',
-        mcpConfig: './config/mcp-config.json'
       };
 
       await serveCommand(options);
 
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 3000,
-        mcpConfigPath: './config/mcp-config.json',
-        claudeHomePath: undefined
+        port: 3000
       });
     });
   });
 
   describe('configuration edge cases', () => {
-    it('should handle empty MCP config path', async () => {
+    it('should handle default configuration', async () => {
       const options = {
-        port: '3001',
-        mcpConfig: ''
+        port: '3001'
       };
 
       await serveCommand(options);
 
       expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 3001,
-        mcpConfigPath: '',
-        claudeHomePath: undefined
-      });
-    });
-
-    it('should handle empty Claude home path', async () => {
-      const options = {
-        port: '3001',
-        mcpConfig: './config/mcp-config.json',
-        claudeHome: ''
-      };
-
-      await serveCommand(options);
-
-      expect(MockedCCUIServer).toHaveBeenCalledWith({
-        port: 3001,
-        mcpConfigPath: './config/mcp-config.json',
-        claudeHomePath: ''
+        port: 3001
       });
     });
   });

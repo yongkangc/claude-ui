@@ -164,23 +164,6 @@ interface ConversationMessage {
 }
 ```
 
-#### `POST /api/conversations/:streamingId/continue`
-
-Continue an existing conversation with a new message using CCUI's streaming ID.
-
-**Request Body:**
-```typescript
-interface ContinueConversationRequest {
-  prompt: string;              // New message to send to Claude
-}
-```
-
-**Response:**
-```typescript
-interface ContinueConversationResponse {
-  streamUrl: string;           // Same streaming endpoint as before
-}
-```
 
 #### `POST /api/conversations/:streamingId/stop`
 
@@ -618,7 +601,6 @@ const startResponse = await fetch('/api/conversations/start', { ... });
 const { streamingId, streamUrl } = await startResponse.json();
 
 // 2. Use streamingId for active conversation management
-await fetch(`/api/conversations/${streamingId}/continue`, { ... });
 await fetch(`/api/conversations/${streamingId}/stop`, { ... });
 await fetch(`/api/stream/${streamingId}`);
 
@@ -727,24 +709,6 @@ function handlePermissionRequest(request) {
 }
 ```
 
-### Continuing Conversations
-
-```javascript
-// Continue existing conversation (using CCUI streamingId)
-async function continueConversation(streamingId, newMessage) {
-  const response = await fetch(`/api/conversations/${streamingId}/continue`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: newMessage
-    })
-  });
-  
-  const { streamUrl } = await response.json();
-  // Reconnect to same stream URL for updates
-  // (Stream URL remains the same for a given streamingId)
-}
-```
 
 ### Building Conversation History UI
 

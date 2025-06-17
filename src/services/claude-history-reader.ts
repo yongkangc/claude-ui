@@ -9,8 +9,8 @@ import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIEr
 export class ClaudeHistoryReader {
   private claudeHomePath: string;
   
-  constructor(claudeHomePath?: string) {
-    this.claudeHomePath = claudeHomePath || path.join(os.homedir(), '.claude');
+  constructor() {
+    this.claudeHomePath = path.join(os.homedir(), '.claude');
   }
 
   get homePath(): string {

@@ -261,26 +261,6 @@ describe('CLI Get Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith('This is a simple string message');
     });
 
-    it('should handle legacy message format with text property', async () => {
-      const legacyMessage: ConversationMessage = {
-        uuid: 'msg-legacy',
-        type: 'assistant',
-        message: {
-          role: 'assistant',
-          text: 'Legacy format message'
-        } as any,
-        timestamp: '2024-01-01T10:00:00Z',
-        sessionId: 'session-123'
-      };
-
-      mockReader.fetchConversation.mockResolvedValue([legacyMessage]);
-
-      const sessionId = 'session-123';
-      
-      await getCommand(sessionId, {});
-
-      expect(consoleSpy.log).toHaveBeenCalledWith('Legacy format message');
-    });
 
     it('should handle missing model in metadata', async () => {
       const metadataWithoutModel = {

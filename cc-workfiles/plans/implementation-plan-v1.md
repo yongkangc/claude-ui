@@ -305,7 +305,6 @@ class ClaudeProcessManager {
     const args = [
       '-p',                      # Print mode - required for programmatic use
       '--output-format', 'stream-json',  # JSONL output format
-      '--mcp-config', this.mcpConfigPath,  # Path to MCP configuration
       '--permission-prompt-tool', 'mcp__ccui__permission_prompt'  # Our MCP tool name
     ];
     

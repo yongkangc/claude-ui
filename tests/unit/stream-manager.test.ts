@@ -139,7 +139,7 @@ describe('StreamManager', () => {
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
         session_id: 'claude-session-456', // Claude's internal session ID
-        message: { role: 'assistant', content: 'Hello' }
+        message: { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] } as any
       };
       
       manager.addClient(streamingId, mockResponse);
@@ -178,7 +178,7 @@ describe('StreamManager', () => {
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
         session_id: 'claude-session-456',
-        message: { role: 'assistant', content: 'test' }
+        message: { role: 'assistant', content: [{ type: 'text', text: 'test' }] } as any
       };
       
       manager.broadcast(streamingId, streamMessage);
@@ -201,7 +201,7 @@ describe('StreamManager', () => {
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
         session_id: 'claude-session-456',
-        message: { role: 'assistant', content: 'test' }
+        message: { role: 'assistant', content: [{ type: 'text', text: 'test' }] } as any
       };
       
       // Broadcasting should detect the ended response and clean it up
@@ -319,7 +319,7 @@ describe('StreamManager', () => {
       const streamMessage: AssistantStreamMessage = {
         type: 'assistant',
         session_id: 'claude-session-456',
-        message: { role: 'assistant', content: 'test' }
+        message: { role: 'assistant', content: [{ type: 'text', text: 'test' }] } as any
       };
       
       // Broadcasting should detect the destroyed response and clean it up
@@ -333,7 +333,7 @@ describe('StreamManager', () => {
       const largeStreamMessage: AssistantStreamMessage = {
         type: 'assistant',
         session_id: 'claude-session-456',
-        message: { role: 'assistant', content: largeContent }
+        message: { role: 'assistant', content: [{ type: 'text', text: largeContent }] } as any
       };
       
       manager.addClient(streamingId, mockResponse);

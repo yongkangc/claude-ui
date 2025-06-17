@@ -7,7 +7,8 @@ export class MockChildProcess extends EventEmitter {
   public stdin: Writable;
   public stdout: Readable;
   public stderr: Readable;
-  private _timeouts: NodeJS.Timeout[] = [];
+  public _timeouts: NodeJS.Timeout[] = [];
+  public _immediates: NodeJS.Immediate[] = [];
 
   constructor(command: string, args: string[], options: any) {
     super();
@@ -28,20 +29,53 @@ export class MockChildProcess extends EventEmitter {
     
     this.stdout = new Readable({
       read() {
-        // Will be controlled by test scenarios
+        // Required method for Readable streams
       }
     });
     
+    // Store reference to the original push method
+    const originalPush = this.stdout.push.bind(this.stdout);
+    
+    // Override push to work properly in tests
+    (this.stdout as any).push = (data: any) => {
+      if (data === null) {
+        // End the stream
+        return originalPush(null);
+      } else if (data) {
+        // Push data to stream
+        return originalPush(Buffer.from(data));
+      }
+      return true;
+    };
+    
     this.stderr = new Readable({
       read() {
-        // Will be controlled by test scenarios
+        // Required method for Readable streams
       }
     });
+    
+    // Store reference to the original push method
+    const originalStderrPush = this.stderr.push.bind(this.stderr);
+    
+    // Override push to work properly in tests  
+    (this.stderr as any).push = (data: any) => {
+      if (data === null) {
+        // End the stream
+        return originalStderrPush(null);
+      } else if (data) {
+        // Push data to stream
+        return originalStderrPush(Buffer.from(data));
+      }
+      return true;
+    };
 
     // Simulate process startup
-    setImmediate(() => {
+    console.log('[MOCK] Setting up immediate for simulateClaudeResponse');
+    const immediate = setImmediate(() => {
+      console.log('[MOCK] Running simulateClaudeResponse');
       this.simulateClaudeResponse(args);
     });
+    this._immediates.push(immediate);
   }
 
   private simulateClaudeResponse(args: string[]) {
@@ -76,7 +110,9 @@ export class MockChildProcess extends EventEmitter {
     };
     
     setImmediate(() => {
-      this.stdout.push(JSON.stringify(initMessage) + '\n');
+      console.log('[MOCK] Pushing init message to stdout');
+      const result = this.stdout.push(JSON.stringify(initMessage) + '\n');
+      console.log('[MOCK] Push result:', result);
     });
 
     // Send assistant response after a short delay
@@ -97,7 +133,9 @@ export class MockChildProcess extends EventEmitter {
         session_id: sessionId
       };
       
-      this.stdout.push(JSON.stringify(responseMessage) + '\n');
+      console.log('[MOCK] Pushing response message to stdout');
+      const result = this.stdout.push(JSON.stringify(responseMessage) + '\n');
+      console.log('[MOCK] Response push result:', result);
       
       // Send result message
       const resultTimeout = setTimeout(() => {
@@ -117,6 +155,13 @@ export class MockChildProcess extends EventEmitter {
         
         this.stdout.push(JSON.stringify(resultMessage) + '\n');
         this.stdout.push(null); // End stream
+        
+        // Simulate process completion after sending result
+        const exitTimeout = setTimeout(() => {
+          this.emit('exit', 0, null);
+          this.emit('close', 0, null);
+        }, 50);
+        this._timeouts.push(exitTimeout);
       }, 25);
       this._timeouts.push(resultTimeout);
     }, 25);
@@ -151,49 +196,32 @@ export class MockChildProcess extends EventEmitter {
     this._timeouts.forEach(timeout => clearTimeout(timeout));
     this._timeouts.length = 0;
     
+    // Clear any pending immediates
+    this._immediates.forEach(immediate => clearImmediate(immediate));
+    this._immediates.length = 0;
+    
     // Simulate process termination
-    setImmediate(() => {
-      this.emit('exit', signal === 'SIGKILL' ? 137 : 0, signal);
-      this.emit('close', signal === 'SIGKILL' ? 137 : 0, signal);
+    const exitImmediate = setImmediate(() => {
+      const exitCode = signal === 'SIGKILL' ? 137 : 0;
+      this.emit('exit', exitCode, signal);
+      this.emit('close', exitCode, signal);
     });
+    this._immediates.push(exitImmediate);
     
     return true;
   }
 
-  // Mock method to simulate input
-  simulateInput(input: string) {
-    const sessionId = 'test-session-' + Date.now();
-    
-    const inputTimeout = setTimeout(() => {
-      const responseMessage = {
-        type: 'assistant',
-        message: {
-          id: 'msg_test_input_' + Date.now(),
-          type: 'message',
-          role: 'assistant',
-          model: 'claude-opus-4-20250514',
-          content: [{ type: 'text', text: this.generateResponseText(input) }],
-          stop_reason: null,
-          stop_sequence: null,
-          usage: { input_tokens: 5, output_tokens: 3 }
-        },
-        parent_tool_use_id: null,
-        session_id: sessionId
-      };
-      
-      this.stdout.push(JSON.stringify(responseMessage) + '\n');
-    }, 25);
-    this._timeouts.push(inputTimeout);
-  }
 }
 
 // Track spawned processes for testing
 const spawnedProcesses: MockChildProcess[] = [];
 
 export function spawn(command: string, args: string[] = [], options: any = {}): MockChildProcess {
-  const process = new MockChildProcess(command, args, options);
-  spawnedProcesses.push(process);
-  return process;
+  console.log('[MOCK SPAWN] Creating mock process for command:', command);
+  const mockProcess = new MockChildProcess(command, args, options);
+  spawnedProcesses.push(mockProcess);
+  console.log('[MOCK SPAWN] Mock process created, total processes:', spawnedProcesses.length);
+  return mockProcess;
 }
 
 // Helper for tests to get the last spawned process
@@ -203,10 +231,19 @@ export function getLastSpawnedProcess(): MockChildProcess | undefined {
 
 // Helper for tests to clean up
 export function clearSpawnedProcesses(): void {
-  // Kill all processes to clean up their timeouts
+  // Kill all processes to clean up their timeouts and immediates
   spawnedProcesses.forEach(process => {
     if (!process.killed) {
       process.kill();
+    }
+    // Extra safety: manually clear any remaining timeouts and immediates
+    if (process._timeouts) {
+      process._timeouts.forEach(timeout => clearTimeout(timeout));
+      process._timeouts.length = 0;
+    }
+    if (process._immediates) {
+      process._immediates.forEach(immediate => clearImmediate(immediate));
+      process._immediates.length = 0;
     }
   });
   spawnedProcesses.length = 0;
@@ -216,7 +253,7 @@ export function clearSpawnedProcesses(): void {
 export function exec() { return new MockChildProcess('', [], {}); }
 export function execFile() { return new MockChildProcess('', [], {}); }
 export function fork() { return new MockChildProcess('', [], {}); }
-export function execSync() { return Buffer.from(''); }
+export const execSync = jest.fn(() => Buffer.from(''));
 export function execFileSync() { return Buffer.from(''); }
 export function spawnSync() { 
   return { 

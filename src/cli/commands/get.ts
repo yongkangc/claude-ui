@@ -51,17 +51,15 @@ export async function getCommand(sessionId: string, options: GetOptions): Promis
         // Handle different message content formats
         if (Array.isArray(msg.message.content)) {
           for (const content of msg.message.content) {
-            if (content.type === 'text') {
+            if (content.type === 'text' && 'text' in content) {
               console.log(content.text.slice(0, 200) + (content.text.length > 200 ? '...' : ''));
-            } else if (content.type === 'tool_use') {
+            } else if (content.type === 'tool_use' && 'name' in content) {
               console.log(`[Tool: ${content.name}]`);
             }
           }
         } else if (typeof msg.message.content === 'string') {
           console.log(msg.message.content.slice(0, 200) + (msg.message.content.length > 200 ? '...' : ''));
         }
-      } else if (msg.message?.text) {
-        console.log(msg.message.text.slice(0, 200) + (msg.message.text.length > 200 ? '...' : ''));
       }
 
       if (msg.costUSD) {

@@ -6,31 +6,24 @@ import * as os from 'os';
 
 describe('ClaudeHistoryReader', () => {
   let reader: ClaudeHistoryReader;
-  let tempClaudeHome: string;
-  let tempProjectsDir: string;
+  let tempDir: string;
 
   beforeEach(async () => {
     // Create temporary Claude home directory structure
-    tempClaudeHome = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-test-'));
-    tempProjectsDir = path.join(tempClaudeHome, 'projects');
-    await fs.mkdir(tempProjectsDir, { recursive: true });
-    
-    reader = new ClaudeHistoryReader(tempClaudeHome);
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-test-'));
+    await fs.mkdir(path.join(tempDir, 'projects'), { recursive: true });
+    reader = new ClaudeHistoryReader();
+    // Mock the homePath property to use our temp directory
+    (reader as any).claudeHomePath = tempDir;
   });
 
   afterEach(async () => {
     // Clean up temp directory
-    await fs.rm(tempClaudeHome, { recursive: true, force: true });
+    await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   describe('constructor', () => {
-    it('should use provided Claude home path', () => {
-      const customPath = '/custom/.claude';
-      const customReader = new ClaudeHistoryReader(customPath);
-      expect(customReader.homePath).toBe(customPath);
-    });
-
-    it('should use default home directory if not provided', () => {
+    it('should use default home directory', () => {
       const defaultReader = new ClaudeHistoryReader();
       expect(defaultReader.homePath).toBe(path.join(os.homedir(), '.claude'));
     });
@@ -39,7 +32,7 @@ describe('ClaudeHistoryReader', () => {
   describe('listConversations', () => {
     it('should return empty result when projects directory does not exist', async () => {
       // Remove the projects directory
-      await fs.rm(tempProjectsDir, { recursive: true, force: true });
+      await fs.rm(path.join(tempDir, 'projects'), { recursive: true, force: true });
       
       const result = await reader.listConversations();
       
@@ -51,18 +44,19 @@ describe('ClaudeHistoryReader', () => {
 
     it('should handle filesystem errors properly', async () => {
       // Create a file where we expect a directory to cause an error
-      const fileInsteadOfDir = path.join(tempClaudeHome, 'projects');
+      const fileInsteadOfDir = path.join(tempDir, 'projects');
       await fs.rm(fileInsteadOfDir, { recursive: true, force: true });
       await fs.writeFile(fileInsteadOfDir, 'not a directory');
       
-      const invalidReader = new ClaudeHistoryReader(tempClaudeHome);
+      const invalidReader = new ClaudeHistoryReader();
+      (invalidReader as any).claudeHomePath = tempDir;
       
       await expect(invalidReader.listConversations()).rejects.toThrow('Failed to read conversation history');
     });
 
     it('should process project directories and conversations correctly', async () => {
       // Create project directory structure
-      const projectDir = path.join(tempProjectsDir, '-Users-username-project-name');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-project-name');
       await fs.mkdir(projectDir, { recursive: true });
       
       // Create conversation JSONL file with realistic Claude format
@@ -91,8 +85,8 @@ describe('ClaudeHistoryReader', () => {
 
     it('should apply filters correctly', async () => {
       // Create multiple project directories
-      const project1Dir = path.join(tempProjectsDir, '-Users-username-project1');
-      const project2Dir = path.join(tempProjectsDir, '-Users-username-project2');
+      const project1Dir = path.join(path.join(tempDir, 'projects'), '-Users-username-project1');
+      const project2Dir = path.join(path.join(tempDir, 'projects'), '-Users-username-project2');
       await fs.mkdir(project1Dir, { recursive: true });
       await fs.mkdir(project2Dir, { recursive: true });
       
@@ -120,7 +114,7 @@ describe('ClaudeHistoryReader', () => {
 
     it('should apply pagination correctly', async () => {
       // Create multiple conversations
-      const projectDir = path.join(tempProjectsDir, '-Users-username-test-project');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test-project');
       await fs.mkdir(projectDir, { recursive: true });
       
       // Create 5 conversations
@@ -143,7 +137,7 @@ describe('ClaudeHistoryReader', () => {
     });
 
     it('should sort conversations correctly', async () => {
-      const projectDir = path.join(tempProjectsDir, '-Users-username-sort-test');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-sort-test');
       await fs.mkdir(projectDir, { recursive: true });
       
       // Create conversations with different timestamps
@@ -182,7 +176,7 @@ describe('ClaudeHistoryReader', () => {
 
     it('should parse JSONL file correctly', async () => {
       // Create project directory
-      const projectDir = path.join(tempProjectsDir, '-Users-username-test');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test');
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'test-session-123';
@@ -207,7 +201,7 @@ describe('ClaudeHistoryReader', () => {
     });
 
     it('should handle malformed JSON lines gracefully', async () => {
-      const projectDir = path.join(tempProjectsDir, '-Users-username-malformed');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-malformed');
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'test-session-malformed';
@@ -233,7 +227,7 @@ describe('ClaudeHistoryReader', () => {
     });
 
     it('should parse single line JSONL with complex content and maintain tool use input properties', async () => {
-      const projectDir = path.join(tempProjectsDir, '-Users-example-project');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-example-project');
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = '4f35e220-c435-4cf7-b9b9-f40426042847';
@@ -255,19 +249,20 @@ describe('ClaudeHistoryReader', () => {
       expect(message.costUSD).toBe(0.00180);
       expect(message.durationMs).toBe(1800);
       
-      // Verify message content structure
-      expect(message.message.id).toBe('msg_02Example456');
-      expect(message.message.role).toBe('assistant');
-      expect(message.message.model).toBe('claude-opus-4-20250514');
-      expect(message.message.content).toHaveLength(2);
+      // Verify message content structure - this is an assistant message (Anthropic.Message)
+      const assistantMessage = message.message as any; // Type assertion for test compatibility
+      expect(assistantMessage.id).toBe('msg_02Example456');
+      expect(assistantMessage.role).toBe('assistant');
+      expect(assistantMessage.model).toBe('claude-opus-4-20250514');
+      expect(assistantMessage.content).toHaveLength(2);
       
       // Verify text content
-      const textContent = message.message.content[0];
+      const textContent = assistantMessage.content[0] as any;
       expect(textContent.type).toBe('text');
       expect(textContent.text).toBe('Let me check the current directory structure.');
       
       // Verify tool use content with maintained input properties
-      const toolUseContent = message.message.content[1];
+      const toolUseContent = assistantMessage.content[1] as any;
       expect(toolUseContent.type).toBe('tool_use');
       expect(toolUseContent.id).toBe('toolu_02LSExample');
       expect(toolUseContent.name).toBe('LS');
@@ -276,14 +271,15 @@ describe('ClaudeHistoryReader', () => {
       });
       
       // Verify usage information
-      expect(message.message.usage.input_tokens).toBe(150);
-      expect(message.message.usage.output_tokens).toBe(80);
-      expect(message.message.usage.service_tier).toBe('standard');
+      expect(assistantMessage.usage.input_tokens).toBe(150);
+      expect(assistantMessage.usage.output_tokens).toBe(80);
+      expect(assistantMessage.usage.service_tier).toBe('standard');
     });
 
     it('should handle file read errors', async () => {
       // Create a reader with invalid path to trigger read error
-      const invalidReader = new ClaudeHistoryReader('/invalid/path');
+      const invalidReader = new ClaudeHistoryReader();
+      (invalidReader as any).claudeHomePath = '/invalid/path';
       
       await expect(invalidReader.fetchConversation('any-session')).rejects.toThrow("Conversation any-session not found");
     });
@@ -291,7 +287,7 @@ describe('ClaudeHistoryReader', () => {
 
   describe('getConversationMetadata', () => {
     it('should extract metadata from conversation file', async () => {
-      const projectDir = path.join(tempProjectsDir, '-Users-username-metadata-test');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-metadata-test');
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'metadata-session';
@@ -342,7 +338,7 @@ describe('ClaudeHistoryReader', () => {
 
     describe('readFirstLine', () => {
       it('should read the first non-empty line from file', async () => {
-        const testFile = path.join(tempClaudeHome, 'test.jsonl');
+        const testFile = path.join(tempDir, 'test.jsonl');
         const content = '\n\n{"type":"summary","summary":"First line"}\n{"type":"user"}';
         await fs.writeFile(testFile, content);
 
@@ -351,7 +347,7 @@ describe('ClaudeHistoryReader', () => {
       });
 
       it('should throw error if no non-empty lines found', async () => {
-        const testFile = path.join(tempClaudeHome, 'empty.jsonl');
+        const testFile = path.join(tempDir, 'empty.jsonl');
         await fs.writeFile(testFile, '\n\n\n');
 
         await expect((reader as any).readFirstLine(testFile)).rejects.toThrow('No non-empty lines found in file');
@@ -360,7 +356,7 @@ describe('ClaudeHistoryReader', () => {
 
     describe('countMessages', () => {
       it('should count non-summary messages correctly', async () => {
-        const testFile = path.join(tempClaudeHome, 'count.jsonl');
+        const testFile = path.join(tempDir, 'count.jsonl');
         const content = `{"type":"summary","summary":"Test"}
 {"type":"user","message":"Hello"}
 {"type":"assistant","message":"Hi"}
@@ -372,7 +368,7 @@ describe('ClaudeHistoryReader', () => {
       });
 
       it('should handle malformed JSON lines when counting', async () => {
-        const testFile = path.join(tempClaudeHome, 'malformed-count.jsonl');
+        const testFile = path.join(tempDir, 'malformed-count.jsonl');
         const content = `{"type":"summary"}
 {"type":"user","valid":true}
 {invalid json}

@@ -14,5 +14,7 @@ module.exports = {
     '^@modelcontextprotocol/sdk/server/stdio.js$': '<rootDir>/tests/__mocks__/mcp-stdio-mock.ts'
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 10000
+  testTimeout: 10000,
+  // Force exit after tests complete to prevent hanging
+  forceExit: true
 };

@@ -26,7 +26,6 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
     console.log(`Claude CLI Path: ${status.claudePath || 'Not found'}`);
     console.log(`Claude Home Directory: ${status.claudeHomeExists ? '✓ Found' : '✗ Not found'} (${status.claudeHomePath})`);
     console.log(`Config Directory: ${status.configExists ? '✓ Found' : '✗ Not found'} (${status.configPath})`);
-    console.log(`MCP Config: ${status.mcpConfigExists ? '✓ Found' : '✗ Not found'} (${status.mcpConfigPath})`);
     console.log(`Node.js Version: ${status.nodeVersion}`);
     console.log(`Platform: ${status.platform}`);
     console.log(`Architecture: ${status.architecture}`);
@@ -50,7 +49,6 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
 async function getSystemStatus() {
   const claudeHomePath = path.join(os.homedir(), '.claude');
   const configPath = './config';
-  const mcpConfigPath = './config/mcp-config.json';
 
   // Check Claude CLI installation
   let claudeVersion = null;
@@ -86,15 +84,6 @@ async function getSystemStatus() {
     // Directory doesn't exist
   }
 
-  // Check if MCP config exists
-  let mcpConfigExists = false;
-  try {
-    await fs.access(mcpConfigPath);
-    mcpConfigExists = true;
-  } catch {
-    // File doesn't exist
-  }
-
   return {
     claudeVersion,
     claudePath,
@@ -102,8 +91,6 @@ async function getSystemStatus() {
     claudeHomeExists,
     configPath,
     configExists,
-    mcpConfigPath,
-    mcpConfigExists,
     nodeVersion: process.version,
     platform: os.platform(),
     architecture: os.arch()

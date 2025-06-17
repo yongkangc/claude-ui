@@ -1,4 +1,5 @@
 // Core types and interfaces for CCUI backend
+import Anthropic from '@anthropic-ai/sdk';
 
 // Base conversation types
 export interface ConversationSummary {
@@ -13,7 +14,7 @@ export interface ConversationSummary {
 export interface ConversationMessage {
   uuid: string;
   type: 'user' | 'assistant' | 'system';
-  message: any; // Anthropic Message or MessageParam type
+  message: Anthropic.Message | Anthropic.MessageParam;
   timestamp: string;
   sessionId: string; // Claude CLI's actual session ID
   parentUuid?: string;
@@ -41,12 +42,12 @@ export interface SystemInitMessage extends StreamMessage {
 
 export interface AssistantStreamMessage extends StreamMessage {
   type: 'assistant';
-  message: any; // Anthropic Message type
+  message: Anthropic.Message;
 }
 
 export interface UserStreamMessage extends StreamMessage {
   type: 'user';
-  message: any; // Anthropic MessageParam type
+  message: Anthropic.MessageParam;
 }
 
 export interface ResultStreamMessage extends StreamMessage {
@@ -126,9 +127,6 @@ export interface ConversationDetailsResponse {
   };
 }
 
-export interface ContinueConversationRequest {
-  prompt: string;
-}
 
 export interface PermissionDecisionRequest {
   action: 'approve' | 'deny';

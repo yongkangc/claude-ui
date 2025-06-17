@@ -3,13 +3,9 @@ import cors from 'cors';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
-import { CCUIMCPServer } from './mcp-server/ccui-mcp-server';
-import { MCPConfigValidator } from './utils/mcp-config-validator';
 import { 
   StartConversationRequest, 
   ConversationListQuery,
-  ContinueConversationRequest,
-  PermissionDecisionRequest,
   ConversationDetailsResponse,
   SystemStatusResponse,
   ModelsResponse,
@@ -26,31 +22,22 @@ export class CCUIServer {
   private processManager: ClaudeProcessManager;
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
-  private mcpServer: CCUIMCPServer;
   private logger = pino({ level: process.env.LOG_LEVEL || 'info' });
   private port: number;
 
   constructor(config?: {
     port?: number;
-    mcpConfigPath?: string;
-    claudeHomePath?: string;
-    testMode?: boolean;
   }) {
     this.port = config?.port || parseInt(process.env.PORT || '3001');
     this.app = express();
     
-    // Initialize services with test mode support
-    const testMode = config?.testMode || false;
-    const testClaudeHome = testMode ? config?.claudeHomePath : undefined;
-    
-    this.processManager = new ClaudeProcessManager(config?.mcpConfigPath, testMode, testClaudeHome);
+    // Initialize services
+    this.processManager = new ClaudeProcessManager();
     this.streamManager = new StreamManager();
-    this.historyReader = new ClaudeHistoryReader(config?.claudeHomePath);
-    this.mcpServer = new CCUIMCPServer();
+    this.historyReader = new ClaudeHistoryReader();
     
     this.setupMiddleware();
     this.setupRoutes();
-    this.setupMCPIntegration();
     this.setupProcessManagerIntegration();
   }
 
@@ -59,23 +46,7 @@ export class CCUIServer {
    */
   async start(): Promise<void> {
     try {
-      // Validate MCP configuration before starting
-      if (this.processManager['mcpConfigPath']) {
-        this.logger.info('Validating MCP configuration...');
-        try {
-          await MCPConfigValidator.validateConfig(this.processManager['mcpConfigPath']);
-          this.logger.info('MCP configuration validated successfully');
-        } catch (error) {
-          this.logger.warn('MCP configuration validation failed:', error);
-          // Don't fail startup, just warn - some features may not work
-        }
-      }
 
-      // Start MCP server with detailed error handling
-      this.logger.info('Starting MCP server...');
-      await this.mcpServer.start();
-      this.logger.info('MCP server started successfully');
-      
       // Start Express server
       this.logger.info(`Starting HTTP server on port ${this.port}...`);
       await new Promise<void>((resolve, reject) => {
@@ -138,10 +109,6 @@ export class CCUIServer {
     
     // Disconnect all streaming clients
     this.streamManager.disconnectAll();
-    
-    // Stop MCP server
-    await this.mcpServer.stop();
-    
     this.logger.info('Graceful shutdown complete');
   }
 
@@ -160,14 +127,6 @@ export class CCUIServer {
             resolve();
           });
         });
-      }
-
-      // Stop MCP server if it was started
-      try {
-        await this.mcpServer.stop();
-        this.logger.info('MCP server stopped during cleanup');
-      } catch (error) {
-        this.logger.warn('Failed to stop MCP server during cleanup:', error);
       }
 
       // Disconnect streaming clients
@@ -208,9 +167,6 @@ export class CCUIServer {
 
     // Conversation management routes
     this.setupConversationRoutes();
-    
-    // Permission management routes  
-    this.setupPermissionRoutes();
     
     // System management routes
     this.setupSystemRoutes();
@@ -278,22 +234,6 @@ export class CCUIServer {
       }
     });
 
-    // Continue conversation
-    this.app.post('/api/conversations/:streamingId/continue', async (req: Request<{ streamingId: string }, {}, ContinueConversationRequest>, res, next) => {
-      try {
-        // Validate required fields
-        if (!req.body.prompt) {
-          throw new CCUIError('MISSING_PROMPT', 'prompt is required', 400);
-        }
-        
-        await this.processManager.sendInput(req.params.streamingId, req.body.prompt);
-        res.json({ 
-          streamUrl: `/api/stream/${req.params.streamingId}` 
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
 
     // Stop conversation
     this.app.post('/api/conversations/:streamingId/stop', async (req, res, next) => {
@@ -302,51 +242,6 @@ export class CCUIServer {
         res.json({ success });
       } catch (error) {
         next(error);
-      }
-    });
-  }
-
-  private setupPermissionRoutes(): void {
-    // List pending permissions
-    this.app.get('/api/permissions', (req, res, next) => {
-      try {
-        const permissions = this.mcpServer.getPendingRequests();
-        const filtered = req.query.streamingId 
-          ? permissions.filter(p => p.streamingId === req.query.streamingId)
-          : permissions;
-        res.json({ permissions: filtered });
-      } catch (error) {
-        this.logger.error('Failed to list permissions:', error);
-        next(new CCUIError('PERMISSION_LIST_FAILED', 'Failed to retrieve permission requests', 500));
-      }
-    });
-
-    // Handle permission decision
-    this.app.post('/api/permissions/:requestId', (req: Request<{ requestId: string }, {}, PermissionDecisionRequest>, res, next) => {
-      try {
-        // Validate request body
-        if (!req.body.action || !['approve', 'deny'].includes(req.body.action)) {
-          throw new CCUIError('INVALID_ACTION', 'Action must be either "approve" or "deny"', 400);
-        }
-
-        const success = this.mcpServer.handleDecision(
-          req.params.requestId,
-          req.body.action,
-          req.body.modifiedInput
-        );
-
-        if (!success) {
-          throw new CCUIError('PERMISSION_NOT_FOUND', 'Permission request not found or already processed', 404);
-        }
-
-        res.json({ success });
-      } catch (error) {
-        if (error instanceof CCUIError) {
-          next(error);
-        } else {
-          this.logger.error('Failed to handle permission decision:', error);
-          next(new CCUIError('PERMISSION_DECISION_FAILED', 'Failed to process permission decision', 500));
-        }
       }
     });
   }
@@ -361,70 +256,12 @@ export class CCUIServer {
         next(error);
       }
     });
-
-    // Get available models
-    this.app.get('/api/models', async (req, res, next) => {
-      try {
-        const models = await this.getAvailableModels();
-        res.json(models);
-      } catch (error) {
-        next(error);
-      }
-    });
   }
 
   private setupStreamingRoute(): void {
     this.app.get('/api/stream/:streamingId', (req, res) => {
       const { streamingId } = req.params;
       this.streamManager.addClient(streamingId, res);
-    });
-  }
-
-  private setupMCPIntegration(): void {
-    // Forward permission requests to stream
-    this.mcpServer.on('permission-request', (request) => {
-      try {
-        this.streamManager.broadcast(request.streamingId, {
-          type: 'permission_request',
-          data: request,
-          streamingId: request.streamingId,
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        this.logger.error('Failed to broadcast permission request:', error);
-        
-        // Automatically deny the request if we can't broadcast it
-        try {
-          this.mcpServer.handleDecision(request.id, 'deny');
-        } catch (decisionError) {
-          this.logger.error('Failed to auto-deny permission request after broadcast failure:', decisionError);
-        }
-      }
-    });
-
-    // Handle MCP server errors
-    this.mcpServer.on('error', (error) => {
-      this.logger.error('MCP server error:', error);
-      
-      // Broadcast error to all active sessions
-      const activeSessions = this.processManager.getActiveSessions();
-      activeSessions.forEach(streamingId => {
-        this.streamManager.broadcast(streamingId, {
-          type: 'error',
-          error: 'MCP server error: Permission handling may be unavailable',
-          streamingId,
-          timestamp: new Date().toISOString()
-        });
-      });
-    });
-
-    // Handle MCP server start/stop events
-    this.mcpServer.on('started', () => {
-      this.logger.info('MCP server started successfully');
-    });
-
-    this.mcpServer.on('stopped', () => {
-      this.logger.info('MCP server stopped');
     });
   }
 
@@ -477,55 +314,6 @@ export class CCUIServer {
       };
     } catch (error) {
       throw new CCUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
-    }
-  }
-
-  /**
-   * Get available Claude models
-   */
-  private async getAvailableModels(): Promise<ModelsResponse> {
-    const { execSync } = require('child_process');
-    
-    try {
-      // Try to get models from Claude CLI help output
-      let availableModels: string[] = [];
-      let defaultModel = 'claude-opus-4-20250514';
-      
-      try {
-        const helpOutput = execSync('claude --help', { encoding: 'utf-8' });
-        
-        // Parse help output for model information
-        // Look for --model option description which typically lists available models
-        const modelMatch = helpOutput.match(/--model.*?\[(.*?)\]/);
-        if (modelMatch) {
-          availableModels = modelMatch[1].split('|').map((m: string) => m.trim());
-        }
-        
-        // If that fails, try claude --version to see what's available
-        if (availableModels.length === 0) {
-          const versionOutput = execSync('claude --version', { encoding: 'utf-8' });
-          // Claude version output might contain model information
-          this.logger.debug('Claude version output:', versionOutput);
-        }
-      } catch (error) {
-        this.logger.warn('Failed to get model information from Claude CLI');
-      }
-      
-      // Fall back to known models if we couldn't parse them
-      if (availableModels.length === 0) {
-        availableModels = [
-          'claude-opus-4-20250514',
-          'claude-3-5-sonnet-20241022', 
-          'claude-3-5-haiku-20241022'
-        ];
-      }
-      
-      return {
-        models: availableModels,
-        defaultModel: availableModels.includes(defaultModel) ? defaultModel : availableModels[0]
-      };
-    } catch (error) {
-      throw new CCUIError('MODELS_ERROR', 'Failed to get available models', 500);
     }
   }
 }
