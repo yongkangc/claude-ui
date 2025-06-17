@@ -9,26 +9,33 @@ jest.mock('@/services/claude-history-reader', () => ({
 jest.mock('@/services/stream-manager', () => ({
   StreamManager: jest.fn()
 }));
-jest.mock('child_process');
 
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { StreamManager } from '@/services/stream-manager';
 import { CCUIError } from '@/types';
-import { exec, execSync } from 'child_process';
-import { promisify } from 'util';
 import request from 'supertest';
 import { TestHelpers } from '../utils/test-helpers';
+import * as path from 'path';
+
+// Mock child_process only for execSync calls
+jest.mock('child_process', () => ({
+  execSync: jest.fn()
+}));
 
 const MockedClaudeProcessManager = ClaudeProcessManager as jest.MockedClass<typeof ClaudeProcessManager>;
 const MockedClaudeHistoryReader = ClaudeHistoryReader as jest.MockedClass<typeof ClaudeHistoryReader>;
 const MockedStreamManager = StreamManager as jest.MockedClass<typeof StreamManager>;
-const mockExec = exec as jest.MockedFunction<typeof exec>;
-const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 
-// Import the mocked clearSpawnedProcesses function
-const { clearSpawnedProcesses } = require('child_process');
+// Get mock Claude executable path
+function getMockClaudeExecutablePath(): string {
+  return path.join(process.cwd(), 'tests', '__mocks__', 'claude');
+}
+
+// Mock execSync for system status tests
+const { execSync } = require('child_process');
+const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 
 describe('CCUIServer', () => {
   let server: CCUIServer;
@@ -640,7 +647,6 @@ describe('CCUIServer', () => {
       it('should set up streaming connection', async () => {
         // Mock addClient to simulate the real behavior but end response for testing
         jest.spyOn((server as any).streamManager, 'addClient').mockImplementation((streamingId, res: any) => {
-          console.log('[TEST] Mock addClient called with streamingId:', streamingId);
           
           // Simulate the headers being set (like the real implementation)
           res.setHeader('Content-Type', 'application/x-ndjson');
@@ -660,7 +666,6 @@ describe('CCUIServer', () => {
           res.end();
         });
 
-        console.log('[TEST] Making request to /api/stream/session-123');
         
         const response = await request(app)
           .get('/api/stream/session-123')
@@ -682,9 +687,6 @@ describe('CCUIServer', () => {
 
   // Global cleanup for all tests to prevent Jest hanging
   afterAll(() => {
-    // Clear any spawned child process mocks and their timers
-    clearSpawnedProcesses();
-    
     // Force clear any remaining timers
     jest.clearAllTimers();
     jest.useRealTimers();
