@@ -11,9 +11,11 @@ export class ClaudeProcessManager extends EventEmitter {
   private processes: Map<string, ChildProcess> = new Map();
   private outputBuffers: Map<string, string> = new Map();
   private timeouts: Map<string, NodeJS.Timeout[]> = new Map();
+  private claudeExecutablePath: string;
 
-  constructor() {
+  constructor(claudeExecutablePath?: string) {
     super();
+    this.claudeExecutablePath = claudeExecutablePath || 'claude';
   }
 
 
@@ -179,8 +181,9 @@ export class ClaudeProcessManager extends EventEmitter {
 
   private spawnClaudeProcess(config: ConversationConfig, args: string[]): ChildProcess {
     // console.debug('[ClaudeProcessManager] spawnClaudeProcess called with args:', args, 'and config:', config);
+    const executablePath = config.claudeExecutablePath || this.claudeExecutablePath;
     try {
-      const claudeProcess = spawn('claude', args, {
+      const claudeProcess = spawn(executablePath, args, {
         cwd: config.workingDirectory || process.cwd(),
         env: { ...process.env},
         stdio: ['inherit', 'pipe', 'pipe'], // stdin inherited, stdout/stderr piped for capture

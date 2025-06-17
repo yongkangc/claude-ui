@@ -1,25 +1,18 @@
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ConversationConfig } from '@/types';
-import { execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
-// Check if Claude CLI is available
-function isClaudeCliAvailable(): boolean {
-  try {
-    execSync('claude --version', { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
+// Get mock Claude executable path
+function getMockClaudeExecutablePath(): string {
+  return path.join(process.cwd(), 'tests', '__mocks__', 'claude');
 }
 
 describe('ClaudeProcessManager - Long Running Process', () => {
   let manager: ClaudeProcessManager;
 
   beforeAll(() => {
-    if (!isClaudeCliAvailable()) {
-      console.warn('⚠️  Claude CLI not found. Skipping tests that require Claude CLI.');
-      console.warn('   Install Claude CLI to run these tests: https://claude.ai/cli');
-    }
+    // Mock Claude is always available as it's checked into the repository
   });
 
   afterAll(async () => {
@@ -40,7 +33,8 @@ describe('ClaudeProcessManager - Long Running Process', () => {
   });
 
   beforeEach(async () => {
-    manager = new ClaudeProcessManager();
+    const mockClaudePath = getMockClaudeExecutablePath();
+    manager = new ClaudeProcessManager(mockClaudePath);
   });
 
   afterEach(async () => {
@@ -60,14 +54,10 @@ describe('ClaudeProcessManager - Long Running Process', () => {
 
   describe('long-running process handling', () => {
     it('should handle long-running process with proper event handling', async () => {
-      if (!isClaudeCliAvailable()) {
-        console.warn('Skipping test: Claude CLI not available');
-        return;
-      }
 
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello Claude! Please respond with "hello" and then stop.'
+        initialPrompt: 'Hello Claude! Please respond with just "Hello" and nothing else.'
       };
 
       // Event tracking

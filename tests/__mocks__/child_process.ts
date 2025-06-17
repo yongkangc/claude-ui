@@ -102,7 +102,11 @@ export class MockChildProcess extends EventEmitter {
       subtype: 'init',
       cwd: workingDir || process.cwd(),
       session_id: sessionId,
-      tools: ['Task', 'Bash', 'Glob', 'Grep', 'LS', 'Read', 'Edit', 'MultiEdit', 'Write'],
+      tools: [
+        'Task', 'Bash', 'Glob', 'Grep', 'LS', 'exit_plan_mode', 
+        'Read', 'Edit', 'MultiEdit', 'Write', 'NotebookRead', 
+        'NotebookEdit', 'WebFetch', 'TodoRead', 'TodoWrite', 'WebSearch'
+      ],
       mcp_servers: [],
       model: 'claude-opus-4-20250514',
       permissionMode: 'default',
@@ -115,8 +119,9 @@ export class MockChildProcess extends EventEmitter {
       console.log('[MOCK] Push result:', result);
     });
 
-    // Send assistant response after a short delay
+    // Send assistant response after 500ms delay
     const responseTimeout = setTimeout(() => {
+      const responseText = this.generateResponseText(initialPrompt);
       const responseMessage = {
         type: 'assistant',
         message: {
@@ -124,10 +129,16 @@ export class MockChildProcess extends EventEmitter {
           type: 'message',
           role: 'assistant',
           model: 'claude-opus-4-20250514',
-          content: [{ type: 'text', text: this.generateResponseText(initialPrompt) }],
+          content: [{ type: 'text', text: responseText }],
           stop_reason: null,
           stop_sequence: null,
-          usage: { input_tokens: 10, output_tokens: 5 }
+          usage: { 
+            input_tokens: Math.max(4, Math.floor(initialPrompt.length / 4)),
+            cache_creation_input_tokens: 15433,
+            cache_read_input_tokens: 0,
+            output_tokens: Math.max(1, Math.floor(responseText.length / 4)),
+            service_tier: 'standard'
+          }
         },
         parent_tool_use_id: null,
         session_id: sessionId
@@ -177,6 +188,18 @@ export class MockChildProcess extends EventEmitter {
   }
 
   private generateResponseText(prompt: string): string {
+    // Extract the actual prompt if it's in quotes
+    let extractedPrompt = prompt;
+    const match = prompt.match(/^["'](.*)["']$/);
+    if (match) {
+      extractedPrompt = match[1];
+    }
+
+    // Handle special test cases
+    if (extractedPrompt.includes('1+1=2')) {
+      return '1+1=2';
+    }
+    
     if (prompt.includes('just "Hello"')) {
       return 'Hello';
     }
@@ -186,7 +209,9 @@ export class MockChildProcess extends EventEmitter {
     if (prompt.includes('just "received"')) {
       return 'received';
     }
-    return 'Hello, I understand your request.';
+    
+    // Default response format matching the mock executable
+    return `You said: ${extractedPrompt}`;
   }
 
   kill(signal?: string | number) {

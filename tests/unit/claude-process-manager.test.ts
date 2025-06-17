@@ -1,15 +1,29 @@
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ConversationConfig } from '@/types';
 import { spawn, execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Get Claude executable path from node_modules or fallback to system
+function getClaudeExecutablePath(): string | null {
+  // First try node_modules
+  const nodeModulesClaudePath = path.join(process.cwd(), 'node_modules', '.bin', 'claude');
+  if (fs.existsSync(nodeModulesClaudePath)) {
+    return nodeModulesClaudePath;
+  }
+  
+  // Fallback to system claude
+  try {
+    execSync('claude --version', { stdio: 'ignore' });
+    return 'claude';
+  } catch {
+    return null;
+  }
+}
 
 // Check if Claude CLI is available
 function isClaudeCliAvailable(): boolean {
-  try {
-    execSync('claude --version', { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
+  return getClaudeExecutablePath() !== null;
 }
 
 describe('ClaudeProcessManager', () => {
@@ -40,7 +54,8 @@ describe('ClaudeProcessManager', () => {
   });
 
   beforeEach(async () => {
-    manager = new ClaudeProcessManager();
+    const claudePath = getClaudeExecutablePath();
+    manager = new ClaudeProcessManager(claudePath || undefined);
   });
 
   afterEach(async () => {

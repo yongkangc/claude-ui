@@ -91,6 +91,7 @@ export interface ConversationConfig {
   allowedTools?: string[];
   disallowedTools?: string[];
   systemPrompt?: string;
+  claudeExecutablePath?: string;
 }
 
 // API request/response types

@@ -1,0 +1,224 @@
+#!/usr/bin/env node
+
+/**
+ * Mock Claude CLI executable for testing
+ * Simulates the real Claude CLI streaming JSONL output format
+ */
+
+const crypto = require('crypto');
+
+function generateSessionId() {
+  return crypto.randomUUID();
+}
+
+function generateMessageId() {
+  return 'msg_' + crypto.randomBytes(12).toString('hex');
+}
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const config = {
+    print: false,
+    outputFormat: 'text',
+    verbose: false,
+    maxTurns: 7,
+    prompt: '',
+    workingDir: process.cwd()
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    switch (arg) {
+      case '-p':
+      case '--print':
+        config.print = true;
+        break;
+      case '--output-format':
+        if (i + 1 < args.length) {
+          config.outputFormat = args[++i];
+        }
+        break;
+      case '--verbose':
+        config.verbose = true;
+        break;
+      case '--max-turns':
+        if (i + 1 < args.length) {
+          config.maxTurns = parseInt(args[++i], 10);
+        }
+        break;
+      case '--add-dir':
+        if (i + 1 < args.length) {
+          config.workingDir = args[++i];
+        }
+        break;
+      default:
+        // If it doesn't start with -, it's probably the prompt
+        if (!arg.startsWith('-')) {
+          config.prompt = arg;
+        }
+        break;
+    }
+  }
+
+  return config;
+}
+
+function generateResponse(prompt) {
+  // Extract the actual prompt if it's in quotes
+  let extractedPrompt = prompt;
+  const match = prompt.match(/^["'](.*)["']$/);
+  if (match) {
+    extractedPrompt = match[1];
+  }
+
+  // Handle special test cases
+  if (extractedPrompt.includes('1+1=2')) {
+    return '1+1=2';
+  }
+  
+  if (extractedPrompt.includes('just "Hello"')) {
+    return 'Hello';
+  }
+  
+  if (extractedPrompt.includes('just "test"')) {
+    return 'test';
+  }
+
+  // Default response format
+  return `You said: ${extractedPrompt}`;
+}
+
+function outputJson(obj) {
+  console.log(JSON.stringify(obj));
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function simulateClaudeResponse(config) {
+  const sessionId = generateSessionId();
+  const messageId = generateMessageId();
+  const responseText = generateResponse(config.prompt);
+  
+  // Calculate token usage (simple approximation)
+  const inputTokens = Math.max(4, Math.floor(config.prompt.length / 4));
+  const outputTokens = Math.max(1, Math.floor(responseText.length / 4));
+  const cacheCreationTokens = 15433; // Match the example
+  
+  // System init message
+  const initMessage = {
+    type: 'system',
+    subtype: 'init',
+    cwd: config.workingDir,
+    session_id: sessionId,
+    tools: [
+      'Task', 'Bash', 'Glob', 'Grep', 'LS', 'exit_plan_mode', 
+      'Read', 'Edit', 'MultiEdit', 'Write', 'NotebookRead', 
+      'NotebookEdit', 'WebFetch', 'TodoRead', 'TodoWrite', 'WebSearch'
+    ],
+    mcp_servers: [],
+    model: 'claude-opus-4-20250514',
+    permissionMode: 'default',
+    apiKeySource: 'none'
+  };
+  
+  // Assistant response message
+  const assistantMessage = {
+    type: 'assistant',
+    message: {
+      id: messageId,
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-opus-4-20250514',
+      content: [
+        {
+          type: 'text',
+          text: responseText
+        }
+      ],
+      stop_reason: null,
+      stop_sequence: null,
+      usage: {
+        input_tokens: inputTokens,
+        cache_creation_input_tokens: cacheCreationTokens,
+        cache_read_input_tokens: 0,
+        output_tokens: outputTokens,
+        service_tier: 'standard'
+      }
+    },
+    parent_tool_use_id: null,
+    session_id: sessionId
+  };
+  
+  // Result message
+  const resultMessage = {
+    type: 'result',
+    subtype: 'success',
+    is_error: false,
+    duration_ms: 4236,
+    duration_api_ms: 7564,
+    num_turns: 1,
+    result: responseText,
+    session_id: sessionId,
+    total_cost_usd: 0.29052355,
+    usage: {
+      input_tokens: inputTokens,
+      cache_creation_input_tokens: cacheCreationTokens,
+      cache_read_input_tokens: 0,
+      output_tokens: outputTokens,
+      server_tool_use: {
+        web_search_requests: 0
+      }
+    }
+  };
+
+  // Output the messages with delays
+  if (config.outputFormat === 'stream-json') {
+    outputJson(initMessage);
+    await delay(500);
+    outputJson(assistantMessage);
+    await delay(500);
+    outputJson(resultMessage);
+  } else if (config.outputFormat === 'json') {
+    outputJson(resultMessage);
+  } else {
+    // Text format
+    console.log(responseText);
+  }
+}
+
+// Error handling for invalid directories
+function checkWorkingDirectory(config) {
+  if (config.workingDir === '/nonexistent/directory/that/does/not/exist') {
+    console.error('Error: Directory does not exist');
+    process.exit(1);
+  }
+  
+  if (config.workingDir === '/nonexistent/directory') {
+    console.error('Error: Directory does not exist');
+    process.exit(1);
+  }
+}
+
+// Main execution
+async function main() {
+  const config = parseArgs();
+  
+  // Check for error conditions
+  checkWorkingDirectory(config);
+  
+  // If no prompt provided, show help
+  if (!config.prompt) {
+    console.log('Usage: claude [options] [command] [prompt]');
+    console.log('Claude Code - starts an interactive session by default, use -p/--print for non-interactive output');
+    process.exit(0);
+  }
+  
+  // Simulate Claude response
+  await simulateClaudeResponse(config);
+}
+
+// Run the mock
+main().catch(console.error);
