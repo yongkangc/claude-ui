@@ -25,12 +25,6 @@ export class TestHelpers {
   static createTestProcessManager(): ClaudeProcessManager {
     const manager = new ClaudeProcessManager();
     
-    // Add test logging capability
-    const originalHandleMessage = (manager as any).handleClaudeMessage;
-    (manager as any).handleClaudeMessage = function(streamingId: string, message: any) {
-      TestHelpers.logTestInfo(`Claude message [${streamingId}]`, message);
-      return originalHandleMessage.call(this, streamingId, message);
-    };
     
     return manager;
   }
@@ -46,15 +40,6 @@ export class TestHelpers {
     } else {
       delete process.env.LOG_LEVEL;
       delete process.env.DEBUG;
-    }
-  }
-
-  /**
-   * Log test-specific debug information
-   */
-  static logTestInfo(message: string, data?: any): void {
-    if (process.env.NODE_ENV === 'test') {
-      console.log(`[Test]: ${message}`, data ? JSON.stringify(data, null, 2) : '');
     }
   }
 

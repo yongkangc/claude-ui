@@ -29,7 +29,7 @@ describe('ClaudeProcessManager - Long Running Process', () => {
     }
     
     // Extra time for cleanup
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 200));
   });
 
   beforeEach(async () => {
@@ -49,7 +49,7 @@ describe('ClaudeProcessManager - Long Running Process', () => {
     }
     
     // Give processes time to clean up
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('long-running process handling', () => {
@@ -71,14 +71,12 @@ describe('ClaudeProcessManager - Long Running Process', () => {
         expect(data).toBeDefined();
         expect(data.streamingId).toBeDefined();
         outputEventCount++;
-        console.log(`📤 Output event ${outputEventCount} received for session ${data.streamingId}`, data);
       });
 
       manager.on('process-error', (data) => {
         expect(data).toBeDefined();
         expect(data.streamingId).toBeDefined();
         errorEventCount++;
-        console.log(`❌ Error event ${errorEventCount} received for session ${data.streamingId}`, data);
       });
 
       manager.on('process-closed', (data) => {
@@ -86,24 +84,20 @@ describe('ClaudeProcessManager - Long Running Process', () => {
         expect(data.streamingId).toBeDefined();
         processClosedReceived = true;
         conversationCompleted = true;
-        console.log(`🔒 Process closed event received for session ${data.streamingId}`, data);
       });
 
       // Start conversation
-      console.log('🚀 Starting long-running Claude process...');
       const streamingId = await manager.startConversation(config);
       
       expect(streamingId).toBeDefined();
       expect(typeof streamingId).toBe('string');
       expect(manager.isSessionActive(streamingId)).toBe(true);
 
-      console.log(`📋 Process started with streaming ID: ${streamingId}`);
-      console.log('⏳ Waiting for Claude process to complete naturally...');
 
       // Wait for the conversation to complete naturally
       // Use a polling approach to check if process is still active
       const maxWaitTime = 20000; // 20 seconds max
-      const pollInterval = 500; // Check every 500ms
+      const pollInterval = 100; // Check every 100ms
       let elapsedTime = 0;
 
       while (!conversationCompleted && elapsedTime < maxWaitTime) {
@@ -118,9 +112,8 @@ describe('ClaudeProcessManager - Long Running Process', () => {
       }
 
       // Give a bit more time for final events to be processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      console.log(`📊 Final event counts - Output: ${outputEventCount}, Error: ${errorEventCount}, Process Closed: ${processClosedReceived}`);
 
       // Verify we received the expected events
       expect(outputEventCount).toBeGreaterThanOrEqual(1); // At least 1 output event
@@ -128,7 +121,6 @@ describe('ClaudeProcessManager - Long Running Process', () => {
       expect(processClosedReceived).toBe(true); // Process should have closed naturally
       expect(manager.isSessionActive(streamingId)).toBe(false); // Session should be inactive
 
-      console.log('✅ Long-running process test completed successfully');
     }, 25000); // 25 second timeout to allow for natural completion
   });
 });
