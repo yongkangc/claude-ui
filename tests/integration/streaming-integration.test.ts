@@ -136,6 +136,11 @@ describe('Streaming Integration', () => {
       );
       expect(claudeMessages.length).toBeGreaterThan(0);
       
+      // Verify the Claude response contains the expected "You said:" format from mock CLI
+      const resultMessage = messages.find(m => m.type === 'result');
+      expect(resultMessage).toBeDefined();
+      expect(resultMessage.result).toContain('You said: Hello, this is an integration test');
+      
       // Should end with close message
       const closeMessage = messages.find(m => m.type === 'closed');
       expect(closeMessage).toBeDefined();
