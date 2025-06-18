@@ -11,7 +11,8 @@ import {
   ModelsResponse,
   CCUIError 
 } from './types';
-import pino from 'pino';
+import { createLogger } from './services/logger';
+import type { Logger } from 'pino';
 
 /**
  * Main CCUI server class
@@ -22,7 +23,7 @@ export class CCUIServer {
   private processManager: ClaudeProcessManager;
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
-  private logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+  private logger: Logger;
   private port: number;
 
   constructor(config?: {
@@ -30,6 +31,7 @@ export class CCUIServer {
   }) {
     this.port = config?.port || parseInt(process.env.PORT || '3001');
     this.app = express();
+    this.logger = createLogger('CCUIServer');
     
     // Initialize services
     this.processManager = new ClaudeProcessManager();
@@ -303,7 +305,7 @@ export class CCUIServer {
         claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
         claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim();
       } catch (error) {
-        this.logger.warn('Failed to get Claude version information');
+        this.logger.warn('Failed to get Claude version information', { error });
       }
       
       return {

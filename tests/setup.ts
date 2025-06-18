@@ -15,7 +15,7 @@ console.error = jest.fn();
 const originalWrite = process.stdout.write;
 process.stdout.write = function(chunk: any, ...args: any[]) {
   // Check if the chunk looks like a pino JSON log
-  if (typeof chunk === 'string' && chunk.startsWith('{"level":')) {
+  if (typeof chunk === 'string' && (chunk.startsWith('{"level":') || chunk.includes('"time":'))) {
     return true; // Suppress the log
   }
   return originalWrite.call(this, chunk, ...args);

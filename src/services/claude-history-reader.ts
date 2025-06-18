@@ -2,15 +2,19 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
+import { createLogger } from './logger';
+import type { Logger } from 'pino';
 
 /**
  * Reads conversation history from Claude's local storage
  */
 export class ClaudeHistoryReader {
   private claudeHomePath: string;
+  private logger: Logger;
   
   constructor() {
     this.claudeHomePath = path.join(os.homedir(), '.claude');
+    this.logger = createLogger('ClaudeHistoryReader');
   }
 
   get homePath(): string {
@@ -76,7 +80,7 @@ export class ClaudeHistoryReader {
             messages.push(this.parseMessage(entry));
           }
         } catch (parseError) {
-          console.error(`Failed to parse line: ${line}`, parseError);
+          this.logger.warn('Failed to parse line from conversation', parseError, { sessionId, line: line.substring(0, 100) });
         }
       }
       
@@ -151,7 +155,7 @@ export class ClaudeHistoryReader {
         totalDuration
       };
     } catch (error) {
-      console.error(`Error getting metadata for conversation ${sessionId}:`, error);
+      this.logger.error('Error getting metadata for conversation', error, { sessionId });
       return null;
     }
   }
@@ -198,14 +202,14 @@ export class ClaudeHistoryReader {
             messageCount
           });
         } catch (error) {
-          console.error(`Error reading conversation ${sessionId}:`, error);
+          this.logger.error('Error reading conversation', error, { sessionId, projectPath });
           // Continue with other conversations even if one fails
         }
       }
       
       return conversations;
     } catch (error) {
-      console.error(`Error reading project conversations from ${projectPath}:`, error);
+      this.logger.error('Error reading project conversations', error, { projectPath });
       return [];
     }
   }
@@ -234,7 +238,7 @@ export class ClaudeHistoryReader {
       
       return null;
     } catch (error) {
-      console.error(`Error searching for conversation ${sessionId}:`, error);
+      this.logger.error('Error searching for conversation', error, { sessionId });
       return null;
     }
   }

@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { StreamEvent } from '@/types';
 import { EventEmitter } from 'events';
+import { createLogger } from './logger';
+import type { Logger } from 'pino';
 
 interface ClientConnection {
   response: Response;
@@ -14,6 +16,12 @@ interface ClientConnection {
 export class StreamManager extends EventEmitter {
   private clients: Map<string, Set<Response>> = new Map();
   private clientMetadata: Map<Response, ClientConnection> = new Map();
+  private logger: Logger;
+
+  constructor() {
+    super();
+    this.logger = createLogger('StreamManager');
+  }
 
   /**
    * Add a client to receive stream updates
@@ -52,7 +60,7 @@ export class StreamManager extends EventEmitter {
     });
 
     res.on('error', (error) => {
-      console.error(`Stream error for session ${streamingId}:`, error);
+      this.logger.error('Stream error for session', error, { streamingId });
       this.removeClient(streamingId, res);
     });
   }
@@ -87,7 +95,7 @@ export class StreamManager extends EventEmitter {
       try {
         this.sendToClient(client, event);
       } catch (error) {
-        console.error(`Failed to send to client:`, error);
+        this.logger.error('Failed to send to client', error, { streamingId });
         deadClients.push(client);
       }
     }
@@ -145,7 +153,7 @@ export class StreamManager extends EventEmitter {
         // Clean up metadata for this client
         this.clientMetadata.delete(client);
       } catch (error) {
-        console.error(`Error closing client connection:`, error);
+        this.logger.error('Error closing client connection', error, { streamingId });
       }
     }
     

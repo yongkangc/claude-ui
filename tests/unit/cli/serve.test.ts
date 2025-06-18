@@ -1,15 +1,23 @@
 import { serveCommand } from '@/cli/commands/serve';
 import { CCUIServer } from '@/ccui-server';
+import { createLogger } from '@/services/logger';
 
 // Mock CCUIServer
 jest.mock('@/ccui-server');
 
-const MockedCCUIServer = CCUIServer as jest.MockedClass<typeof CCUIServer>;
+// Mock logger
+jest.mock('@/services/logger');
 
-// Mock console methods
-const consoleSpy = {
-  log: jest.spyOn(console, 'log').mockImplementation(),
-  error: jest.spyOn(console, 'error').mockImplementation()
+const MockedCCUIServer = CCUIServer as jest.MockedClass<typeof CCUIServer>;
+const mockCreateLogger = createLogger as jest.MockedFunction<typeof createLogger>;
+
+// Mock logger instance
+const mockLogger = {
+  info: jest.fn(),
+  error: jest.fn(),
+  fatal: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn()
 };
 
 // Mock process methods
@@ -22,6 +30,9 @@ describe('CLI Serve Command', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
+    // Setup logger mock
+    mockCreateLogger.mockReturnValue(mockLogger as any);
+    
     // Create mock server instance
     mockServer = {
       start: jest.fn(),
@@ -32,15 +43,12 @@ describe('CLI Serve Command', () => {
   });
 
   afterEach(() => {
-    consoleSpy.log.mockClear();
-    consoleSpy.error.mockClear();
+    Object.values(mockLogger).forEach(fn => fn.mockClear());
     mockExit.mockClear();
     mockOn.mockClear();
   });
 
   afterAll(() => {
-    consoleSpy.log.mockRestore();
-    consoleSpy.error.mockRestore();
     mockExit.mockRestore();
     mockOn.mockRestore();
   });
@@ -62,8 +70,8 @@ describe('CLI Serve Command', () => {
       });
 
       expect(mockServer.start).toHaveBeenCalled();
-      expect(consoleSpy.log).toHaveBeenCalledWith('Starting CCUI server on port 3001...');
-      expect(consoleSpy.log).toHaveBeenCalledWith('CCUI server is running at http://localhost:3001');
+      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server on port 3001');
+      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running at http://localhost:3001');
     });
 
     it('should start server with custom port', async () => {
@@ -78,8 +86,8 @@ describe('CLI Serve Command', () => {
       });
 
       expect(mockServer.start).toHaveBeenCalled();
-      expect(consoleSpy.log).toHaveBeenCalledWith('Starting CCUI server on port 8080...');
-      expect(consoleSpy.log).toHaveBeenCalledWith('CCUI server is running at http://localhost:8080');
+      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server on port 8080');
+      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running at http://localhost:8080');
     });
 
     it('should register SIGTERM handler for graceful shutdown', async () => {
@@ -116,7 +124,7 @@ describe('CLI Serve Command', () => {
       // Simulate SIGTERM
       await sigtermHandler!();
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('\nSIGTERM received, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('SIGTERM received, shutting down gracefully');
       expect(mockServer.stop).toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
     });
@@ -144,7 +152,7 @@ describe('CLI Serve Command', () => {
       // Simulate SIGINT (Ctrl+C)
       await sigintHandler!();
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('\nSIGINT received, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('SIGINT received, shutting down gracefully');
       expect(mockServer.stop).toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
     });
@@ -161,7 +169,7 @@ describe('CLI Serve Command', () => {
 
       await serveCommand(options);
 
-      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', startError);
+      expect(mockLogger.fatal).toHaveBeenCalledWith('Failed to start server', startError);
       expect(mockExit).toHaveBeenCalledWith(1);
     });
 
@@ -176,7 +184,7 @@ describe('CLI Serve Command', () => {
 
       await serveCommand(options);
 
-      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', expect.any(Error));
+      expect(mockLogger.fatal).toHaveBeenCalledWith('Failed to start server', expect.any(Error));
       expect(mockExit).toHaveBeenCalledWith(1);
     });
   });
@@ -203,7 +211,7 @@ describe('CLI Serve Command', () => {
       // Simulate SIGTERM with error in stop
       await sigtermHandler!();
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('\nSIGTERM received, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('SIGTERM received, shutting down gracefully');
       expect(mockServer.stop).toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0); // Should still exit even if stop fails
     });
@@ -229,7 +237,7 @@ describe('CLI Serve Command', () => {
       // Simulate SIGINT with error in stop
       await sigintHandler!();
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('\nSIGINT received, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('SIGINT received, shutting down gracefully');
       expect(mockServer.stop).toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0); // Should still exit even if stop fails
     });
@@ -267,7 +275,7 @@ describe('CLI Serve Command', () => {
 
       // Should exit with error code when constructor throws
       expect(mockExit).toHaveBeenCalledWith(1);
-      expect(consoleSpy.error).toHaveBeenCalledWith('Failed to start server:', expect.any(Error));
+      expect(mockLogger.fatal).toHaveBeenCalledWith('Failed to start server', expect.any(Error));
     });
 
     it('should handle port number with whitespace', async () => {
