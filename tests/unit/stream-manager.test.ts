@@ -39,9 +39,8 @@ describe('StreamManager', () => {
       
       manager.addClient(streamingId, mockResponse);
 
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/x-ndjson');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('X-Accel-Buffering', 'no');
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
     });
@@ -52,7 +51,7 @@ describe('StreamManager', () => {
       manager.addClient(streamingId, mockResponse);
 
       expect(mockResponse.write).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"connected"')
+        expect.stringMatching(/^data: .*"type":"connected".*\n\n$/)
       );
     });
 
@@ -147,7 +146,7 @@ describe('StreamManager', () => {
       
       manager.broadcast(streamingId, streamMessage);
       
-      const expectedData = JSON.stringify(streamMessage) + '\n';
+      const expectedData = `data: ${JSON.stringify(streamMessage)}\n\n`;
       expect(mockResponse.write).toHaveBeenCalledWith(expectedData);
       expect(mockResponse2.write).toHaveBeenCalledWith(expectedData);
     });
@@ -221,10 +220,10 @@ describe('StreamManager', () => {
       manager.closeSession(streamingId);
       
       expect(mockResponse.write).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"closed"')
+        expect.stringMatching(/^data: .*"type":"closed".*\n\n$/)
       );
       expect(mockResponse2.write).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"closed"')
+        expect.stringMatching(/^data: .*"type":"closed".*\n\n$/)
       );
     });
 
@@ -285,22 +284,22 @@ describe('StreamManager', () => {
     });
   });
 
-  describe('getClientMetadata', () => {
-    it('should return empty array when no clients', () => {
-      expect(manager.getClientMetadata()).toEqual([]);
+  describe('getTotalClientCount', () => {
+    it('should return 0 when no clients', () => {
+      expect(manager.getTotalClientCount()).toBe(0);
     });
 
-    it('should return client metadata with connection times', () => {
-      const streamingId = 'test-streaming-123';
-      const beforeConnect = new Date();
+    it('should return total client count across all sessions', () => {
+      const session1 = 'session-1';
+      const session2 = 'session-2';
+      const mockResponse2 = createMockResponse();
+      const mockResponse3 = createMockResponse();
       
-      manager.addClient(streamingId, mockResponse);
+      manager.addClient(session1, mockResponse);
+      manager.addClient(session1, mockResponse2);
+      manager.addClient(session2, mockResponse3);
       
-      const metadata = manager.getClientMetadata();
-      expect(metadata).toHaveLength(1);
-      expect(metadata[0].streamingId).toBe(streamingId);
-      expect(metadata[0].connectedAt).toBeInstanceOf(Date);
-      expect(metadata[0].connectedAt.getTime()).toBeGreaterThanOrEqual(beforeConnect.getTime());
+      expect(manager.getTotalClientCount()).toBe(3);
     });
   });
 
@@ -340,7 +339,7 @@ describe('StreamManager', () => {
       manager.broadcast(streamingId, largeStreamMessage);
       
       expect(mockResponse.write).toHaveBeenCalledWith(
-        expect.stringContaining(largeContent.substring(0, 100))
+        expect.stringMatching(new RegExp(`^data: .*${largeContent.substring(0, 50).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*\\n\\n$`))
       );
     });
   });

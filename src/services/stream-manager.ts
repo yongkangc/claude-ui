@@ -4,29 +4,16 @@ import { EventEmitter } from 'events';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
 
-interface ClientConnection {
-  response: Response;
-  streamingId: string; // CCUI's internal streaming identifier
-  connectedAt: Date;
-}
-
-interface BufferedMessage {
-  event: StreamEvent;
-  timestamp: Date;
-}
-
 /**
  * Manages streaming connections to multiple clients
  */
 export class StreamManager extends EventEmitter {
   private clients: Map<string, Set<Response>> = new Map();
-  private clientMetadata: Map<Response, ClientConnection> = new Map();
-  private messageBuffer: Map<string, BufferedMessage[]> = new Map();
-  private bufferTimeout: Map<string, NodeJS.Timeout> = new Map();
   private logger: Logger;
+  private heartbeatInterval?: NodeJS.Timeout;
   
-  // Buffer messages for 5 seconds when no clients are connected
-  private readonly BUFFER_TIMEOUT_MS = 5000;
+  // Send heartbeat every 30 seconds to keep connections alive
+  private readonly HEARTBEAT_INTERVAL_MS = 30000;
 
   constructor() {
     super();
@@ -39,10 +26,9 @@ export class StreamManager extends EventEmitter {
   addClient(streamingId: string, res: Response): void {
     this.logger.debug('Adding client to stream', { streamingId });
     
-    // Configure response for streaming
-    res.setHeader('Content-Type', 'application/x-ndjson');
+    // Configure response for Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.setHeader('Access-Control-Allow-Origin', '*');
     
@@ -53,11 +39,6 @@ export class StreamManager extends EventEmitter {
     
     // Add this client to the session
     this.clients.get(streamingId)!.add(res);
-    this.clientMetadata.set(res, {
-      response: res,
-      streamingId,
-      connectedAt: new Date()
-    });
     
     this.logger.debug('Client added successfully', { 
       streamingId, 
@@ -65,14 +46,21 @@ export class StreamManager extends EventEmitter {
     });
     
     // Send initial connection confirmation
-    this.sendToClient(res, {
+    const connectionMessage = {
       type: 'connected',
       streaming_id: streamingId,
       timestamp: new Date().toISOString()
+    };
+    
+    this.logger.debug('Sending initial SSE connection confirmation', { 
+      streamingId,
+      clientCount: this.clients.get(streamingId)!.size
     });
     
-    // Send any buffered messages for this session
-    this.flushBufferedMessages(streamingId, res);
+    this.sendSSEEvent(res, connectionMessage);
+    
+    // Start heartbeat if this is the first client
+    this.startHeartbeat();
     
     // Clean up when client disconnects
     res.on('close', () => {
@@ -96,8 +84,12 @@ export class StreamManager extends EventEmitter {
         this.clients.delete(streamingId);
       }
     }
-    this.clientMetadata.delete(res);
     this.emit('client-disconnected', { streamingId });
+    
+    // Stop heartbeat if no clients remain
+    if (this.getTotalClientCount() === 0) {
+      this.stopHeartbeat();
+    }
   }
 
   /**
@@ -112,8 +104,7 @@ export class StreamManager extends EventEmitter {
     
     const clients = this.clients.get(streamingId);
     if (!clients || clients.size === 0) {
-      this.logger.debug('No clients found for streaming session, buffering message', { streamingId });
-      this.bufferMessage(streamingId, event);
+      this.logger.debug('No clients found for streaming session, dropping message', { streamingId });
       return;
     }
     
@@ -126,10 +117,14 @@ export class StreamManager extends EventEmitter {
     
     for (const client of clients) {
       try {
-        this.sendToClient(client, event);
-        this.logger.debug('Successfully sent event to client', { streamingId });
+        this.sendSSEEvent(client, event);
+        this.logger.debug('Successfully sent SSE event to client', { 
+          streamingId, 
+          eventType: event?.type,
+          eventSubtype: (event as any)?.subtype 
+        });
       } catch (error) {
-        this.logger.error('Failed to send to client', error, { streamingId });
+        this.logger.error('Failed to send SSE event to client', error, { streamingId });
         deadClients.push(client);
       }
     }
@@ -139,15 +134,38 @@ export class StreamManager extends EventEmitter {
   }
 
   /**
-   * Send a message to a specific client
+   * Send an SSE event to a specific client
    */
-  private sendToClient(res: Response, message: any): void {
+  private sendSSEEvent(res: Response, message: any, eventType?: string): void {
     if (res.writableEnded || res.destroyed) {
       throw new Error('Response is no longer writable');
     }
     
-    const data = JSON.stringify(message) + '\n';
-    res.write(data);
+    let sseData = '';
+    if (eventType) {
+      sseData += `event: ${eventType}\n`;
+    }
+    sseData += `data: ${JSON.stringify(message)}\n\n`;
+    
+    // Log SSE event data
+    this.logger.debug('Sending SSE event', {
+      eventType,
+      messageType: message?.type,
+      messageSubtype: (message as any)?.subtype,
+      streamingId: message?.streamingId || message?.streaming_id,
+      sseDataLength: sseData.length
+    });
+    
+    res.write(sseData);
+  }
+
+  /**
+   * Send SSE heartbeat (comment) to keep connection alive
+   */
+  private sendHeartbeat(res: Response): void {
+    if (!res.writableEnded && !res.destroyed) {
+      res.write(': heartbeat\n\n');
+    }
   }
 
   /**
@@ -180,37 +198,39 @@ export class StreamManager extends EventEmitter {
     // Create array to avoid modifying set while iterating
     const clientsArray = Array.from(clients);
     
+    this.logger.debug('Closing SSE session, sending close events to all clients', { 
+      streamingId,
+      clientCount: clientsArray.length 
+    });
+    
     for (const client of clientsArray) {
       try {
-        this.sendToClient(client, closeEvent);
+        this.sendSSEEvent(client, closeEvent);
+        this.logger.debug('Sent SSE close event to client', { streamingId });
         client.end();
-        // Clean up metadata for this client
-        this.clientMetadata.delete(client);
       } catch (error) {
-        this.logger.error('Error closing client connection', error, { streamingId });
+        this.logger.error('Error closing SSE client connection', error, { streamingId });
       }
     }
     
     // Remove the entire session
     this.clients.delete(streamingId);
     
-    // Clear any buffered messages for this session
-    this.messageBuffer.delete(streamingId);
-    const timeout = this.bufferTimeout.get(streamingId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.bufferTimeout.delete(streamingId);
+    // Stop heartbeat if no clients remain
+    if (this.getTotalClientCount() === 0) {
+      this.stopHeartbeat();
     }
   }
 
   /**
-   * Get metadata about connected clients
+   * Get total number of clients across all sessions
    */
-  getClientMetadata(): Array<{ streamingId: string; connectedAt: Date }> {
-    return Array.from(this.clientMetadata.values()).map(({ streamingId, connectedAt }) => ({
-      streamingId,
-      connectedAt
-    }));
+  getTotalClientCount(): number {
+    let total = 0;
+    for (const clients of this.clients.values()) {
+      total += clients.size;
+    }
+    return total;
   }
 
   /**
@@ -220,81 +240,40 @@ export class StreamManager extends EventEmitter {
     for (const streamingId of this.clients.keys()) {
       this.closeSession(streamingId);
     }
-    this.clientMetadata.clear();
-    this.clearAllBuffers();
+    this.stopHeartbeat();
   }
 
   /**
-   * Buffer a message when no clients are connected
+   * Start periodic heartbeat to keep SSE connections alive
    */
-  private bufferMessage(streamingId: string, event: StreamEvent): void {
-    if (!this.messageBuffer.has(streamingId)) {
-      this.messageBuffer.set(streamingId, []);
+  private startHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      return; // Already running
     }
-
-    const buffer = this.messageBuffer.get(streamingId)!;
-    buffer.push({
-      event,
-      timestamp: new Date()
-    });
-
-    // Set up timeout to clear buffer if no clients connect
-    if (!this.bufferTimeout.has(streamingId)) {
-      const timeout = setTimeout(() => {
-        this.logger.debug('Buffer timeout expired, clearing messages', { streamingId });
-        this.messageBuffer.delete(streamingId);
-        this.bufferTimeout.delete(streamingId);
-      }, this.BUFFER_TIMEOUT_MS);
+    
+    this.heartbeatInterval = setInterval(() => {
+      this.logger.debug('Sending heartbeat to all clients');
       
-      this.bufferTimeout.set(streamingId, timeout);
-    }
-  }
-
-  /**
-   * Flush buffered messages to a newly connected client
-   */
-  private flushBufferedMessages(streamingId: string, res: Response): void {
-    const buffer = this.messageBuffer.get(streamingId);
-    if (!buffer || buffer.length === 0) {
-      return;
-    }
-
-    this.logger.debug('Flushing buffered messages to client', { 
-      streamingId, 
-      messageCount: buffer.length 
-    });
-
-    // Send all buffered messages
-    for (const bufferedMessage of buffer) {
-      try {
-        this.sendToClient(res, bufferedMessage.event);
-      } catch (error) {
-        this.logger.error('Failed to send buffered message', error, { streamingId });
-        break;
+      for (const clients of this.clients.values()) {
+        for (const client of clients) {
+          try {
+            this.sendHeartbeat(client);
+          } catch (error) {
+            this.logger.debug('Failed to send heartbeat to client', { error });
+          }
+        }
       }
-    }
-
-    // Clear the buffer after flushing
-    this.messageBuffer.delete(streamingId);
-    
-    // Clear the timeout
-    const timeout = this.bufferTimeout.get(streamingId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.bufferTimeout.delete(streamingId);
-    }
+    }, this.HEARTBEAT_INTERVAL_MS);
   }
 
   /**
-   * Clear all message buffers
+   * Stop periodic heartbeat
    */
-  private clearAllBuffers(): void {
-    // Clear all timeouts
-    for (const timeout of this.bufferTimeout.values()) {
-      clearTimeout(timeout);
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = undefined;
+      this.logger.debug('Stopped heartbeat');
     }
-    
-    this.messageBuffer.clear();
-    this.bufferTimeout.clear();
   }
 }
