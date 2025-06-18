@@ -270,3 +270,7 @@ This is a **fully functional implementation** with:
 - ✅ TypeScript type safety throughout
 
 The backend is production-ready and provides a robust foundation for web-based Claude CLI interaction.
+
+## Memories
+
+- Use the @src/services/logger.ts when create log. NEVER USE CONSOLE.LOG

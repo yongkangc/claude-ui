@@ -175,6 +175,7 @@ export class CCUIServer {
     
     // Streaming endpoint
     this.setupStreamingRoute();
+    
   }
 
   private setupConversationRoutes(): void {
@@ -268,19 +269,27 @@ export class CCUIServer {
   }
 
   private setupProcessManagerIntegration(): void {
+    this.logger.debug('Setting up ProcessManager integration with StreamManager');
+    
     // Forward Claude messages to stream
     this.processManager.on('claude-message', ({ streamingId, message }) => {
+      this.logger.debug('Received claude-message event, forwarding to StreamManager', { 
+        streamingId, 
+        messageType: message?.type 
+      });
       // Stream the Claude message directly as documented
       this.streamManager.broadcast(streamingId, message);
     });
 
     // Handle process closure
     this.processManager.on('process-closed', ({ streamingId }) => {
+      this.logger.debug('Received process-closed event, closing StreamManager session', { streamingId });
       this.streamManager.closeSession(streamingId);
     });
 
     // Handle process errors
     this.processManager.on('process-error', ({ streamingId, error }) => {
+      this.logger.debug('Received process-error event, forwarding to StreamManager', { streamingId, error });
       this.streamManager.broadcast(streamingId, {
         type: 'error',
         error,
@@ -288,6 +297,8 @@ export class CCUIServer {
         timestamp: new Date().toISOString()
       });
     });
+    
+    this.logger.debug('ProcessManager integration setup complete');
   }
 
   /**

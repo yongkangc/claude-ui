@@ -10,13 +10,23 @@ interface ClientConnection {
   connectedAt: Date;
 }
 
+interface BufferedMessage {
+  event: StreamEvent;
+  timestamp: Date;
+}
+
 /**
  * Manages streaming connections to multiple clients
  */
 export class StreamManager extends EventEmitter {
   private clients: Map<string, Set<Response>> = new Map();
   private clientMetadata: Map<Response, ClientConnection> = new Map();
+  private messageBuffer: Map<string, BufferedMessage[]> = new Map();
+  private bufferTimeout: Map<string, NodeJS.Timeout> = new Map();
   private logger: Logger;
+  
+  // Buffer messages for 5 seconds when no clients are connected
+  private readonly BUFFER_TIMEOUT_MS = 5000;
 
   constructor() {
     super();
@@ -27,6 +37,8 @@ export class StreamManager extends EventEmitter {
    * Add a client to receive stream updates
    */
   addClient(streamingId: string, res: Response): void {
+    this.logger.debug('Adding client to stream', { streamingId });
+    
     // Configure response for streaming
     res.setHeader('Content-Type', 'application/x-ndjson');
     res.setHeader('Cache-Control', 'no-cache');
@@ -47,12 +59,20 @@ export class StreamManager extends EventEmitter {
       connectedAt: new Date()
     });
     
+    this.logger.debug('Client added successfully', { 
+      streamingId, 
+      totalClients: this.clients.get(streamingId)!.size 
+    });
+    
     // Send initial connection confirmation
     this.sendToClient(res, {
       type: 'connected',
       streaming_id: streamingId,
       timestamp: new Date().toISOString()
     });
+    
+    // Send any buffered messages for this session
+    this.flushBufferedMessages(streamingId, res);
     
     // Clean up when client disconnects
     res.on('close', () => {
@@ -84,16 +104,30 @@ export class StreamManager extends EventEmitter {
    * Broadcast an event to all clients watching a session
    */
   broadcast(streamingId: string, event: StreamEvent): void {
+    this.logger.debug('Broadcasting event to clients', { 
+      streamingId, 
+      eventType: event?.type,
+      eventSubtype: (event as any)?.subtype 
+    });
+    
     const clients = this.clients.get(streamingId);
     if (!clients || clients.size === 0) {
+      this.logger.debug('No clients found for streaming session, buffering message', { streamingId });
+      this.bufferMessage(streamingId, event);
       return;
     }
+    
+    this.logger.debug('Found clients for broadcast', { 
+      streamingId, 
+      clientCount: clients.size 
+    });
     
     const deadClients: Response[] = [];
     
     for (const client of clients) {
       try {
         this.sendToClient(client, event);
+        this.logger.debug('Successfully sent event to client', { streamingId });
       } catch (error) {
         this.logger.error('Failed to send to client', error, { streamingId });
         deadClients.push(client);
@@ -159,6 +193,14 @@ export class StreamManager extends EventEmitter {
     
     // Remove the entire session
     this.clients.delete(streamingId);
+    
+    // Clear any buffered messages for this session
+    this.messageBuffer.delete(streamingId);
+    const timeout = this.bufferTimeout.get(streamingId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.bufferTimeout.delete(streamingId);
+    }
   }
 
   /**
@@ -179,5 +221,80 @@ export class StreamManager extends EventEmitter {
       this.closeSession(streamingId);
     }
     this.clientMetadata.clear();
+    this.clearAllBuffers();
+  }
+
+  /**
+   * Buffer a message when no clients are connected
+   */
+  private bufferMessage(streamingId: string, event: StreamEvent): void {
+    if (!this.messageBuffer.has(streamingId)) {
+      this.messageBuffer.set(streamingId, []);
+    }
+
+    const buffer = this.messageBuffer.get(streamingId)!;
+    buffer.push({
+      event,
+      timestamp: new Date()
+    });
+
+    // Set up timeout to clear buffer if no clients connect
+    if (!this.bufferTimeout.has(streamingId)) {
+      const timeout = setTimeout(() => {
+        this.logger.debug('Buffer timeout expired, clearing messages', { streamingId });
+        this.messageBuffer.delete(streamingId);
+        this.bufferTimeout.delete(streamingId);
+      }, this.BUFFER_TIMEOUT_MS);
+      
+      this.bufferTimeout.set(streamingId, timeout);
+    }
+  }
+
+  /**
+   * Flush buffered messages to a newly connected client
+   */
+  private flushBufferedMessages(streamingId: string, res: Response): void {
+    const buffer = this.messageBuffer.get(streamingId);
+    if (!buffer || buffer.length === 0) {
+      return;
+    }
+
+    this.logger.debug('Flushing buffered messages to client', { 
+      streamingId, 
+      messageCount: buffer.length 
+    });
+
+    // Send all buffered messages
+    for (const bufferedMessage of buffer) {
+      try {
+        this.sendToClient(res, bufferedMessage.event);
+      } catch (error) {
+        this.logger.error('Failed to send buffered message', error, { streamingId });
+        break;
+      }
+    }
+
+    // Clear the buffer after flushing
+    this.messageBuffer.delete(streamingId);
+    
+    // Clear the timeout
+    const timeout = this.bufferTimeout.get(streamingId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.bufferTimeout.delete(streamingId);
+    }
+  }
+
+  /**
+   * Clear all message buffers
+   */
+  private clearAllBuffers(): void {
+    // Clear all timeouts
+    for (const timeout of this.bufferTimeout.values()) {
+      clearTimeout(timeout);
+    }
+    
+    this.messageBuffer.clear();
+    this.bufferTimeout.clear();
   }
 }
