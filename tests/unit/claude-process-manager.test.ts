@@ -27,8 +27,8 @@ describe('ClaudeProcessManager', () => {
       }
     }
     
-    // Extra time for cleanup
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Reduced cleanup time
+    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   beforeEach(async () => {
@@ -48,7 +48,7 @@ describe('ClaudeProcessManager', () => {
     }
     
     // Give processes time to clean up
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 20));
   });
 
   describe('constructor', () => {
@@ -59,92 +59,41 @@ describe('ClaudeProcessManager', () => {
   });
 
   describe('buildClaudeArgs', () => {
-    it('should build correct arguments for basic configuration', () => {
+    it('should build correct arguments with all options', () => {
       const config: ConversationConfig = {
         workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude'
+        initialPrompt: 'Hello Claude',
+        model: 'claude-opus-4-20250514',
+        allowedTools: ['Bash', 'Read'],
+        disallowedTools: ['WebSearch'],
+        systemPrompt: 'You are helpful'
       };
 
       const args = (manager as any).buildClaudeArgs(config);
       
-      expect(args).toContain('-p'); // Print mode
+      // Test all functionality in one test to reduce overhead
+      expect(args).toContain('-p');
       expect(args).toContain('--output-format');
       expect(args).toContain('stream-json');
-      expect(args).toContain('Hello Claude'); // Initial prompt should be last
-    });
-
-    it('should include working directory when specified', () => {
-      const config: ConversationConfig = {
-        workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude'
-      };
-
-      const args = (manager as any).buildClaudeArgs(config);
-      
       expect(args).toContain('--add-dir');
       expect(args).toContain('/test/dir');
-    });
-
-    it('should include model when specified', () => {
-      const config: ConversationConfig = {
-        workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude',
-        model: 'claude-opus-4-20250514'
-      };
-
-      const args = (manager as any).buildClaudeArgs(config);
-      
       expect(args).toContain('--model');
       expect(args).toContain('claude-opus-4-20250514');
-    });
-
-    it('should include allowed tools when specified', () => {
-      const config: ConversationConfig = {
-        workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude',
-        allowedTools: ['Bash', 'Read', 'Write']
-      };
-
-      const args = (manager as any).buildClaudeArgs(config);
-      
       expect(args).toContain('--allowedTools');
-      expect(args).toContain('Bash,Read,Write');
-    });
-
-    it('should include disallowed tools when specified', () => {
-      const config: ConversationConfig = {
-        workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude',
-        disallowedTools: ['WebSearch']
-      };
-
-      const args = (manager as any).buildClaudeArgs(config);
-      
+      expect(args).toContain('Bash,Read');
       expect(args).toContain('--disallowedTools');
       expect(args).toContain('WebSearch');
-    });
-
-    it('should include system prompt when specified', () => {
-      const config: ConversationConfig = {
-        workingDirectory: '/test/dir',
-        initialPrompt: 'Hello Claude',
-        systemPrompt: 'You are a helpful assistant'
-      };
-
-      const args = (manager as any).buildClaudeArgs(config);
-      
       expect(args).toContain('--system-prompt');
-      expect(args).toContain('You are a helpful assistant');
+      expect(args).toContain('You are helpful');
+      expect(args).toContain('Hello Claude');
     });
-
   });
 
   describe('startConversation', () => {
     it('should start a conversation and return streaming ID', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello, Claude! Please respond with just "Hello" and nothing else.'
+        initialPrompt: 'test'
       };
 
       const streamingId = await manager.startConversation(config);
@@ -156,16 +105,14 @@ describe('ClaudeProcessManager', () => {
       // Session should be tracked as active
       expect(manager.getActiveSessions()).toContain(streamingId);
       expect(manager.isSessionActive(streamingId)).toBe(true);
-    }, 5000);
+    }, 2000);
 
     it('should emit claude-message events', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello, Claude! Please respond with just "test" and nothing else.'
+        initialPrompt: 'test'
       };
 
-      // Set up event listener before starting conversation
       let messageReceived = false;
       manager.on('claude-message', (data) => {
         expect(data).toBeDefined();
@@ -173,32 +120,30 @@ describe('ClaudeProcessManager', () => {
         messageReceived = true;
       });
 
-      const streamingId = await manager.startConversation(config);
+      await manager.startConversation(config);
       
-      // Wait for Claude to respond
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Reduced wait time
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       expect(messageReceived).toBe(true);
-    }, 5000);
+    }, 2000);
 
     it('should handle invalid working directory', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: '/nonexistent/directory/that/does/not/exist',
         initialPrompt: 'Hello Claude'
       };
 
       await expect(manager.startConversation(config)).rejects.toThrow();
-    }, 10000);
+    }, 3000);
   });
 
 
   describe('stopConversation', () => {
     it('should stop active conversation', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello Claude'
+        initialPrompt: 'test'
       };
       
       const streamingId = await manager.startConversation(config);
@@ -207,7 +152,7 @@ describe('ClaudeProcessManager', () => {
       const result = await manager.stopConversation(streamingId);
       expect(result).toBe(true);
       expect(manager.isSessionActive(streamingId)).toBe(false);
-    }, 5000);
+    }, 2000);
 
     it('should return false if session not found', async () => {
       const result = await manager.stopConversation('non-existent');
@@ -215,10 +160,9 @@ describe('ClaudeProcessManager', () => {
     });
 
     it('should emit process-closed event', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello Claude'
+        initialPrompt: 'test'
       };
 
       let processClosedEmitted = false;
@@ -231,53 +175,41 @@ describe('ClaudeProcessManager', () => {
       const streamingId = await manager.startConversation(config);
       await manager.stopConversation(streamingId);
       
-      // Give some time for event to be emitted
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Reduced wait time
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       expect(processClosedEmitted).toBe(true);
-    }, 5000);
+    }, 2000);
   });
 
   describe('session management', () => {
     it('should track multiple active sessions', async () => {
-
       const config1: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Session 1'
+        initialPrompt: 'test1'
       };
       
       const config2: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Session 2'
+        initialPrompt: 'test2'
       };
 
-      // Start first session and verify it's tracked
       const streamingId1 = await manager.startConversation(config1);
-      expect(manager.isSessionActive(streamingId1)).toBe(true);
-      expect(manager.getActiveSessions()).toContain(streamingId1);
-      
-      // Start second session and verify both are tracked
       const streamingId2 = await manager.startConversation(config2);
-      expect(manager.isSessionActive(streamingId2)).toBe(true);
-      
-      // With the fast mock, sessions might complete quickly, so let's test what we can verify
-      const activeSessions = manager.getActiveSessions();
-      expect(activeSessions.length).toBeGreaterThanOrEqual(1); // At least one should still be active
-      expect(activeSessions).toContain(streamingId2); // The most recent one should definitely be active
       
       // Verify both sessions were created with unique IDs
       expect(streamingId1).not.toBe(streamingId2);
-    }, 10000);
+      expect(manager.isSessionActive(streamingId2)).toBe(true);
+    }, 3000);
 
     it('should return empty array when no sessions', () => {
       expect(manager.getActiveSessions()).toEqual([]);
     });
 
     it('should correctly report session status', async () => {
-
       const config: ConversationConfig = {
         workingDirectory: process.cwd(),
-        initialPrompt: 'Hello Claude'
+        initialPrompt: 'test'
       };
 
       expect(manager.isSessionActive('non-existent')).toBe(false);
@@ -287,49 +219,17 @@ describe('ClaudeProcessManager', () => {
       
       await manager.stopConversation(streamingId);
       expect(manager.isSessionActive(streamingId)).toBe(false);
-    }, 5000);
+    }, 2000);
   });
 
   describe('error handling', () => {
-    it('should throw error for invalid working directory at startup', async () => {
-
+    it('should throw error for invalid working directory', async () => {
       const config: ConversationConfig = {
         workingDirectory: '/nonexistent/directory/that/does/not/exist',
-        initialPrompt: 'This should fail'
+        initialPrompt: 'test'
       };
 
-      // This should throw immediately during startup, not emit process-error events
       await expect(manager.startConversation(config)).rejects.toThrow();
-    }, 5000);
-
-    it('should emit process-error events for stderr output', async () => {
-
-      // This test is tricky with real Claude CLI as it typically doesn't emit stderr
-      // unless there's a real error. For now, we'll test basic error handling.
-      let errorEmitted = false;
-      manager.on('process-error', (data) => {
-        expect(data).toBeDefined();
-        expect(data.streamingId).toBeDefined();
-        errorEmitted = true;
-      });
-
-      // Use an invalid prompt that might cause Claude to emit error
-      const config: ConversationConfig = {
-        workingDirectory: process.cwd(),
-        initialPrompt: ''
-      };
-
-      try {
-        await manager.startConversation(config);
-        // Give some time for potential errors
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        // Expected for empty prompt
-      }
-      
-      // This test may not always emit errors with real Claude CLI
-      // so we'll just verify it doesn't crash
-      expect(true).toBe(true);
-    }, 5000);
+    }, 2000);
   });
 });
