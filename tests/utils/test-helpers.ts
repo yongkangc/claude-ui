@@ -226,54 +226,6 @@ export class TestHelpers {
   }
 
   /**
-   * Override environment variables for a specific test scope
-   */
-  static withEnvironment<T>(
-    envVars: Record<string, string>, 
-    fn: () => T | Promise<T>
-  ): T | Promise<T> {
-    const originalEnv = { ...process.env };
-    
-    // Set test environment variables
-    Object.assign(process.env, envVars);
-    
-    try {
-      const result = fn();
-      
-      // Handle both sync and async functions
-      if (result instanceof Promise) {
-        return result.finally(() => {
-          // Restore original environment
-          Object.keys(process.env).forEach(key => {
-            if (!(key in originalEnv)) {
-              delete process.env[key];
-            }
-          });
-          Object.assign(process.env, originalEnv);
-        });
-      } else {
-        // Restore original environment for sync functions
-        Object.keys(process.env).forEach(key => {
-          if (!(key in originalEnv)) {
-            delete process.env[key];
-          }
-        });
-        Object.assign(process.env, originalEnv);
-        return result;
-      }
-    } catch (error) {
-      // Restore original environment on error
-      Object.keys(process.env).forEach(key => {
-        if (!(key in originalEnv)) {
-          delete process.env[key];
-        }
-      });
-      Object.assign(process.env, originalEnv);
-      throw error;
-    }
-  }
-
-  /**
    * Create a test server for integration tests (no mocking of internal services)
    */
   static createIntegrationTestServer(config?: {
