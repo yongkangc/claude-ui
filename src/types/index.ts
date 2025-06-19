@@ -18,6 +18,10 @@ export interface ConversationMessage {
   timestamp: string;
   sessionId: string; // Claude CLI's actual session ID
   parentUuid?: string;
+  isSidechain?: boolean; // Whether this message is part of a sidechain conversation
+  userType?: string; // Type of user interaction (e.g., 'external')
+  cwd?: string; // Working directory when the message was created
+  version?: string; // Claude CLI version used for this message
   costUSD?: number;
   durationMs?: number;
 }
