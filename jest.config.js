@@ -15,8 +15,6 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 10000,
-  // Force exit after tests complete to prevent hanging
-  forceExit: true,
   // Run integration tests serially to avoid resource conflicts
   maxWorkers: 1
 };

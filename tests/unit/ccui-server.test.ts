@@ -43,6 +43,9 @@ describe('CCUIServer', () => {
   let mockHistoryReader: jest.Mocked<ClaudeHistoryReader>;
   let mockStreamManager: jest.Mocked<StreamManager>;
 
+  // Track any running servers for cleanup
+  const runningServers: CCUIServer[] = [];
+
   beforeEach(() => {
     // Setup mock implementations
     mockProcessManager = {
@@ -80,13 +83,34 @@ describe('CCUIServer', () => {
     MockedStreamManager.mockImplementation(() => mockStreamManager);
   });
 
+  afterEach(async () => {
+    // Clean up any running servers to prevent hanging handles
+    await Promise.allSettled(
+      runningServers.map(async (server) => {
+        try {
+          if ((server as any).server) {
+            await server.stop();
+          }
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      })
+    );
+    // Clear the array
+    runningServers.length = 0;
+    jest.clearAllMocks();
+  });
+
   // Helper function to create server instances for tests
   const createTestServer = (config?: { port?: number }) => {
     const randomPort = 3000 + Math.floor(Math.random() * 1000);
-    return new CCUIServer({
+    const server = new CCUIServer({
       port: randomPort,
       ...config
     });
+    // Track the server for cleanup
+    runningServers.push(server);
+    return server;
   };
 
   describe('constructor', () => {
@@ -440,6 +464,9 @@ describe('CCUIServer', () => {
         const server = createTestServer();
         await server.start();
         
+        // Store the original server for cleanup later
+        const originalServer = (server as any).server;
+        
         // Mock server.close to trigger error
         const mockClose = jest.fn((callback) => {
           callback(new Error('Failed to close server'));
@@ -449,6 +476,14 @@ describe('CCUIServer', () => {
         mockProcessManager.getActiveSessions.mockReturnValue([]);
 
         await expect(server.stop()).rejects.toThrow('Failed to close server');
+        
+        // Restore original server and clean up properly
+        (server as any).server = originalServer;
+        try {
+          await server.stop();
+        } catch (error) {
+          // Ignore cleanup errors
+        }
       });
     });
   });
