@@ -15,11 +15,13 @@ export class ClaudeProcessManager extends EventEmitter {
   private timeouts: Map<string, NodeJS.Timeout[]> = new Map();
   private claudeExecutablePath: string;
   private logger: Logger;
+  private envOverrides: Record<string, string | undefined>;
 
-  constructor(claudeExecutablePath?: string) {
+  constructor(claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
     super();
     this.claudeExecutablePath = claudeExecutablePath || 'claude';
     this.logger = createLogger('ClaudeProcessManager');
+    this.envOverrides = envOverrides || {};
   }
 
 
@@ -191,7 +193,7 @@ export class ClaudeProcessManager extends EventEmitter {
     try {
       const claudeProcess = spawn(executablePath, args, {
         cwd: config.workingDirectory || process.cwd(),
-        env: { ...process.env},
+        env: { ...process.env, ...this.envOverrides },
         stdio: ['inherit', 'pipe', 'pipe'], // stdin inherited, stdout/stderr piped for capture
         // shell: false
       });
