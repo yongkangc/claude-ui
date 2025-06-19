@@ -4,7 +4,8 @@ import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { 
-  StartConversationRequest, 
+  StartConversationRequest,
+  ResumeConversationRequest,
   ConversationListQuery,
   ConversationDetailsResponse,
   SystemStatusResponse,
@@ -150,15 +151,6 @@ export class CCUIServer {
       next();
     });
     
-    // Error handling
-    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      if (err instanceof CCUIError) {
-        res.status(err.statusCode).json({ error: err.message, code: err.code });
-      } else {
-        this.logger.error(err, 'Unhandled error');
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
   }
 
   private setupRoutes(): void {
@@ -176,6 +168,16 @@ export class CCUIServer {
     // Streaming endpoint
     this.setupStreamingRoute();
     
+    // Error handling - MUST be last
+    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      if (err instanceof CCUIError) {
+        res.status(err.statusCode).json({ error: err.message, code: err.code });
+      } else {
+        this.logger.error(err, 'Unhandled error');
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+    
   }
 
   private setupConversationRoutes(): void {
@@ -191,6 +193,40 @@ export class CCUIServer {
         }
         
         const streamingId = await this.processManager.startConversation(req.body);
+        res.json({ 
+          sessionId: streamingId, 
+          streamUrl: `/api/stream/${streamingId}` 
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Resume existing conversation
+    this.app.post('/api/conversations/resume', async (req: Request<{}, {}, ResumeConversationRequest>, res, next) => {
+      try {
+        // Validate required fields
+        if (!req.body.sessionId || !req.body.sessionId.trim()) {
+          throw new CCUIError('MISSING_SESSION_ID', 'sessionId is required', 400);
+        }
+        if (!req.body.message || !req.body.message.trim()) {
+          throw new CCUIError('MISSING_MESSAGE', 'message is required', 400);
+        }
+        
+        // Validate that only allowed fields are provided (no extra parameters)
+        const allowedFields = ['sessionId', 'message'];
+        const providedFields = Object.keys(req.body);
+        const extraFields = providedFields.filter(field => !allowedFields.includes(field));
+        
+        if (extraFields.length > 0) {
+          throw new CCUIError('INVALID_FIELDS', `Invalid fields for resume: ${extraFields.join(', ')}. Only sessionId and message are allowed.`, 400);
+        }
+        
+        const streamingId = await this.processManager.resumeConversation({
+          sessionId: req.body.sessionId,
+          message: req.body.message
+        });
+        
         res.json({ 
           sessionId: streamingId, 
           streamUrl: `/api/stream/${streamingId}` 

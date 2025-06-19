@@ -104,6 +104,11 @@ export interface StartConversationRequest {
   systemPrompt?: string;
 }
 
+export interface ResumeConversationRequest {
+  sessionId: string;
+  message: string;
+}
+
 export interface StartConversationResponse {
   sessionId: string; // CCUI's internal streaming identifier (exposed as sessionId in API)
   streamUrl: string;

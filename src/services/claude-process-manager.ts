@@ -24,6 +24,51 @@ export class ClaudeProcessManager extends EventEmitter {
 
 
   /**
+   * Resume an existing Claude conversation
+   */
+  async resumeConversation(config: { sessionId: string; message: string }): Promise<string> {
+    const streamingId = uuidv4(); // CCUI's internal streaming identifier
+    const sessionLogger = this.logger.child({ streamingId, resumeSessionId: config.sessionId });
+    
+    try {
+      sessionLogger.debug('Resuming conversation', { config });
+      const args = this.buildResumeClaudeArgs(config);
+      sessionLogger.debug('Built Claude resume args', { args });
+      const process = this.spawnResumeClaudeProcess(config, args);
+      
+      this.processes.set(streamingId, process);
+      this.setupProcessHandlers(streamingId, process);
+      
+      // Handle spawn errors by listening for our custom event
+      const spawnErrorPromise = new Promise<never>((_, reject) => {
+        this.once('spawn-error', (error) => {
+          this.processes.delete(streamingId);
+          reject(error);
+        });
+      });
+      
+      // Wait a bit to see if spawn fails immediately
+      const delayPromise = new Promise<string>(resolve => {
+        setTimeout(() => {
+          this.removeAllListeners('spawn-error');
+          resolve(streamingId);
+        }, 100);
+      });
+      
+      const result = await Promise.race([spawnErrorPromise, delayPromise]);
+      sessionLogger.info('Resumed conversation successfully');
+      
+      return result;
+    } catch (error) {
+      sessionLogger.error('Error resuming conversation', error);
+      if (error instanceof CCUIError) {
+        throw error;
+      }
+      throw new CCUIError('PROCESS_RESUME_FAILED', `Failed to resume Claude process: ${error}`, 500);
+    }
+  }
+
+  /**
    * Start a new Claude conversation
    */
   async startConversation(config: ConversationConfig): Promise<string> {
@@ -139,6 +184,20 @@ export class ClaudeProcessManager extends EventEmitter {
     return active;
   }
 
+  private buildResumeClaudeArgs(config: { sessionId: string; message: string }): string[] {
+    this.logger.debug('Building Claude resume args', { config });
+    const args: string[] = [
+      '-p', // Print mode - required for programmatic use
+      '--resume', config.sessionId, // Resume existing session
+      config.message, // Message to continue with
+      '--output-format', 'stream-json', // JSONL output format
+      '--verbose', // Required when using stream-json with print mode
+    ];
+
+    this.logger.debug('Built Claude resume args', { args });
+    return args;
+  }
+
   private buildClaudeArgs(config: ConversationConfig): string[] {
     this.logger.debug('Building Claude args', { config });
     const args: string[] = [
@@ -183,6 +242,42 @@ export class ClaudeProcessManager extends EventEmitter {
 
     this.logger.debug('Built Claude args', { args });
     return args;
+  }
+
+  private spawnResumeClaudeProcess(config: { sessionId: string; message: string }, args: string[]): ChildProcess {
+    const executablePath = this.claudeExecutablePath;
+    this.logger.debug('Spawning Claude resume process', { executablePath, args, sessionId: config.sessionId });
+    try {
+      const claudeProcess = spawn(executablePath, args, {
+        cwd: process.cwd(), // Use current working directory for resume
+        env: { ...process.env },
+        stdio: ['inherit', 'pipe', 'pipe'], // stdin inherited, stdout/stderr piped for capture
+      });
+      
+      // Handle spawn errors (like ENOENT when claude is not found)
+      claudeProcess.on('error', (error: any) => {
+        this.logger.error('Claude resume process spawn error', error);
+        // Emit error event instead of throwing synchronously in callback
+        if (error.code === 'ENOENT') {
+          this.emit('spawn-error', new CCUIError('CLAUDE_NOT_FOUND', 'Claude CLI not found. Please ensure Claude is installed and in PATH.', 500));
+        } else {
+          this.emit('spawn-error', new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error.message}`, 500));
+        }
+      });
+      
+      if (!claudeProcess.pid) {
+        this.logger.error('Failed to spawn Claude resume process - no PID assigned');
+        throw new Error('Failed to spawn Claude resume process - no PID assigned');
+      }
+      this.logger.info('Claude resume process spawned successfully', { pid: claudeProcess.pid });
+      return claudeProcess;
+    } catch (error) {
+      this.logger.error('Error in spawnResumeClaudeProcess', error);
+      if (error instanceof CCUIError) {
+        throw error;
+      }
+      throw new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude resume process: ${error}`, 500);
+    }
   }
 
   private spawnClaudeProcess(config: ConversationConfig, args: string[]): ChildProcess {
