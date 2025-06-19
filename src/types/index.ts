@@ -20,6 +20,9 @@ export interface ConversationMessage {
   parentUuid?: string;
   costUSD?: number;
   durationMs?: number;
+  isSidechain?: boolean;
+  userType?: string;
+  cwd?: string;
 }
 
 // Stream message types
@@ -92,6 +95,7 @@ export interface ConversationConfig {
   disallowedTools?: string[];
   systemPrompt?: string;
   claudeExecutablePath?: string;
+  enablePermissionPrompts?: boolean; // Default: true, set to false to disable automatic permission prompts
 }
 
 // API request/response types
@@ -102,6 +106,7 @@ export interface StartConversationRequest {
   allowedTools?: string[];
   disallowedTools?: string[];
   systemPrompt?: string;
+  enablePermissionPrompts?: boolean;
 }
 
 export interface ResumeConversationRequest {
