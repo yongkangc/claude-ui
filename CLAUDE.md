@@ -233,74 +233,19 @@ The project includes a mock Claude CLI (`tests/__mocks__/claude`) that:
 - `GET /api/system/status` - System status including Claude version and active conversations
 - `GET /health` - Health check endpoint
 
-## Resume Conversation API
+### Resume Conversation
 
-The resume conversation feature allows you to continue existing Claude conversations using their session IDs. This uses Claude CLI's `--resume` functionality under the hood.
+Resume existing conversations using Claude CLI's `--resume` functionality:
 
-### Endpoint
-
-```
+```json
 POST /api/conversations/resume
-```
-
-### Request Body
-
-```json
 {
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "Continue with this new message"
+  "sessionId": "claude-session-id",
+  "message": "Continue with this message"
 }
 ```
 
-**Required Fields:**
-- `sessionId` (string): The Claude session ID from a previous conversation
-- `message` (string): The new message to continue the conversation with
-
-**Note:** When resuming a conversation, session parameters like `workingDirectory`, `model`, `allowedTools`, etc. are inherited from the original conversation and cannot be modified.
-
-### Response
-
-```json
-{
-  "sessionId": "new-ccui-streaming-id-123",
-  "streamUrl": "/api/stream/new-ccui-streaming-id-123"
-}
-```
-
-The response returns a new CCUI streaming ID (different from the Claude session ID) that you can use to stream the conversation updates.
-
-### Example Usage
-
-```bash
-# Start a new conversation and get the session ID
-curl -X POST http://localhost:3001/api/conversations/start \
-  -H "Content-Type: application/json" \
-  -d '{
-    "workingDirectory": "/path/to/project",
-    "initialPrompt": "Help me with this project"
-  }'
-
-# Response includes session info, you can get the Claude session ID from conversation history
-
-# Resume the conversation later
-curl -X POST http://localhost:3001/api/conversations/resume \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "Now help me add unit tests"
-  }'
-
-# Stream the resumed conversation
-curl http://localhost:3001/api/stream/new-ccui-streaming-id-123
-```
-
-### Error Handling
-
-- `400 MISSING_SESSION_ID` - sessionId is required
-- `400 MISSING_MESSAGE` - message is required  
-- `400 INVALID_FIELDS` - Extra fields not applicable to resume were provided
-- `404 INVALID_SESSION_ID` - Session not found or invalid
-- `500 PROCESS_RESUME_FAILED` - Failed to start resume process
+Returns new streaming ID for continued conversation. Session parameters are inherited from original conversation.
 
 ## Configuration
 
