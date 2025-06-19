@@ -55,10 +55,34 @@ export async function getCommand(sessionId: string, options: GetOptions): Promis
               console.log(content.text.slice(0, 200) + (content.text.length > 200 ? '...' : ''));
             } else if (content.type === 'tool_use' && 'name' in content) {
               console.log(`[Tool: ${content.name}]`);
+            } else if (content.type === 'tool_result' && 'content' in content) {
+              console.log(`[Tool Result: ${content.tool_use_id}]`);
+              if (typeof content.content === 'string') {
+                console.log(content.content.slice(0, 500) + (content.content.length > 500 ? '...' : ''));
+              } else {
+                console.log('[Complex tool result]');
+              }
+            } else {
+              // Fallback for unrecognized content types
+              console.log(`[${content.type || 'Unknown'} content]`);
+              try {
+                const fallbackContent = JSON.stringify(content, null, 2);
+                console.log(fallbackContent.slice(0, 300) + (fallbackContent.length > 300 ? '...' : ''));
+              } catch {
+                console.log('[Content could not be displayed]');
+              }
             }
           }
         } else if (typeof msg.message.content === 'string') {
           console.log(msg.message.content.slice(0, 200) + (msg.message.content.length > 200 ? '...' : ''));
+        } else {
+          // Fallback for non-string, non-array content
+          try {
+            const fallbackContent = JSON.stringify(msg.message.content, null, 2);
+            console.log(fallbackContent.slice(0, 300) + (fallbackContent.length > 300 ? '...' : ''));
+          } catch {
+            console.log('[Content could not be displayed]');
+          }
         }
       }
 
