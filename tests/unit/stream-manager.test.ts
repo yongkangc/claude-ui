@@ -30,6 +30,8 @@ describe('StreamManager', () => {
   });
 
   afterEach(() => {
+    // Clean up any active StreamManager resources (intervals, clients)
+    manager.disconnectAll();
     jest.clearAllMocks();
   });
 
