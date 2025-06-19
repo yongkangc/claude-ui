@@ -18,8 +18,8 @@ describe('Real Claude CLI Integration', () => {
     // Create temporary fake home directory
     tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-home-'));
     
-    // Use a random port to avoid conflicts with streaming-integration.test.ts
-    serverPort = 4000 + Math.floor(Math.random() * 1000);
+    // Use a random port to avoid conflicts with other services and tests
+    serverPort = 8000 + Math.floor(Math.random() * 1000);
     baseUrl = `http://localhost:${serverPort}`;
     
     // Create server

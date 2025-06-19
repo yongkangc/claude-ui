@@ -102,11 +102,17 @@ describe('CCUIServer', () => {
     jest.clearAllMocks();
   });
 
+  // Helper function to generate random test ports in a safe range
+  const generateTestPort = () => {
+    // Use high port numbers (9000-9999) to avoid conflicts with common services
+    return 9000 + Math.floor(Math.random() * 1000);
+  };
+
   // Helper function to create server instances for tests
   const createTestServer = (config?: { port?: number }) => {
-    const randomPort = 3000 + Math.floor(Math.random() * 1000);
+    const testPort = config?.port || generateTestPort();
     const server = new CCUIServer({
-      port: randomPort,
+      port: testPort,
       ...config
     });
     // Track the server for cleanup
@@ -128,10 +134,7 @@ describe('CCUIServer', () => {
     });
 
     it('should initialize with default values when options not provided', () => {
-      const randomPort = 4000 + Math.floor(Math.random() * 1000);
-      const server = new CCUIServer({
-        port: randomPort,
-        });
+      const server = createTestServer();
 
       expect(server).toBeDefined();
       expect((server as any).historyReader).toBeDefined();
@@ -152,7 +155,7 @@ describe('CCUIServer', () => {
 
     it('should initialize components with test configuration', () => {
       const testServer = createTestServer({
-        port: 5005
+        port: generateTestPort()
       });
 
       // Server should initialize all components normally
@@ -573,7 +576,10 @@ describe('CCUIServer', () => {
         try {
           await server.stop();
         } catch (error) {
-          // Ignore cleanup errors
+          // Force close the server if stop() fails
+          if (originalServer && originalServer.close) {
+            originalServer.close(() => {});
+          }
         }
       });
     });
@@ -599,11 +605,18 @@ describe('CCUIServer', () => {
 
     afterEach(async () => {
       try {
-        if ((server as any).server) {
+        if (server && (server as any).server) {
           await server.stop();
         }
       } catch (error) {
-        // Ignore cleanup errors in tests
+        // Force close the server if stop() fails
+        try {
+          if (server && (server as any).server && (server as any).server.close) {
+            (server as any).server.close(() => {});
+          }
+        } catch (forceCloseError) {
+          // Ignore force close errors
+        }
       }
     });
 

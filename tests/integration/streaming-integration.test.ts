@@ -19,8 +19,8 @@ describe('Streaming Integration', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    // Use a random port to avoid conflicts
-    serverPort = 3000 + Math.floor(Math.random() * 1000);
+    // Use a random port to avoid conflicts with common services
+    serverPort = 9000 + Math.floor(Math.random() * 1000);
     baseUrl = `http://localhost:${serverPort}`;
     
     // Create server
