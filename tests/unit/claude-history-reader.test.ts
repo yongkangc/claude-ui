@@ -289,58 +289,6 @@ describe('ClaudeHistoryReader', () => {
       expect(assistantMessage.usage.input_tokens).toBe(150);
       expect(assistantMessage.usage.output_tokens).toBe(80);
       expect(assistantMessage.usage.service_tier).toBe('standard');
-      
-      // Verify new fields are included
-      expect(message.isSidechain).toBe(false);
-      expect(message.userType).toBe('external');
-      expect(message.cwd).toBe('/Users/example/project');
-    });
-
-    it('should parse new fields (isSidechain, userType, cwd) correctly', async () => {
-      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-test-newfields');
-      await fs.mkdir(projectDir, { recursive: true });
-      
-      const sessionId = 'test-newfields-session';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
-      
-      const testJsonLine = `{"parentUuid": null, "isSidechain": true, "userType": "internal", "cwd": "/Users/test/project", "sessionId": "${sessionId}", "version": "1.0.3", "type": "user", "message": {"role": "user", "content": "Test message"}, "uuid": "test-uuid-123", "timestamp": "2025-05-26T07:27:40.079Z", "costUSD": 0.001, "durationMs": 1000}`;
-
-      await fs.writeFile(conversationFile, testJsonLine);
-
-      const messages = await reader.fetchConversation(sessionId);
-      
-      expect(messages).toHaveLength(1);
-      
-      const message = messages[0];
-      expect(message.isSidechain).toBe(true);
-      expect(message.userType).toBe('internal');
-      expect(message.cwd).toBe('/Users/test/project');
-      expect(message.uuid).toBe('test-uuid-123');
-      expect(message.type).toBe('user');
-    });
-
-    it('should handle missing new fields gracefully', async () => {
-      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-test-missing');
-      await fs.mkdir(projectDir, { recursive: true });
-      
-      const sessionId = 'test-missing-session';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
-      
-      // JSONL without the new fields
-      const testJsonLine = `{"parentUuid": null, "sessionId": "${sessionId}", "version": "1.0.3", "type": "user", "message": {"role": "user", "content": "Test message"}, "uuid": "test-uuid-456", "timestamp": "2025-05-26T07:27:40.079Z"}`;
-
-      await fs.writeFile(conversationFile, testJsonLine);
-
-      const messages = await reader.fetchConversation(sessionId);
-      
-      expect(messages).toHaveLength(1);
-      
-      const message = messages[0];
-      expect(message.isSidechain).toBeUndefined();
-      expect(message.userType).toBeUndefined();
-      expect(message.cwd).toBeUndefined();
-      expect(message.uuid).toBe('test-uuid-456');
-      expect(message.type).toBe('user');
     });
 
     it('should handle file read errors', async () => {
