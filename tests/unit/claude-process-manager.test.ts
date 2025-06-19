@@ -58,7 +58,7 @@ describe('ClaudeProcessManager', () => {
     });
   });
 
-  describe('buildClaudeArgs', () => {
+  describe('buildStartArgs', () => {
     it('should build correct arguments with all options', () => {
       const config: ConversationConfig = {
         workingDirectory: '/test/dir',
@@ -69,7 +69,7 @@ describe('ClaudeProcessManager', () => {
         systemPrompt: 'You are helpful'
       };
 
-      const args = (manager as any).buildClaudeArgs(config);
+      const args = (manager as any).buildStartArgs(config);
       
       // Test all functionality in one test to reduce overhead
       expect(args).toContain('-p');
