@@ -252,7 +252,10 @@ export class ClaudeHistoryReader {
       sessionId: entry.sessionId,
       parentUuid: entry.parentUuid,
       costUSD: entry.costUSD,
-      durationMs: entry.durationMs
+      durationMs: entry.durationMs,
+      isSidechain: entry.isSidechain,
+      userType: entry.userType,
+      cwd: entry.cwd
     };
   }
 

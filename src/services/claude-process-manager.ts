@@ -306,6 +306,26 @@ export class ClaudeProcessManager extends EventEmitter {
       args.push('--disallowedTools', config.disallowedTools.join(','));
     }
 
+    // Add permission prompt tool if not explicitly disabled
+    if (config.enablePermissionPrompts !== false) {
+      const permissionTool = 'mcp__ccui_permissions__request_permission';
+      
+      // Add to allowed tools if not already present
+      if (!config.allowedTools?.includes(permissionTool)) {
+        const allowedTools = config.allowedTools ? [...config.allowedTools, permissionTool] : [permissionTool];
+        // Override the allowedTools argument
+        const allowedToolsIndex = args.findIndex(arg => arg === '--allowedTools');
+        if (allowedToolsIndex !== -1) {
+          args[allowedToolsIndex + 1] = allowedTools.join(',');
+        } else {
+          args.push('--allowedTools', allowedTools.join(','));
+        }
+      }
+      
+      // Set as permission prompt tool
+      args.push('--permission-prompt-tool', permissionTool);
+    }
+
     // Add system prompt
     if (config.systemPrompt) {
       args.push('--system-prompt', config.systemPrompt);
@@ -476,13 +496,18 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   private handleClaudeMessage(streamingId: string, message: any): void {
-    this.logger.debug('Handling Claude message', { 
-      streamingId, 
+    const process = this.processes.get(streamingId);
+    const messageInfo = {
+      streamingId,
       messageType: message?.type,
-      isError: message?.type === 'error',
-      isCompletion: message?.type === 'completion',
-      hasToolUse: message?.tool_use !== undefined
-    });
+      pid: process?.pid,
+      sessionId: message?.sessionId,
+      uuid: message?.uuid,
+      message: message,
+      ...(message?.error && { error: message.error })
+    };
+    
+    this.logger.debug('Handling Claude message', messageInfo);
     this.emit('claude-message', { streamingId, message });
   }
 
