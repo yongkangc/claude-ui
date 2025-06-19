@@ -10,6 +10,7 @@ import {
   ConversationDetailsResponse,
   SystemStatusResponse,
   ModelsResponse,
+  StreamEvent,
   CCUIError 
 } from './types';
 import { createLogger } from './services/logger';
@@ -34,10 +35,18 @@ export class CCUIServer {
     this.app = express();
     this.logger = createLogger('CCUIServer');
     
+    this.logger.debug('Initializing CCUIServer', {
+      port: this.port,
+      configProvided: !!config,
+      nodeEnv: process.env.NODE_ENV
+    });
+    
     // Initialize services
+    this.logger.debug('Initializing services');
     this.processManager = new ClaudeProcessManager();
     this.streamManager = new StreamManager();
     this.historyReader = new ClaudeHistoryReader();
+    this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -48,23 +57,36 @@ export class CCUIServer {
    * Start the server
    */
   async start(): Promise<void> {
+    this.logger.debug('Start method called');
     try {
-
       // Start Express server
       this.logger.info(`Starting HTTP server on port ${this.port}...`);
+      this.logger.debug('Creating HTTP server listener');
       await new Promise<void>((resolve, reject) => {
         this.server = this.app.listen(this.port, () => {
           this.logger.info(`CCUI backend server running on port ${this.port}`);
+          this.logger.debug('Server successfully bound to port', {
+            port: this.port,
+            address: this.server?.address()
+          });
           resolve();
         });
 
         this.server.on('error', (error: Error) => {
-          this.logger.error('Failed to start HTTP server:', error);
+          this.logger.error('Failed to start HTTP server:', error, {
+            errorCode: (error as any).code,
+            errorSyscall: (error as any).syscall,
+            port: this.port
+          });
           reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
         });
       });
+      this.logger.debug('Server start successful');
     } catch (error) {
-      this.logger.error('Failed to start server:', error);
+      this.logger.error('Failed to start server:', error, {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error)
+      });
       
       // Attempt cleanup on startup failure
       await this.cleanup();
@@ -82,9 +104,15 @@ export class CCUIServer {
    */
   async stop(): Promise<void> {
     this.logger.info('Starting graceful shutdown...');
+    this.logger.debug('Stop method called', {
+      hasServer: !!this.server,
+      activeSessions: this.processManager.getActiveSessions().length,
+      connectedClients: this.streamManager.getTotalClientCount()
+    });
     
     // Stop accepting new connections
     if (this.server) {
+      this.logger.debug('Closing HTTP server');
       await new Promise<void>((resolve, reject) => {
         this.server!.close((error) => {
           if (error) {
@@ -102,15 +130,24 @@ export class CCUIServer {
     const activeSessions = this.processManager.getActiveSessions();
     if (activeSessions.length > 0) {
       this.logger.info(`Stopping ${activeSessions.length} active sessions...`);
-      await Promise.allSettled(
+      this.logger.debug('Active sessions to stop', { sessionIds: activeSessions });
+      
+      const stopResults = await Promise.allSettled(
         activeSessions.map(streamingId => 
           this.processManager.stopConversation(streamingId)
             .catch(error => this.logger.error(`Error stopping session ${streamingId}:`, error))
         )
       );
+      
+      this.logger.debug('Session stop results', {
+        total: stopResults.length,
+        fulfilled: stopResults.filter(r => r.status === 'fulfilled').length,
+        rejected: stopResults.filter(r => r.status === 'rejected').length
+      });
     }
     
     // Disconnect all streaming clients
+    this.logger.debug('Disconnecting all streaming clients');
     this.streamManager.disconnectAll();
     this.logger.info('Graceful shutdown complete');
   }
@@ -120,6 +157,10 @@ export class CCUIServer {
    */
   private async cleanup(): Promise<void> {
     this.logger.info('Performing cleanup after startup failure...');
+    this.logger.debug('Cleanup initiated', {
+      hasServer: !!this.server,
+      hasActiveStreams: this.streamManager.getTotalClientCount() > 0
+    });
     
     try {
       // Close HTTP server if it was started
@@ -137,7 +178,9 @@ export class CCUIServer {
       
       this.logger.info('Cleanup completed');
     } catch (error) {
-      this.logger.error('Error during cleanup:', error);
+      this.logger.error('Error during cleanup:', error, {
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
     }
   }
 
@@ -147,7 +190,34 @@ export class CCUIServer {
     
     // Request logging
     this.app.use((req, res, next) => {
-      this.logger.info({ method: req.method, url: req.url }, 'Incoming request');
+      const requestId = Math.random().toString(36).substring(7);
+      (req as any).requestId = requestId;
+      
+      this.logger.info({ 
+        method: req.method, 
+        url: req.url,
+        requestId,
+        headers: {
+          'content-type': req.headers['content-type'],
+          'user-agent': req.headers['user-agent']
+        },
+        query: req.query,
+        ip: req.ip
+      }, 'Incoming request');
+      
+      // Log response when finished
+      const startTime = Date.now();
+      res.on('finish', () => {
+        this.logger.debug('Request completed', {
+          requestId,
+          method: req.method,
+          url: req.url,
+          statusCode: res.statusCode,
+          duration: Date.now() - startTime,
+          contentLength: res.get('content-length')
+        });
+      });
+      
       next();
     });
     
@@ -170,10 +240,25 @@ export class CCUIServer {
     
     // Error handling - MUST be last
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      const requestId = (req as any).requestId || 'unknown';
+      
       if (err instanceof CCUIError) {
+        this.logger.warn('CCUIError in request', {
+          requestId,
+          code: err.code,
+          message: err.message,
+          statusCode: err.statusCode,
+          url: req.url,
+          method: req.method
+        });
         res.status(err.statusCode).json({ error: err.message, code: err.code });
       } else {
-        this.logger.error(err, 'Unhandled error');
+        this.logger.error(err, 'Unhandled error', {
+          requestId,
+          url: req.url,
+          method: req.method,
+          errorType: err.constructor.name
+        });
         res.status(500).json({ error: 'Internal server error' });
       }
     });
@@ -183,6 +268,15 @@ export class CCUIServer {
   private setupConversationRoutes(): void {
     // Start new conversation
     this.app.post('/api/conversations/start', async (req: Request<{}, {}, StartConversationRequest>, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('Start conversation request', {
+        requestId,
+        body: {
+          ...req.body,
+          initialPrompt: req.body.initialPrompt ? `${req.body.initialPrompt.substring(0, 50)}...` : undefined
+        }
+      });
+      
       try {
         // Validate required fields
         if (!req.body.workingDirectory) {
@@ -193,17 +287,34 @@ export class CCUIServer {
         }
         
         const streamingId = await this.processManager.startConversation(req.body);
+        
+        this.logger.debug('Conversation started successfully', {
+          requestId,
+          streamingId
+        });
+        
         res.json({ 
           sessionId: streamingId, 
           streamUrl: `/api/stream/${streamingId}` 
         });
       } catch (error) {
+        this.logger.debug('Start conversation failed', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
 
     // Resume existing conversation
     this.app.post('/api/conversations/resume', async (req: Request<{}, {}, ResumeConversationRequest>, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('Resume conversation request', {
+        requestId,
+        sessionId: req.body.sessionId,
+        messagePreview: req.body.message ? `${req.body.message.substring(0, 50)}...` : undefined
+      });
+      
       try {
         // Validate required fields
         if (!req.body.sessionId || !req.body.sessionId.trim()) {
@@ -227,27 +338,63 @@ export class CCUIServer {
           message: req.body.message
         });
         
+        this.logger.debug('Conversation resumed successfully', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          newStreamingId: streamingId
+        });
+        
         res.json({ 
           sessionId: streamingId, 
           streamUrl: `/api/stream/${streamingId}` 
         });
       } catch (error) {
+        this.logger.debug('Resume conversation failed', {
+          requestId,
+          sessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
 
     // List conversations
     this.app.get('/api/conversations', async (req: Request<{}, {}, {}, ConversationListQuery>, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('List conversations request', {
+        requestId,
+        query: req.query
+      });
+      
       try {
         const result = await this.historyReader.listConversations(req.query);
+        
+        this.logger.debug('Conversations listed successfully', {
+          requestId,
+          conversationCount: result.conversations.length,
+          totalFound: result.total
+        });
+        
         res.json(result);
       } catch (error) {
+        this.logger.debug('List conversations failed', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
 
     // Get conversation details
     this.app.get('/api/conversations/:sessionId', async (req, res, next) => {
+      const requestId = (req as any).requestId;
+      const { sessionId } = req.params;
+      
+      this.logger.debug('Get conversation details request', {
+        requestId,
+        sessionId
+      });
+      
       try {
         const messages = await this.historyReader.fetchConversation(req.params.sessionId);
         const metadata = await this.historyReader.getConversationMetadata(req.params.sessionId);
@@ -267,8 +414,21 @@ export class CCUIServer {
           }
         };
         
+        this.logger.debug('Conversation details retrieved successfully', {
+          requestId,
+          sessionId,
+          messageCount: response.messages.length,
+          hasSummary: !!response.summary,
+          projectPath: response.projectPath
+        });
+        
         res.json(response);
       } catch (error) {
+        this.logger.debug('Get conversation details failed', {
+          requestId,
+          sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
@@ -276,10 +436,30 @@ export class CCUIServer {
 
     // Stop conversation
     this.app.post('/api/conversations/:streamingId/stop', async (req, res, next) => {
+      const requestId = (req as any).requestId;
+      const { streamingId } = req.params;
+      
+      this.logger.debug('Stop conversation request', {
+        requestId,
+        streamingId
+      });
+      
       try {
-        const success = await this.processManager.stopConversation(req.params.streamingId);
+        const success = await this.processManager.stopConversation(streamingId);
+        
+        this.logger.debug('Stop conversation result', {
+          requestId,
+          streamingId,
+          success
+        });
+        
         res.json({ success });
       } catch (error) {
+        this.logger.debug('Stop conversation failed', {
+          requestId,
+          streamingId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
@@ -288,10 +468,23 @@ export class CCUIServer {
   private setupSystemRoutes(): void {
     // Get system status
     this.app.get('/api/system/status', async (req, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('Get system status request', { requestId });
+      
       try {
         const systemStatus = await this.getSystemStatus();
+        
+        this.logger.debug('System status retrieved', {
+          requestId,
+          ...systemStatus
+        });
+        
         res.json(systemStatus);
       } catch (error) {
+        this.logger.debug('Get system status failed', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         next(error);
       }
     });
@@ -300,7 +493,26 @@ export class CCUIServer {
   private setupStreamingRoute(): void {
     this.app.get('/api/stream/:streamingId', (req, res) => {
       const { streamingId } = req.params;
+      const requestId = (req as any).requestId;
+      
+      this.logger.debug('Stream connection request', {
+        requestId,
+        streamingId,
+        headers: {
+          'accept': req.headers.accept,
+          'user-agent': req.headers['user-agent']
+        }
+      });
+      
       this.streamManager.addClient(streamingId, res);
+      
+      // Log when stream closes
+      res.on('close', () => {
+        this.logger.debug('Stream connection closed', {
+          requestId,
+          streamingId
+        });
+      });
     });
   }
 
@@ -311,30 +523,55 @@ export class CCUIServer {
     this.processManager.on('claude-message', ({ streamingId, message }) => {
       this.logger.debug('Received claude-message event, forwarding to StreamManager', { 
         streamingId, 
-        messageType: message?.type 
+        messageType: message?.type,
+        hasContent: !!message?.content,
+        contentLength: message?.content?.length || 0,
+        messageKeys: message ? Object.keys(message) : []
       });
       // Stream the Claude message directly as documented
       this.streamManager.broadcast(streamingId, message);
     });
 
     // Handle process closure
-    this.processManager.on('process-closed', ({ streamingId }) => {
-      this.logger.debug('Received process-closed event, closing StreamManager session', { streamingId });
+    this.processManager.on('process-closed', ({ streamingId, code }) => {
+      this.logger.debug('Received process-closed event, closing StreamManager session', { 
+        streamingId,
+        exitCode: code,
+        clientCount: this.streamManager.getClientCount(streamingId),
+        wasSuccessful: code === 0
+      });
       this.streamManager.closeSession(streamingId);
     });
 
     // Handle process errors
     this.processManager.on('process-error', ({ streamingId, error }) => {
-      this.logger.debug('Received process-error event, forwarding to StreamManager', { streamingId, error });
-      this.streamManager.broadcast(streamingId, {
-        type: 'error',
+      this.logger.debug('Received process-error event, forwarding to StreamManager', { 
+        streamingId, 
         error,
+        errorLength: error?.toString().length || 0,
+        clientCount: this.streamManager.getClientCount(streamingId)
+      });
+      
+      const errorEvent: StreamEvent = {
+        type: 'error' as const,
+        error: error.toString(),
         streamingId: streamingId,
         timestamp: new Date().toISOString()
+      };
+      
+      this.logger.debug('Broadcasting error event to clients', {
+        streamingId,
+        errorEventKeys: Object.keys(errorEvent)
       });
+      
+      this.streamManager.broadcast(streamingId, errorEvent);
     });
     
-    this.logger.debug('ProcessManager integration setup complete');
+    this.logger.debug('ProcessManager integration setup complete', {
+      totalEventListeners: this.processManager.listenerCount('claude-message') + 
+                          this.processManager.listenerCount('process-closed') + 
+                          this.processManager.listenerCount('process-error')
+    });
   }
 
   /**
@@ -351,8 +588,15 @@ export class CCUIServer {
       try {
         claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
         claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim();
+        this.logger.debug('Claude version info retrieved', {
+          version: claudeVersion,
+          path: claudePath
+        });
       } catch (error) {
-        this.logger.warn('Failed to get Claude version information', { error });
+        this.logger.warn('Failed to get Claude version information', { 
+          error: error instanceof Error ? error.message : String(error),
+          errorCode: (error as any).code
+        });
       }
       
       return {
