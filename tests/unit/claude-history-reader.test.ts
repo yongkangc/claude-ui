@@ -73,14 +73,14 @@ describe('ClaudeHistoryReader', () => {
 
     it('should process project directories and conversations correctly', async () => {
       // Create project directory structure
-      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-project-name');
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-project');
       await fs.mkdir(projectDir, { recursive: true });
       
       // Create conversation JSONL file with realistic Claude format
       const sessionId = '4f35e220-c435-4cf7-b9b9-f40426042847';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
+      const conversationFile = path.join(projectDir, 'conversation.jsonl');
       
-      const conversationContent = `{"type":"summary","summary":"Example Development Session","leafUuid":"42f8e822-c264-4c7e-b42c-5ba1c4810245"}
+      const conversationContent = `{"type":"summary","summary":"Example Development Session","leafUuid":"04d6794d-6350-4d37-abe4-f6f643fdf83d"}
 {"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/project","sessionId":"${sessionId}","version":"1.0.3","type":"user","message":{"role":"user","content":"Please help me add a new config file to my project"},"uuid":"9ff29d57-8b28-4da9-8e7f-b0e4e7e2ba46","timestamp":"2025-05-26T07:27:40.079Z"}
 {"parentUuid":"9ff29d57-8b28-4da9-8e7f-b0e4e7e2ba46","isSidechain":false,"userType":"external","cwd":"/Users/username/project","sessionId":"${sessionId}","version":"1.0.3","message":{"id":"msg_01Example123","type":"message","role":"assistant","model":"claude-opus-4-20250514","content":[{"type":"text","text":"I'll help you add a new config file."}],"stop_reason":"end_turn","usage":{"input_tokens":100,"output_tokens":200}},"costUSD":0.00250,"durationMs":2500,"type":"assistant","uuid":"04d6794d-6350-4d37-abe4-f6f643fdf83d","timestamp":"2025-05-26T07:27:42.579Z"}`;
       
@@ -93,8 +93,8 @@ describe('ClaudeHistoryReader', () => {
       
       const conversation = result.conversations[0];
       expect(conversation.sessionId).toBe(sessionId);
-      expect(conversation.projectPath).toBe('/Users/username/project/name');
-      expect(conversation.summary).toBe('Example Development Session');
+      expect(conversation.projectPath).toBe('/Users/username/project'); // Should use cwd from message
+      expect(conversation.summary).toBe('Example Development Session'); // Should use summary linked via leafUuid
       expect(conversation.messageCount).toBe(2); // user + assistant message
       expect(conversation.createdAt).toBeDefined();
       expect(conversation.updatedAt).toBeDefined();
@@ -111,14 +111,14 @@ describe('ClaudeHistoryReader', () => {
       const session1 = 'session-1';
       const session2 = 'session-2';
       
-      const conversation1Content = `{"type":"summary","summary":"Project 1 Session"}
-{"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${session1}"}`;
+      const conversation1Content = `{"type":"summary","summary":"Project 1 Session","leafUuid":"msg1"}
+{"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${session1}","cwd":"/Users/username/project1"}`;
       
-      const conversation2Content = `{"type":"summary","summary":"Project 2 Session"}
-{"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg2","timestamp":"2024-01-02T00:00:00Z","sessionId":"${session2}"}`;
+      const conversation2Content = `{"type":"summary","summary":"Project 2 Session","leafUuid":"msg2"}
+{"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg2","timestamp":"2024-01-02T00:00:00Z","sessionId":"${session2}","cwd":"/Users/username/project2"}`;
       
-      await fs.writeFile(path.join(project1Dir, `${session1}.jsonl`), conversation1Content);
-      await fs.writeFile(path.join(project2Dir, `${session2}.jsonl`), conversation2Content);
+      await fs.writeFile(path.join(project1Dir, 'conv1.jsonl'), conversation1Content);
+      await fs.writeFile(path.join(project2Dir, 'conv2.jsonl'), conversation2Content);
       
       // Test filtering by project path
       const filtered = await reader.listConversations({
@@ -130,18 +130,21 @@ describe('ClaudeHistoryReader', () => {
     });
 
     it('should apply pagination correctly', async () => {
-      // Create multiple conversations
+      // Create multiple conversations in a single file (more realistic)
       const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test-project');
       await fs.mkdir(projectDir, { recursive: true });
       
-      // Create 5 conversations
+      // Create file with 5 different sessions
+      let content = '';
       for (let i = 0; i < 5; i++) {
         const sessionId = `session-${i}`;
-        const content = `{"type":"summary","summary":"Test Session ${i}"}
-{"type":"user","message":{"role":"user","content":"Hello ${i}"},"uuid":"msg${i}","timestamp":"2024-01-0${i + 1}T00:00:00Z","sessionId":"${sessionId}"}`;
-        
-        await fs.writeFile(path.join(projectDir, `${sessionId}.jsonl`), content);
+        content += `{"type":"summary","summary":"Test Session ${i}","leafUuid":"msg${i}"}
+`;
+        content += `{"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello ${i}"},"uuid":"msg${i}","timestamp":"2024-01-0${i + 1}T00:00:00Z","sessionId":"${sessionId}"}
+`;
       }
+      
+      await fs.writeFile(path.join(projectDir, 'conversations.jsonl'), content.trim());
       
       // Test pagination
       const paginated = await reader.listConversations({
@@ -157,23 +160,22 @@ describe('ClaudeHistoryReader', () => {
       const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-sort-test');
       await fs.mkdir(projectDir, { recursive: true });
       
-      // Create conversations with different timestamps
+      // Create conversations with different timestamps in a single file
       const sessions = [
         { id: 'session-1', date: '2024-01-03T00:00:00Z' },
         { id: 'session-2', date: '2024-01-01T00:00:00Z' },
         { id: 'session-3', date: '2024-01-02T00:00:00Z' }
       ];
       
+      let content = '';
       for (const session of sessions) {
-        const content = `{"type":"summary","summary":"Test Session"}
-{"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg","timestamp":"${session.date}","sessionId":"${session.id}"}`;
-        
-        await fs.writeFile(path.join(projectDir, `${session.id}.jsonl`), content);
-        
-        // Set file modification time to match timestamp
-        const timestamp = new Date(session.date);
-        await fs.utimes(path.join(projectDir, `${session.id}.jsonl`), timestamp, timestamp);
+        content += `{"type":"summary","summary":"Test Session","leafUuid":"msg-${session.id}"}
+`;
+        content += `{"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg-${session.id}","timestamp":"${session.date}","sessionId":"${session.id}"}
+`;
       }
+      
+      await fs.writeFile(path.join(projectDir, 'conversations.jsonl'), content.trim());
       
       // Test sorting by created date ascending
       const sorted = await reader.listConversations({
@@ -197,9 +199,9 @@ describe('ClaudeHistoryReader', () => {
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'test-session-123';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
+      const conversationFile = path.join(projectDir, 'conversation.jsonl');
       
-      const fileContent = `{"type":"summary","summary":"Test conversation"}
+      const fileContent = `{"type":"summary","summary":"Test conversation","leafUuid":"msg1"}
 {"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${sessionId}"}
 {"parentUuid":"msg1","type":"assistant","message":{"role":"assistant","content":"Hi there","id":"msg_123"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}","costUSD":0.001,"durationMs":1000}`;
 
@@ -222,11 +224,11 @@ describe('ClaudeHistoryReader', () => {
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'test-session-malformed';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
+      const conversationFile = path.join(projectDir, 'conversation.jsonl');
       
-      const fileContent = `{"type":"user","uuid":"msg1","valid":true,"sessionId":"${sessionId}"}
+      const fileContent = `{"parentUuid":null,"type":"user","uuid":"msg1","valid":true,"sessionId":"${sessionId}"}
 {invalid json line}
-{"type":"assistant","uuid":"msg2","also":"valid","sessionId":"${sessionId}"}`;
+{"parentUuid":"msg1","type":"assistant","uuid":"msg2","also":"valid","sessionId":"${sessionId}"}`;
 
       await fs.writeFile(conversationFile, fileContent);
 
@@ -246,7 +248,7 @@ describe('ClaudeHistoryReader', () => {
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = '4f35e220-c435-4cf7-b9b9-f40426042847';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
+      const conversationFile = path.join(projectDir, 'conversation.jsonl');
       
       const complexJsonLine = `{"parentUuid": "b72a5272-ecd5-4b58-b8e6-87483e9acad6", "isSidechain": false, "userType": "external", "cwd": "/Users/example/project", "sessionId": "${sessionId}", "version": "1.0.3", "message": {"id": "msg_02Example456", "type": "message", "role": "assistant", "model": "claude-opus-4-20250514", "content": [{"type": "text", "text": "Let me check the current directory structure."}, {"type": "tool_use", "id": "toolu_02LSExample", "name": "LS", "input": {"path": "/Users/example/project"}}], "stop_reason": "tool_use", "stop_sequence": null, "usage": {"input_tokens": 150, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 1200, "output_tokens": 80, "service_tier": "standard"}}, "costUSD": 0.00180, "durationMs": 1800, "type": "assistant", "uuid": "2c333acb-b9f2-41bf-b2d1-d20f0fa413e5", "timestamp": "2025-05-26T07:27:44.400Z"}`;
 
@@ -306,11 +308,11 @@ describe('ClaudeHistoryReader', () => {
       await fs.mkdir(projectDir, { recursive: true });
       
       const sessionId = 'metadata-session';
-      const conversationFile = path.join(projectDir, `${sessionId}.jsonl`);
+      const conversationFile = path.join(projectDir, 'metadata.jsonl');
       
-      const fileContent = `{"type":"summary","summary":"Metadata Test Session"}
-{"cwd":"/Users/username/project","message":{"model":"claude-opus-4-20250514"},"costUSD":0.005,"durationMs":2000,"sessionId":"${sessionId}"}
-{"costUSD":0.003,"durationMs":1500,"sessionId":"${sessionId}"}`;
+      const fileContent = `{"type":"summary","summary":"Metadata Test Session","leafUuid":"msg1"}
+{"parentUuid":null,"cwd":"/Users/username/project","message":{"role":"user","content":"Hello","model":"claude-opus-4-20250514"},"costUSD":0.005,"durationMs":2000,"sessionId":"${sessionId}","type":"user","uuid":"msg1"}
+{"parentUuid":"msg1","costUSD":0.003,"durationMs":1500,"sessionId":"${sessionId}","type":"assistant","message":{"role":"assistant","content":"Hi","model":"claude-opus-4-20250514"},"uuid":"msg2"}`;
 
       await fs.writeFile(conversationFile, fileContent);
 
@@ -348,50 +350,6 @@ describe('ClaudeHistoryReader', () => {
         const encoded = '-home-user-Documents-my-project-folder';
         const decoded = (reader as any).decodeProjectPath(encoded);
         expect(decoded).toBe('/home/user/Documents/my/project/folder');
-      });
-    });
-
-    describe('readFirstLine', () => {
-      it('should read the first non-empty line from file', async () => {
-        const testFile = path.join(tempDir, 'test.jsonl');
-        const content = '\n\n{"type":"summary","summary":"First line"}\n{"type":"user"}';
-        await fs.writeFile(testFile, content);
-
-        const firstLine = await (reader as any).readFirstLine(testFile);
-        expect(firstLine).toBe('{"type":"summary","summary":"First line"}');
-      });
-
-      it('should throw error if no non-empty lines found', async () => {
-        const testFile = path.join(tempDir, 'empty.jsonl');
-        await fs.writeFile(testFile, '\n\n\n');
-
-        await expect((reader as any).readFirstLine(testFile)).rejects.toThrow('No non-empty lines found in file');
-      });
-    });
-
-    describe('countMessages', () => {
-      it('should count non-summary messages correctly', async () => {
-        const testFile = path.join(tempDir, 'count.jsonl');
-        const content = `{"type":"summary","summary":"Test"}
-{"type":"user","message":"Hello"}
-{"type":"assistant","message":"Hi"}
-{"type":"user","message":"Bye"}`;
-        await fs.writeFile(testFile, content);
-
-        const count = await (reader as any).countMessages(testFile);
-        expect(count).toBe(3); // Excludes summary line
-      });
-
-      it('should handle malformed JSON lines when counting', async () => {
-        const testFile = path.join(tempDir, 'malformed-count.jsonl');
-        const content = `{"type":"summary"}
-{"type":"user","valid":true}
-{invalid json}
-{"type":"assistant","valid":true}`;
-        await fs.writeFile(testFile, content);
-
-        const count = await (reader as any).countMessages(testFile);
-        expect(count).toBe(2); // Only counts valid non-summary lines
       });
     });
   });

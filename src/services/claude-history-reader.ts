@@ -5,6 +5,36 @@ import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIEr
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
 
+interface RawJsonEntry {
+  type: string;
+  uuid?: string;
+  sessionId?: string;
+  parentUuid?: string;
+  timestamp?: string;
+  message?: any;
+  cwd?: string;
+  costUSD?: number;
+  durationMs?: number;
+  isSidechain?: boolean;
+  userType?: string;
+  version?: string;
+  summary?: string;
+  leafUuid?: string;
+  [key: string]: any;
+}
+
+interface ConversationChain {
+  sessionId: string;
+  messages: ConversationMessage[];
+  projectPath: string;
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+  totalCost: number;
+  totalDuration: number;
+  model: string;
+}
+
 /**
  * Reads conversation history from Claude's local storage
  */
@@ -29,21 +59,18 @@ export class ClaudeHistoryReader {
     total: number;
   }> {
     try {
-      const projectsPath = path.join(this.claudeHomePath, 'projects');
-      const projects = await this.readDirectory(projectsPath);
+      // Parse all conversations from all JSONL files
+      const conversationChains = await this.parseAllConversations();
       
-      const allConversations: ConversationSummary[] = [];
-      
-      // Process each project directory
-      for (const project of projects) {
-        const projectPath = path.join(projectsPath, project);
-        const stats = await fs.stat(projectPath);
-        
-        if (!stats.isDirectory()) continue;
-        
-        const conversations = await this.readProjectConversations(projectPath, project);
-        allConversations.push(...conversations);
-      }
+      // Convert to ConversationSummary format
+      const allConversations: ConversationSummary[] = conversationChains.map(chain => ({
+        sessionId: chain.sessionId,
+        projectPath: chain.projectPath,
+        summary: chain.summary,
+        createdAt: chain.createdAt,
+        updatedAt: chain.updatedAt,
+        messageCount: chain.messages.length
+      }));
       
       // Apply filters and pagination
       const filtered = this.applyFilters(allConversations, filter);
@@ -63,28 +90,14 @@ export class ClaudeHistoryReader {
    */
   async fetchConversation(sessionId: string): Promise<ConversationMessage[]> {
     try {
-      const filePath = await this.findConversationFile(sessionId);
-      if (!filePath) {
+      const conversationChains = await this.parseAllConversations();
+      const conversation = conversationChains.find(chain => chain.sessionId === sessionId);
+      
+      if (!conversation) {
         throw new CCUIError('CONVERSATION_NOT_FOUND', `Conversation ${sessionId} not found`, 404);
       }
       
-      const content = await fs.readFile(filePath, 'utf-8');
-      const messages: ConversationMessage[] = [];
-      
-      // Parse each line as JSON
-      const lines = content.split('\n').filter(line => line.trim());
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line);
-          if (entry.type !== 'summary') {
-            messages.push(this.parseMessage(entry));
-          }
-        } catch (parseError) {
-          this.logger.warn('Failed to parse line from conversation', parseError, { sessionId, line: line.substring(0, 100) });
-        }
-      }
-      
-      return messages;
+      return conversation.messages;
     } catch (error) {
       if (error instanceof CCUIError) throw error;
       throw new CCUIError('CONVERSATION_READ_FAILED', `Failed to read conversation: ${error}`, 500);
@@ -102,57 +115,19 @@ export class ClaudeHistoryReader {
     totalDuration: number;
   } | null> {
     try {
-      const filePath = await this.findConversationFile(sessionId);
-      if (!filePath) {
+      const conversationChains = await this.parseAllConversations();
+      const conversation = conversationChains.find(chain => chain.sessionId === sessionId);
+      
+      if (!conversation) {
         return null;
       }
 
-      const content = await fs.readFile(filePath, 'utf-8');
-      const lines = content.split('\n').filter(line => line.trim());
-      
-      let summary = 'No summary available';
-      let projectPath = '';
-      let model = '';
-      let totalCost = 0;
-      let totalDuration = 0;
-
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line);
-          
-          // Extract summary from first entry
-          if (entry.type === 'summary') {
-            summary = entry.summary || summary;
-          }
-          
-          // Extract project path and model from messages
-          if (entry.cwd) {
-            projectPath = entry.cwd;
-          }
-          
-          if (entry.message?.model) {
-            model = entry.message.model;
-          }
-          
-          // Accumulate costs and durations
-          if (entry.costUSD) {
-            totalCost += entry.costUSD;
-          }
-          
-          if (entry.durationMs) {
-            totalDuration += entry.durationMs;
-          }
-        } catch {
-          // Skip invalid JSON lines
-        }
-      }
-
       return {
-        summary,
-        projectPath,
-        model,
-        totalCost,
-        totalDuration
+        summary: conversation.summary,
+        projectPath: conversation.projectPath,
+        model: conversation.model,
+        totalCost: conversation.totalCost,
+        totalDuration: conversation.totalDuration
       };
     } catch (error) {
       this.logger.error('Error getting metadata for conversation', error, { sessionId });
@@ -160,6 +135,120 @@ export class ClaudeHistoryReader {
     }
   }
 
+  /**
+   * Parse all conversations from all JSONL files
+   */
+  private async parseAllConversations(): Promise<ConversationChain[]> {
+    const projectsPath = path.join(this.claudeHomePath, 'projects');
+    const projects = await this.readDirectory(projectsPath);
+    
+    // Collect all JSON entries from all files with source tracking
+    const allEntries: (RawJsonEntry & { sourceProject: string })[] = [];
+    
+    for (const project of projects) {
+      const projectPath = path.join(projectsPath, project);
+      const stats = await fs.stat(projectPath);
+      
+      if (!stats.isDirectory()) continue;
+      
+      const files = await this.readDirectory(projectPath);
+      for (const file of files) {
+        if (!file.endsWith('.jsonl')) continue;
+        
+        const filePath = path.join(projectPath, file);
+        const entries = await this.parseJsonlFile(filePath);
+        
+        // Add source project tracking to each entry
+        const entriesWithSource = entries.map(entry => ({
+          ...entry,
+          sourceProject: project
+        }));
+        
+        allEntries.push(...entriesWithSource);
+      }
+    }
+    
+    // Group entries by sessionId
+    const sessionGroups = this.groupEntriesBySession(allEntries);
+    
+    // Process summaries
+    const summaries = this.processSummaries(allEntries);
+    
+    // Build conversation chains
+    const conversationChains: ConversationChain[] = [];
+    
+    for (const [sessionId, entries] of sessionGroups) {
+      const chain = this.buildConversationChain(sessionId, entries, summaries);
+      if (chain) {
+        conversationChains.push(chain);
+      }
+    }
+    
+    return conversationChains;
+  }
+  
+  /**
+   * Parse a single JSONL file and return all valid entries
+   */
+  private async parseJsonlFile(filePath: string): Promise<RawJsonEntry[]> {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const lines = content.split('\n').filter(line => line.trim());
+      const entries: RawJsonEntry[] = [];
+      
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as RawJsonEntry;
+          entries.push(entry);
+        } catch (parseError) {
+          this.logger.warn('Failed to parse line from JSONL file', parseError, { 
+            filePath, 
+            line: line.substring(0, 100) 
+          });
+        }
+      }
+      
+      return entries;
+    } catch (error) {
+      this.logger.error('Failed to read JSONL file', error, { filePath });
+      return [];
+    }
+  }
+  
+  /**
+   * Group entries by sessionId
+   */
+  private groupEntriesBySession(entries: (RawJsonEntry & { sourceProject: string })[]): Map<string, (RawJsonEntry & { sourceProject: string })[]> {
+    const sessionGroups = new Map<string, (RawJsonEntry & { sourceProject: string })[]>();
+    
+    for (const entry of entries) {
+      // Only group user and assistant messages
+      if ((entry.type === 'user' || entry.type === 'assistant') && entry.sessionId) {
+        if (!sessionGroups.has(entry.sessionId)) {
+          sessionGroups.set(entry.sessionId, []);
+        }
+        sessionGroups.get(entry.sessionId)!.push(entry);
+      }
+    }
+    
+    return sessionGroups;
+  }
+  
+  /**
+   * Process summary entries and create leafUuid mapping
+   */
+  private processSummaries(entries: RawJsonEntry[]): Map<string, string> {
+    const summaries = new Map<string, string>();
+    
+    for (const entry of entries) {
+      if (entry.type === 'summary' && entry.leafUuid && entry.summary) {
+        summaries.set(entry.leafUuid, entry.summary);
+      }
+    }
+    
+    return summaries;
+  }
+  
   private async readDirectory(dirPath: string): Promise<string[]> {
     try {
       return await fs.readdir(dirPath);
@@ -171,85 +260,193 @@ export class ClaudeHistoryReader {
     }
   }
 
-  private async readProjectConversations(projectPath: string, encodedProject: string): Promise<ConversationSummary[]> {
+  /**
+   * Build a conversation chain from session entries
+   */
+  private buildConversationChain(
+    sessionId: string, 
+    entries: (RawJsonEntry & { sourceProject: string })[], 
+    summaries: Map<string, string>
+  ): ConversationChain | null {
     try {
-      const conversations: ConversationSummary[] = [];
-      const files = await this.readDirectory(projectPath);
+      // Convert entries to ConversationMessage format
+      const messages: ConversationMessage[] = entries.map(entry => this.parseMessage(entry));
       
-      for (const file of files) {
-        if (!file.endsWith('.jsonl')) continue;
-        
-        const sessionId = path.basename(file, '.jsonl');
-        const filePath = path.join(projectPath, file);
-        
-        try {
-          // Get file stats for timestamps
-          const stats = await fs.stat(filePath);
-          
-          // Read first line for summary
-          const firstLine = await this.readFirstLine(filePath);
-          const summaryData = JSON.parse(firstLine);
-          
-          // Count messages in the file
-          const messageCount = await this.countMessages(filePath);
-          
-          conversations.push({
-            sessionId,
-            projectPath: this.decodeProjectPath(encodedProject),
-            summary: summaryData.summary || 'No summary available',
-            createdAt: stats.birthtime.toISOString(),
-            updatedAt: stats.mtime.toISOString(),
-            messageCount
-          });
-        } catch (error) {
-          this.logger.error('Error reading conversation', error, { sessionId, projectPath });
-          // Continue with other conversations even if one fails
-        }
+      // Build message chain using parentUuid/uuid relationships
+      const orderedMessages = this.buildMessageChain(messages);
+      
+      if (orderedMessages.length === 0) {
+        return null;
       }
       
-      return conversations;
-    } catch (error) {
-      this.logger.error('Error reading project conversations', error, { projectPath });
-      return [];
-    }
-  }
-
-  private async findConversationFile(sessionId: string): Promise<string | null> {
-    try {
-      const projectsPath = path.join(this.claudeHomePath, 'projects');
-      const projects = await this.readDirectory(projectsPath);
+      // Determine project path - respect first message's cwd over directory name
+      const firstMessage = orderedMessages[0];
+      let projectPath = '';
       
-      // Search through all project directories
-      for (const project of projects) {
-        const projectPath = path.join(projectsPath, project);
-        const stats = await fs.stat(projectPath);
-        
-        if (!stats.isDirectory()) continue;
-        
-        const conversationFile = path.join(projectPath, `${sessionId}.jsonl`);
-        
-        try {
-          await fs.access(conversationFile);
-          return conversationFile;
-        } catch {
-          // File doesn't exist, continue searching
-        }
+      if (firstMessage.cwd) {
+        projectPath = firstMessage.cwd;
+      } else {
+        // Fallback to decoding directory name from source project
+        const sourceProject = entries[0].sourceProject;
+        projectPath = this.decodeProjectPath(sourceProject);
       }
       
-      return null;
+      // Determine conversation summary
+      const summary = this.determineConversationSummary(orderedMessages, summaries);
+      
+      // Calculate metadata
+      const totalCost = messages.reduce((sum, msg) => sum + (msg.costUSD || 0), 0);
+      const totalDuration = messages.reduce((sum, msg) => sum + (msg.durationMs || 0), 0);
+      const model = this.extractModel(messages);
+      
+      // Get timestamps
+      const timestamps = messages
+        .map(msg => msg.timestamp)
+        .filter(ts => ts)
+        .sort();
+      
+      const createdAt = timestamps[0] || new Date().toISOString();
+      const updatedAt = timestamps[timestamps.length - 1] || createdAt;
+      
+      return {
+        sessionId,
+        messages: orderedMessages,
+        projectPath,
+        summary,
+        createdAt,
+        updatedAt,
+        totalCost,
+        totalDuration,
+        model
+      };
     } catch (error) {
-      this.logger.error('Error searching for conversation', error, { sessionId });
+      this.logger.error('Error building conversation chain', error, { sessionId });
       return null;
     }
   }
+  
+  /**
+   * Build ordered message chain using parentUuid relationships
+   */
+  private buildMessageChain(messages: ConversationMessage[]): ConversationMessage[] {
+    // Create uuid to message mapping
+    const messageMap = new Map<string, ConversationMessage>();
+    messages.forEach(msg => messageMap.set(msg.uuid, msg));
+    
+    // Find head message (parentUuid is null)
+    const headMessage = messages.find(msg => !msg.parentUuid);
+    if (!headMessage) {
+      // If no head found, return messages sorted by timestamp
+      return messages.sort((a, b) => 
+        new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime()
+      );
+    }
+    
+    // Build chain from head
+    const orderedMessages: ConversationMessage[] = [];
+    const visited = new Set<string>();
+    
+    const traverse = (currentMessage: ConversationMessage) => {
+      if (visited.has(currentMessage.uuid)) {
+        return; // Avoid cycles
+      }
+      
+      visited.add(currentMessage.uuid);
+      orderedMessages.push(currentMessage);
+      
+      // Find children (messages with this message as parent)
+      const children = messages.filter(msg => msg.parentUuid === currentMessage.uuid);
+      
+      // Sort children by timestamp to maintain order
+      children.sort((a, b) => 
+        new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime()
+      );
+      
+      children.forEach(child => traverse(child));
+    };
+    
+    traverse(headMessage);
+    
+    // Add any orphaned messages at the end
+    const orphanedMessages = messages.filter(msg => !visited.has(msg.uuid));
+    orderedMessages.push(...orphanedMessages.sort((a, b) => 
+      new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime()
+    ));
+    
+    return orderedMessages;
+  }
+  
+  /**
+   * Determine conversation summary from messages and summary map
+   */
+  private determineConversationSummary(
+    messages: ConversationMessage[], 
+    summaries: Map<string, string>
+  ): string {
+    // Walk through messages from latest to earliest to find last available summary
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (summaries.has(message.uuid)) {
+        return summaries.get(message.uuid)!;
+      }
+    }
+    
+    // Fallback to first user message content
+    const firstUserMessage = messages.find(msg => msg.type === 'user');
+    if (firstUserMessage && firstUserMessage.message) {
+      const content = this.extractMessageContent(firstUserMessage.message);
+      return content.length > 100 ? content.substring(0, 100) + '...' : content;
+    }
+    
+    return 'No summary available';
+  }
+  
+  /**
+   * Extract text content from message object
+   */
+  private extractMessageContent(message: any): string {
+    if (typeof message === 'string') {
+      return message;
+    }
+    
+    if (message.content) {
+      if (typeof message.content === 'string') {
+        return message.content;
+      }
+      
+      if (Array.isArray(message.content)) {
+        // Find first text content block
+        const textBlock = message.content.find((block: any) => block.type === 'text');
+        return textBlock ? textBlock.text || '' : '';
+      }
+    }
+    
+    return 'No content available';
+  }
+  
+  /**
+   * Extract model information from messages
+   */
+  private extractModel(messages: ConversationMessage[]): string {
+    for (const message of messages) {
+      if (message.message && typeof message.message === 'object') {
+        const messageObj = message.message as any;
+        if (messageObj.model) {
+          return messageObj.model;
+        }
+      }
+    }
+    return 'Unknown';
+  }
 
-  private parseMessage(entry: any): ConversationMessage {
+
+  private parseMessage(entry: RawJsonEntry): ConversationMessage {
     return {
-      uuid: entry.uuid,
+      uuid: entry.uuid || '',
       type: entry.type as 'user' | 'assistant' | 'system',
       message: entry.message,
-      timestamp: entry.timestamp,
-      sessionId: entry.sessionId,
+      timestamp: entry.timestamp || '',
+      sessionId: entry.sessionId || '',
       parentUuid: entry.parentUuid,
       isSidechain: entry.isSidechain,
       userType: entry.userType,
@@ -297,33 +494,4 @@ export class ClaudeHistoryReader {
     return encoded.replace(/-/g, '/');
   }
 
-  private async readFirstLine(filePath: string): Promise<string> {
-    const content = await fs.readFile(filePath, 'utf-8');
-    const lines = content.split('\n');
-    for (const line of lines) {
-      if (line.trim()) {
-        return line;
-      }
-    }
-    throw new Error('No non-empty lines found in file');
-  }
-
-  private async countMessages(filePath: string): Promise<number> {
-    const content = await fs.readFile(filePath, 'utf-8');
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    let messageCount = 0;
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type !== 'summary') {
-          messageCount++;
-        }
-      } catch {
-        // Skip invalid JSON lines
-      }
-    }
-    
-    return messageCount;
-  }
 }
