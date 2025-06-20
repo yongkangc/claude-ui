@@ -6,7 +6,9 @@ import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { ConversationStatusTracker } from './services/conversation-status-tracker';
 import { 
   StartConversationRequest,
+  StartConversationResponse,
   ResumeConversationRequest,
+  ResumeConversationResponse,
   ConversationListQuery,
   ConversationDetailsResponse,
   SystemStatusResponse,
@@ -270,7 +272,7 @@ export class CCUIServer {
 
   private setupConversationRoutes(): void {
     // Start new conversation
-    this.app.post('/api/conversations/start', async (req: Request<{}, {}, StartConversationRequest>, res, next) => {
+    this.app.post('/api/conversations/start', async (req: Request<{}, StartConversationResponse, StartConversationRequest>, res, next) => {
       const requestId = (req as any).requestId;
       this.logger.debug('Start conversation request', {
         requestId,
@@ -297,7 +299,7 @@ export class CCUIServer {
         });
         
         res.json({ 
-          sessionId: streamingId, 
+          streamingId: streamingId, 
           streamUrl: `/api/stream/${streamingId}` 
         });
       } catch (error) {
@@ -310,7 +312,7 @@ export class CCUIServer {
     });
 
     // Resume existing conversation
-    this.app.post('/api/conversations/resume', async (req: Request<{}, {}, ResumeConversationRequest>, res, next) => {
+    this.app.post('/api/conversations/resume', async (req: Request<{}, ResumeConversationResponse, ResumeConversationRequest>, res, next) => {
       const requestId = (req as any).requestId;
       this.logger.debug('Resume conversation request', {
         requestId,
@@ -348,7 +350,7 @@ export class CCUIServer {
         });
         
         res.json({ 
-          sessionId: streamingId, 
+          streamingId: streamingId, 
           streamUrl: `/api/stream/${streamingId}` 
         });
       } catch (error) {

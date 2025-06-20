@@ -61,11 +61,11 @@ describe('Streaming Integration', () => {
       });
       
       expect(startResponse.ok).toBe(true);
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      expect(startData).toHaveProperty('sessionId');
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      expect(startData).toHaveProperty('streamingId');
       expect(startData).toHaveProperty('streamUrl');
       
-      const streamingId = startData.sessionId;
+      const streamingId = startData.streamingId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
       // 2. Connect to SSE stream and collect messages
@@ -166,8 +166,8 @@ describe('Streaming Integration', () => {
         })
       });
       
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      const streamingId = startData.sessionId;
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      const streamingId = startData.streamingId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
       // 2. Connect to stream and collect initial messages
@@ -228,8 +228,8 @@ describe('Streaming Integration', () => {
         })
       });
       
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      const streamingId = startData.sessionId;
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      const streamingId = startData.streamingId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
       // 2. Connect multiple clients to same stream
@@ -321,7 +321,7 @@ describe('Streaming Integration', () => {
         })
       });
       
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
       // 2. Make raw HTTP request to check headers
@@ -362,7 +362,7 @@ describe('Streaming Integration', () => {
       }
       
       // 6. Stop conversation
-      await fetch(`${baseUrl}/api/conversations/${startData.sessionId}/stop`, {
+      await fetch(`${baseUrl}/api/conversations/${startData.streamingId}/stop`, {
         method: 'POST'
       });
     }, 10000);

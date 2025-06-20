@@ -119,7 +119,12 @@ export interface ResumeConversationRequest {
 }
 
 export interface StartConversationResponse {
-  sessionId: string; // CCUI's internal streaming identifier (exposed as sessionId in API)
+  streamingId: string; // CCUI's internal streaming identifier for managing streaming connections
+  streamUrl: string;
+}
+
+export interface ResumeConversationResponse {
+  streamingId: string; // CCUI's internal streaming identifier for managing streaming connections
   streamUrl: string;
 }
 

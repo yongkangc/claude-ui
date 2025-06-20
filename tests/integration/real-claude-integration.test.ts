@@ -79,11 +79,11 @@ describe('Real Claude CLI Integration', () => {
       });
       
       expect(startResponse.ok).toBe(true);
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      expect(startData).toHaveProperty('sessionId');
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      expect(startData).toHaveProperty('streamingId');
       expect(startData).toHaveProperty('streamUrl');
       
-      const streamingId = startData.sessionId;
+      const streamingId = startData.streamingId;
       
       // 2. Connect to stream and collect messages  
       const messages: any[] = [];
@@ -201,11 +201,11 @@ describe('Real Claude CLI Integration', () => {
         });
         
         expect(resumeResponse.ok).toBe(true);
-        const resumeData = await resumeResponse.json() as { sessionId: string; streamUrl: string };
-        expect(resumeData).toHaveProperty('sessionId');
+        const resumeData = await resumeResponse.json() as { streamingId: string; streamUrl: string };
+        expect(resumeData).toHaveProperty('streamingId');
         expect(resumeData).toHaveProperty('streamUrl');
         
-        const resumeStreamingId = resumeData.sessionId;
+        const resumeStreamingId = resumeData.streamingId;
         
         // 8. Stream the resumed conversation
         const resumeMessages: any[] = [];

@@ -61,11 +61,11 @@ describe('Conversation Status Integration', () => {
       });
       
       expect(startResponse.ok).toBe(true);
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      expect(startData).toHaveProperty('sessionId');
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      expect(startData).toHaveProperty('streamingId');
       expect(startData).toHaveProperty('streamUrl');
       
-      const streamingId = startData.sessionId;
+      const streamingId = startData.streamingId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
       // 2. Connect to stream briefly to trigger message processing
@@ -170,8 +170,8 @@ describe('Conversation Status Integration', () => {
       });
       
       expect(startResponse.ok).toBe(true);
-      const startData = await startResponse.json() as { sessionId: string; streamUrl: string };
-      const streamingId = startData.sessionId;
+      const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
+      const streamingId = startData.streamingId;
       
       // 4. Wait a moment for process to start
       await new Promise(resolve => setTimeout(resolve, 500));

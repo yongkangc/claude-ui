@@ -958,7 +958,7 @@ describe('CCUIServer', () => {
           .expect(200);
 
         expect(response.body).toEqual({
-          sessionId: 'resume-streaming-id-123',
+          streamingId: 'resume-streaming-id-123',
           streamUrl: '/api/stream/resume-streaming-id-123'
         });
         expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({

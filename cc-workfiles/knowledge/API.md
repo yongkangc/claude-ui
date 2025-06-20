@@ -83,7 +83,7 @@ const response = await fetch('/api/conversations/start', {
 **Response:**
 ```typescript
 interface StartConversationResponse {
-  sessionId: string;           // CCUI's internal streaming identifier
+  streamingId: string;         // CCUI's internal streaming identifier
   streamUrl: string;           // Streaming endpoint to receive real-time updates
 }
 ```
@@ -91,12 +91,12 @@ interface StartConversationResponse {
 **Example Response:**
 ```json
 {
-  "sessionId": "abc123-def456-ghi789",
+  "streamingId": "abc123-def456-ghi789",
   "streamUrl": "/api/stream/abc123-def456-ghi789"
 }
 ```
 
-**Note:** The `sessionId` returned is CCUI's internal identifier for managing the streaming connection. This is separate from Claude CLI's own session ID that appears in the stream messages.
+**Note:** The `streamingId` returned is CCUI's internal identifier for managing the streaming connection. This is separate from Claude CLI's own session ID that appears in the stream messages.
 
 #### `POST /api/conversations/resume`
 
@@ -124,8 +124,8 @@ const response = await fetch('/api/conversations/resume', {
 
 **Response:**
 ```typescript
-interface StartConversationResponse {
-  sessionId: string;           // CCUI's new internal streaming identifier
+interface ResumeConversationResponse {
+  streamingId: string;         // CCUI's new internal streaming identifier
   streamUrl: string;           // Streaming endpoint to receive real-time updates
 }
 ```
@@ -133,14 +133,14 @@ interface StartConversationResponse {
 **Example Response:**
 ```json
 {
-  "sessionId": "def456-ghi789-jkl012",
+  "streamingId": "def456-ghi789-jkl012",
   "streamUrl": "/api/stream/def456-ghi789-jkl012"
 }
 ```
 
 **Notes:**
 - The `sessionId` in the request is Claude CLI's original session ID (found in conversation history)
-- The `sessionId` in the response is a new CCUI streaming identifier for this resumed conversation
+- The `streamingId` in the response is a new CCUI streaming identifier for this resumed conversation
 - Session parameters (working directory, model, etc.) are inherited from the original conversation
 - Only `sessionId` and `message` fields are allowed in the request body
 
@@ -332,8 +332,8 @@ X-Accel-Buffering: no
 ### Frontend Streaming Implementation
 
 ```javascript
-// Connect to stream (using sessionId from start conversation response)
-const response = await fetch(`/api/stream/${sessionId}`);
+// Connect to stream (using streamingId from start conversation response)
+const response = await fetch(`/api/stream/${streamingId}`);
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
 
@@ -654,13 +654,13 @@ CCUI maintains **two separate session ID systems** for different purposes:
 ### API Usage Patterns
 
 ```typescript
-// 1. Start conversation - returns CCUI's sessionId (actually streamingId)
+// 1. Start conversation - returns CCUI's streamingId
 const startResponse = await fetch('/api/conversations/start', { ... });
-const { sessionId, streamUrl } = await startResponse.json();
+const { streamingId, streamUrl } = await startResponse.json();
 
-// 2. Use sessionId for active conversation management
-await fetch(`/api/conversations/${sessionId}/stop`, { ... });
-await fetch(`/api/stream/${sessionId}`);
+// 2. Use streamingId for active conversation management
+await fetch(`/api/conversations/${streamingId}/stop`, { ... });
+await fetch(`/api/stream/${streamingId}`);
 
 // 3. Extract Claude's session_id from stream messages
 const streamMessage = JSON.parse(streamLine);
@@ -678,7 +678,7 @@ const resumeResponse = await fetch('/api/conversations/resume', {
     message: 'Continue this conversation'
   })
 });
-const { sessionId: newSessionId, streamUrl: newStreamUrl } = await resumeResponse.json();
+const { streamingId: newStreamingId, streamUrl: newStreamUrl } = await resumeResponse.json();
 ```
 
 ### Why Two Session IDs?
@@ -715,7 +715,7 @@ const startResponse = await fetch('/api/conversations/start', {
   })
 });
 
-const { sessionId, streamUrl } = await startResponse.json();
+const { streamingId, streamUrl } = await startResponse.json();
 
 // 2. Connect to stream for real-time updates
 const streamResponse = await fetch(streamUrl);
@@ -827,7 +827,7 @@ async function resumeConversation(claudeSessionId, newMessage) {
       throw new Error(`Resume failed: ${error.error}`);
     }
     
-    const { sessionId: newStreamingId, streamUrl } = await resumeResponse.json();
+    const { streamingId: newStreamingId, streamUrl } = await resumeResponse.json();
     
     // Connect to the new stream for the resumed conversation
     const streamResponse = await fetch(streamUrl);

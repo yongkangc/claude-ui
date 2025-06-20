@@ -140,6 +140,31 @@ export class ClaudeHistoryReader {
   }
 
   /**
+   * Get the working directory for a specific conversation session
+   */
+  async getConversationWorkingDirectory(sessionId: string): Promise<string | null> {
+    try {
+      const conversationChains = await this.parseAllConversations();
+      const conversation = conversationChains.find(chain => chain.sessionId === sessionId);
+      
+      if (!conversation) {
+        this.logger.warn('Conversation not found when getting working directory', { sessionId });
+        return null;
+      }
+
+      this.logger.debug('Found working directory for conversation', { 
+        sessionId, 
+        workingDirectory: conversation.projectPath 
+      });
+      
+      return conversation.projectPath;
+    } catch (error) {
+      this.logger.error('Error getting working directory for conversation', error, { sessionId });
+      return null;
+    }
+  }
+
+  /**
    * Parse all conversations from all JSONL files
    */
   private async parseAllConversations(): Promise<ConversationChain[]> {

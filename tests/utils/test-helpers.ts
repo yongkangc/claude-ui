@@ -276,9 +276,6 @@ export class TestHelpers {
     );
   }
 
-  /**
-   * Parse NDJSON streaming data
-   */
   static parseStreamingData(rawData: string): any[] {
     return rawData
       .split('\n')

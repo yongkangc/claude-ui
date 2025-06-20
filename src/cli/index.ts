@@ -6,6 +6,7 @@ import { mcpCommand } from './commands/mcp';
 import { listCommand } from './commands/list';
 import { getCommand } from './commands/get';
 import { statusCommand } from './commands/status';
+import { resumeCommand } from './commands/resume';
 
 const program = new Command();
 
@@ -54,5 +55,15 @@ program
   .description('Get system status')
   .option('--json', 'Output as JSON')
   .action(statusCommand);
+
+program
+  .command('resume')
+  .description('Resume an existing conversation with a new message')
+  .argument('<sessionId>', 'Session ID of the conversation to resume')
+  .argument('<message>', 'Message to send to continue the conversation')
+  .option('--server-port <port>', 'Port of the CCUI server', '3001')
+  .option('--json', 'Output as JSON')
+  .option('--debug', 'Enable debug logging')
+  .action(resumeCommand);
 
 program.parse();
