@@ -169,6 +169,11 @@ const response = await fetch('/api/conversations?limit=10&sortBy=updated&order=d
 - `ongoing`: Conversation has an active streaming connection (being processed)
 - `pending`: Reserved for future features (not currently used)
 
+**Streaming ID Field:**
+- The `streamingId` field is only present when a conversation has `status: 'ongoing'`
+- This provides the CCUI internal streaming identifier that can be used to connect to the active stream or stop the conversation
+- Completed conversations do not include this field since there is no active streaming connection
+
 **Response:**
 ```typescript
 interface ConversationListResponse {
@@ -184,6 +189,7 @@ interface ConversationSummary {
   updatedAt: string;        // ISO 8601 timestamp of last modification
   messageCount: number;     // Total number of messages in the conversation
   status: 'completed' | 'ongoing' | 'pending';  // Conversation status based on active streams
+  streamingId?: string;     // CCUI's internal streaming ID (only present when status is 'ongoing')
 }
 ```
 

@@ -13,6 +13,7 @@ export interface ConversationSummary {
   totalDuration: number;
   model: string;
   status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
+  streamingId?: string; // CCUI's internal streaming ID (only present when status is 'ongoing')
 }
 
 export interface ConversationMessage {

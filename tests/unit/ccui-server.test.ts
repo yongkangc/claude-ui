@@ -811,13 +811,20 @@ describe('CCUIServer', () => {
             return 'completed';
           });
 
+        // Mock getStreamingId to return streamingId for ongoing conversations
+        jest.spyOn((server as any).statusTracker, 'getStreamingId')
+          .mockImplementation((sessionId) => {
+            if (sessionId === 'session-1') return 'streaming-id-123';
+            return undefined;
+          });
+
         const response = await request(app)
           .get('/api/conversations?limit=10&sortBy=updated&order=desc')
           .expect(200);
 
         expect(response.body).toEqual({
           conversations: [
-            { ...mockConversations[0], status: 'ongoing' },
+            { ...mockConversations[0], status: 'ongoing', streamingId: 'streaming-id-123' },
             { ...mockConversations[1], status: 'completed' }
           ],
           total: 2
@@ -830,6 +837,8 @@ describe('CCUIServer', () => {
         });
         expect((server as any).statusTracker.getConversationStatus).toHaveBeenCalledWith('session-1');
         expect((server as any).statusTracker.getConversationStatus).toHaveBeenCalledWith('session-2');
+        expect((server as any).statusTracker.getStreamingId).toHaveBeenCalledWith('session-1');
+        expect((server as any).statusTracker.getStreamingId).not.toHaveBeenCalledWith('session-2');
       });
 
       it('should handle empty conversation list', async () => {

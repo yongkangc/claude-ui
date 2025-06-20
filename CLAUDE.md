@@ -276,6 +276,7 @@ class ConversationStatusTracker {
 - Session IDs are extracted from stream messages and registered automatically
 - Status is updated in real-time when streams start/end
 - Conversation list endpoint includes current status for each conversation
+- **Streaming ID field**: Ongoing conversations include an optional `streamingId` field in API responses that provides the CCUI internal streaming identifier for connecting to active streams or stopping conversations
 - Status tracking handles process errors and cleanup gracefully
 
 ## Configuration

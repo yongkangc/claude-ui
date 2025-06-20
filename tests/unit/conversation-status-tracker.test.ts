@@ -215,6 +215,101 @@ describe('ConversationStatusTracker', () => {
     });
   });
 
+  describe('conversation list API integration', () => {
+    it('should provide correct status and streamingId for conversation list', () => {
+      const mockConversations = [
+        { sessionId: 'claude-session-1', summary: 'First conversation' },
+        { sessionId: 'claude-session-2', summary: 'Second conversation' },
+        { sessionId: 'claude-session-3', summary: 'Third conversation' }
+      ];
+
+      // Register one active session
+      tracker.registerActiveSession('streaming-123', 'claude-session-2');
+
+      // Simulate how the conversation list endpoint would process conversations
+      const conversationsWithStatus = mockConversations.map(conversation => {
+        const status = tracker.getConversationStatus(conversation.sessionId);
+        const baseConversation = {
+          ...conversation,
+          status
+        };
+
+        // Add streamingId if conversation is ongoing
+        if (status === 'ongoing') {
+          const streamingId = tracker.getStreamingId(conversation.sessionId);
+          if (streamingId) {
+            return { ...baseConversation, streamingId };
+          }
+        }
+
+        return baseConversation;
+      });
+
+      // Verify results
+      expect(conversationsWithStatus).toHaveLength(3);
+      
+      // First conversation should be completed (no streamingId)
+      expect(conversationsWithStatus[0]).toEqual({
+        sessionId: 'claude-session-1',
+        summary: 'First conversation',
+        status: 'completed'
+      });
+
+      // Second conversation should be ongoing with streamingId
+      expect(conversationsWithStatus[1]).toEqual({
+        sessionId: 'claude-session-2',
+        summary: 'Second conversation',
+        status: 'ongoing',
+        streamingId: 'streaming-123'
+      });
+
+      // Third conversation should be completed (no streamingId)
+      expect(conversationsWithStatus[2]).toEqual({
+        sessionId: 'claude-session-3',
+        summary: 'Third conversation',
+        status: 'completed'
+      });
+    });
+
+    it('should handle case where getStreamingId returns undefined for ongoing status', () => {
+      const mockConversation = { sessionId: 'claude-session-1', summary: 'Test conversation' };
+      
+      // Mock the case where status is ongoing but getStreamingId returns undefined
+      // This could happen in edge cases or race conditions
+      tracker.registerActiveSession('streaming-123', 'claude-session-1');
+      tracker.unregisterActiveSession('streaming-123');
+      
+      // Force register session without proper cleanup (simulating race condition)
+      (tracker as any).sessionToStreaming.set('claude-session-1', 'invalid-streaming-id');
+      
+      const status = tracker.getConversationStatus(mockConversation.sessionId);
+      const streamingId = tracker.getStreamingId(mockConversation.sessionId);
+      
+      // Should be ongoing but streamingId should be invalid
+      expect(status).toBe('ongoing');
+      expect(streamingId).toBe('invalid-streaming-id');
+      
+      // The API logic should handle this gracefully
+      const baseConversation = { ...mockConversation, status };
+      let result: any = baseConversation;
+      
+      if (status === 'ongoing') {
+        const actualStreamingId = tracker.getStreamingId(mockConversation.sessionId);
+        if (actualStreamingId) {
+          result = { ...baseConversation, streamingId: actualStreamingId };
+        }
+      }
+      
+      // Should include the invalid streamingId (real implementation would handle this)
+      expect(result).toEqual({
+        sessionId: 'claude-session-1',
+        summary: 'Test conversation',
+        status: 'ongoing',
+        streamingId: 'invalid-streaming-id'
+      });
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle multiple registrations of same streaming ID with different Claude sessions', () => {
       const streamingId = 'streaming-123';

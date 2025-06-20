@@ -373,10 +373,23 @@ export class CCUIServer {
         const result = await this.historyReader.listConversations(req.query);
         
         // Update status for each conversation based on active streams
-        const conversationsWithStatus = result.conversations.map(conversation => ({
-          ...conversation,
-          status: this.statusTracker.getConversationStatus(conversation.sessionId)
-        }));
+        const conversationsWithStatus = result.conversations.map(conversation => {
+          const status = this.statusTracker.getConversationStatus(conversation.sessionId);
+          const baseConversation = {
+            ...conversation,
+            status
+          };
+          
+          // Add streamingId if conversation is ongoing
+          if (status === 'ongoing') {
+            const streamingId = this.statusTracker.getStreamingId(conversation.sessionId);
+            if (streamingId) {
+              return { ...baseConversation, streamingId };
+            }
+          }
+          
+          return baseConversation;
+        });
         
         this.logger.debug('Conversations listed successfully', {
           requestId,
