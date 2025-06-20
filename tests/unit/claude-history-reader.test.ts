@@ -98,6 +98,10 @@ describe('ClaudeHistoryReader', () => {
       expect(conversation.messageCount).toBe(2); // user + assistant message
       expect(conversation.createdAt).toBeDefined();
       expect(conversation.updatedAt).toBeDefined();
+      expect(conversation.totalCost).toBe(0.0025); // From assistant message
+      expect(conversation.totalDuration).toBe(2500); // From assistant message
+      expect(conversation.model).toBe('claude-opus-4-20250514'); // From assistant message
+      expect(conversation.status).toBe('completed'); // CLI conversations are always completed
     });
 
     it('should apply filters correctly', async () => {
