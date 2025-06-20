@@ -69,7 +69,11 @@ export class ClaudeHistoryReader {
         summary: chain.summary,
         createdAt: chain.createdAt,
         updatedAt: chain.updatedAt,
-        messageCount: chain.messages.length
+        messageCount: chain.messages.length,
+        totalCost: chain.totalCost,
+        totalDuration: chain.totalDuration,
+        model: chain.model,
+        status: 'completed' as const // Default status, will be updated by server
       }));
       
       // Apply filters and pagination

@@ -9,11 +9,15 @@ jest.mock('@/services/claude-history-reader', () => ({
 jest.mock('@/services/stream-manager', () => ({
   StreamManager: jest.fn()
 }));
+jest.mock('@/services/conversation-status-tracker', () => ({
+  ConversationStatusTracker: jest.fn()
+}));
 
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { StreamManager } from '@/services/stream-manager';
+import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import { CCUIError } from '@/types';
 import request from 'supertest';
 import { TestHelpers } from '../utils/test-helpers';
@@ -27,6 +31,7 @@ jest.mock('child_process', () => ({
 const MockedClaudeProcessManager = ClaudeProcessManager as jest.MockedClass<typeof ClaudeProcessManager>;
 const MockedClaudeHistoryReader = ClaudeHistoryReader as jest.MockedClass<typeof ClaudeHistoryReader>;
 const MockedStreamManager = StreamManager as jest.MockedClass<typeof StreamManager>;
+const MockedConversationStatusTracker = ConversationStatusTracker as jest.MockedClass<typeof ConversationStatusTracker>;
 
 // Get mock Claude executable path
 function getMockClaudeExecutablePath(): string {
@@ -42,6 +47,7 @@ describe('CCUIServer', () => {
   let mockProcessManager: jest.Mocked<ClaudeProcessManager>;
   let mockHistoryReader: jest.Mocked<ClaudeHistoryReader>;
   let mockStreamManager: jest.Mocked<StreamManager>;
+  let mockStatusTracker: jest.Mocked<ConversationStatusTracker>;
 
   // Track any running servers for cleanup
   const runningServers: CCUIServer[] = [];
@@ -73,15 +79,32 @@ describe('CCUIServer', () => {
       on: jest.fn()
     } as any;
 
+    mockStatusTracker = {
+      registerActiveSession: jest.fn(),
+      unregisterActiveSession: jest.fn(),
+      getConversationStatus: jest.fn(),
+      isSessionActive: jest.fn(),
+      getStreamingId: jest.fn(),
+      getSessionId: jest.fn(),
+      getActiveSessionIds: jest.fn(),
+      getActiveStreamingIds: jest.fn(),
+      clear: jest.fn(),
+      getStats: jest.fn(),
+      on: jest.fn(),
+      emit: jest.fn()
+    } as any;
+
     // Clear and reset mock constructors
     MockedClaudeProcessManager.mockClear();
     MockedClaudeHistoryReader.mockClear();
     MockedStreamManager.mockClear();
+    MockedConversationStatusTracker.mockClear();
     
     // Set up mock implementations
     MockedClaudeProcessManager.mockImplementation(() => mockProcessManager);
     MockedClaudeHistoryReader.mockImplementation(() => mockHistoryReader);
     MockedStreamManager.mockImplementation(() => mockStreamManager);
+    MockedConversationStatusTracker.mockImplementation(() => mockStatusTracker);
   });
 
   afterEach(async () => {
@@ -742,6 +765,96 @@ describe('CCUIServer', () => {
           .get('/api/conversations/error-session');
 
         // Just verify it's an error status
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      });
+    });
+
+    describe('GET /api/conversations', () => {
+      it('should return conversation list with status based on active streams', async () => {
+        const mockConversations = [
+          {
+            sessionId: 'session-1',
+            projectPath: '/test/project1',
+            summary: 'First conversation',
+            createdAt: '2024-01-01T10:00:00Z',
+            updatedAt: '2024-01-01T10:30:00Z',
+            messageCount: 5,
+            totalCost: 0.0023,
+            totalDuration: 1500,
+            model: 'claude-sonnet-3-5-20241022',
+            status: 'completed' as const
+          },
+          {
+            sessionId: 'session-2',
+            projectPath: '/test/project2',
+            summary: 'Second conversation',
+            createdAt: '2024-01-02T14:00:00Z',
+            updatedAt: '2024-01-02T15:30:00Z',
+            messageCount: 8,
+            totalCost: 0.0045,
+            totalDuration: 3000,
+            model: 'claude-opus-20240229',
+            status: 'completed' as const
+          }
+        ];
+
+        // Mock history reader to return conversations
+        jest.spyOn((server as any).historyReader, 'listConversations').mockResolvedValue({
+          conversations: mockConversations,
+          total: 2
+        });
+
+        // Mock status tracker to return different statuses
+        jest.spyOn((server as any).statusTracker, 'getConversationStatus')
+          .mockImplementation((sessionId) => {
+            if (sessionId === 'session-1') return 'ongoing';
+            return 'completed';
+          });
+
+        const response = await request(app)
+          .get('/api/conversations?limit=10&sortBy=updated&order=desc')
+          .expect(200);
+
+        expect(response.body).toEqual({
+          conversations: [
+            { ...mockConversations[0], status: 'ongoing' },
+            { ...mockConversations[1], status: 'completed' }
+          ],
+          total: 2
+        });
+
+        expect((server as any).historyReader.listConversations).toHaveBeenCalledWith({
+          limit: '10',
+          sortBy: 'updated',
+          order: 'desc'
+        });
+        expect((server as any).statusTracker.getConversationStatus).toHaveBeenCalledWith('session-1');
+        expect((server as any).statusTracker.getConversationStatus).toHaveBeenCalledWith('session-2');
+      });
+
+      it('should handle empty conversation list', async () => {
+        jest.spyOn((server as any).historyReader, 'listConversations').mockResolvedValue({
+          conversations: [],
+          total: 0
+        });
+
+        const response = await request(app)
+          .get('/api/conversations')
+          .expect(200);
+
+        expect(response.body).toEqual({
+          conversations: [],
+          total: 0
+        });
+      });
+
+      it('should handle history reader errors', async () => {
+        jest.spyOn((server as any).historyReader, 'listConversations')
+          .mockRejectedValue(new Error('Failed to read history'));
+
+        const response = await request(app)
+          .get('/api/conversations');
+
         expect(response.status).toBeGreaterThanOrEqual(400);
       });
     });

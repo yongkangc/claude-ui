@@ -89,6 +89,7 @@ The backend follows a service-oriented architecture with these key components:
 - **ClaudeProcessManager** (`src/services/claude-process-manager.ts`) - Manages Claude CLI process lifecycle
 - **StreamManager** (`src/services/stream-manager.ts`) - Handles client streaming connections  
 - **ClaudeHistoryReader** (`src/services/claude-history-reader.ts`) - Reads conversation history from ~/.claude
+- **ConversationStatusTracker** (`src/services/conversation-status-tracker.ts`) - Tracks conversation status based on active streams
 - **JsonLinesParser** (`src/services/json-lines-parser.ts`) - Parses JSONL streams from Claude CLI
 
 ### Data Flow Architecture
@@ -246,6 +247,36 @@ POST /api/conversations/resume
 ```
 
 Returns new streaming ID for continued conversation. Session parameters are inherited from original conversation.
+
+### Conversation Status Tracking
+
+The backend automatically tracks conversation status based on active streaming connections:
+
+**Status Values:**
+- `completed`: Conversation has finished and no active stream exists (default)
+- `ongoing`: Conversation has an active streaming connection (currently being processed)
+- `pending`: Reserved for future features (not currently used)
+
+**Implementation:**
+```typescript
+class ConversationStatusTracker {
+  // Maps Claude session ID -> CCUI streaming ID
+  private sessionToStreaming: Map<string, string> = new Map();
+  
+  // Maps CCUI streaming ID -> Claude session ID (reverse lookup)
+  private streamingToSession: Map<string, string> = new Map();
+  
+  registerActiveSession(streamingId: string, claudeSessionId: string): void
+  unregisterActiveSession(streamingId: string): void
+  getConversationStatus(claudeSessionId: string): 'completed' | 'ongoing' | 'pending'
+}
+```
+
+**Integration:**
+- Session IDs are extracted from stream messages and registered automatically
+- Status is updated in real-time when streams start/end
+- Conversation list endpoint includes current status for each conversation
+- Status tracking handles process errors and cleanup gracefully
 
 ## Configuration
 

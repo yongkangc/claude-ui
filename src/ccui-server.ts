@@ -3,6 +3,7 @@ import cors from 'cors';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
+import { ConversationStatusTracker } from './services/conversation-status-tracker';
 import { 
   StartConversationRequest,
   ResumeConversationRequest,
@@ -25,6 +26,7 @@ export class CCUIServer {
   private processManager: ClaudeProcessManager;
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
+  private statusTracker: ConversationStatusTracker;
   private logger: Logger;
   private port: number;
 
@@ -46,6 +48,7 @@ export class CCUIServer {
     this.processManager = new ClaudeProcessManager();
     this.streamManager = new StreamManager();
     this.historyReader = new ClaudeHistoryReader();
+    this.statusTracker = new ConversationStatusTracker();
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
@@ -369,13 +372,23 @@ export class CCUIServer {
       try {
         const result = await this.historyReader.listConversations(req.query);
         
+        // Update status for each conversation based on active streams
+        const conversationsWithStatus = result.conversations.map(conversation => ({
+          ...conversation,
+          status: this.statusTracker.getConversationStatus(conversation.sessionId)
+        }));
+        
         this.logger.debug('Conversations listed successfully', {
           requestId,
-          conversationCount: result.conversations.length,
-          totalFound: result.total
+          conversationCount: conversationsWithStatus.length,
+          totalFound: result.total,
+          activeConversations: conversationsWithStatus.filter(c => c.status === 'ongoing').length
         });
         
-        res.json(result);
+        res.json({
+          conversations: conversationsWithStatus,
+          total: result.total
+        });
       } catch (error) {
         this.logger.debug('List conversations failed', {
           requestId,
@@ -528,6 +541,17 @@ export class CCUIServer {
         contentLength: message?.content?.length || 0,
         messageKeys: message ? Object.keys(message) : []
       });
+      
+      // Extract session ID from stream message and register with status tracker
+      if (message && message.session_id) {
+        const claudeSessionId = message.session_id;
+        this.logger.debug('Registering active session with status tracker', {
+          streamingId,
+          claudeSessionId
+        });
+        this.statusTracker.registerActiveSession(streamingId, claudeSessionId);
+      }
+      
       // Stream the Claude message directly as documented
       this.streamManager.broadcast(streamingId, message);
     });
@@ -540,6 +564,11 @@ export class CCUIServer {
         clientCount: this.streamManager.getClientCount(streamingId),
         wasSuccessful: code === 0
       });
+      
+      // Unregister session from status tracker
+      this.logger.debug('Unregistering session from status tracker', { streamingId });
+      this.statusTracker.unregisterActiveSession(streamingId);
+      
       this.streamManager.closeSession(streamingId);
     });
 
@@ -551,6 +580,10 @@ export class CCUIServer {
         errorLength: error?.toString().length || 0,
         clientCount: this.streamManager.getClientCount(streamingId)
       });
+      
+      // Unregister session from status tracker on error
+      this.logger.debug('Unregistering session from status tracker due to error', { streamingId });
+      this.statusTracker.unregisterActiveSession(streamingId);
       
       const errorEvent: StreamEvent = {
         type: 'error' as const,

@@ -9,6 +9,10 @@ export interface ConversationSummary {
   createdAt: string;
   updatedAt: string;
   messageCount: number;
+  totalCost: number;
+  totalDuration: number;
+  model: string;
+  status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
 }
 
 export interface ConversationMessage {

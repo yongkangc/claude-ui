@@ -164,6 +164,11 @@ interface ConversationListQuery {
 const response = await fetch('/api/conversations?limit=10&sortBy=updated&order=desc');
 ```
 
+**Conversation Status Values:**
+- `completed`: Conversation has finished and no active stream exists
+- `ongoing`: Conversation has an active streaming connection (being processed)
+- `pending`: Reserved for future features (not currently used)
+
 **Response:**
 ```typescript
 interface ConversationListResponse {
@@ -178,6 +183,7 @@ interface ConversationSummary {
   createdAt: string;        // ISO 8601 timestamp when conversation started
   updatedAt: string;        // ISO 8601 timestamp of last modification
   messageCount: number;     // Total number of messages in the conversation
+  status: 'completed' | 'ongoing' | 'pending';  // Conversation status based on active streams
 }
 ```
 
