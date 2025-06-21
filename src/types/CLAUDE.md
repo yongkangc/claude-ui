@@ -2,11 +2,189 @@
 
 This directory contains centralized TypeScript type definitions for CCUI backend.
 
-## Stream Message Types
-
-Those are only presented at from the streaming output of cc. See `../../../cc-workfiles/knowledge/example-cc-stream-json.md` to understand the structure of the streaming output.
+## Content Block System
 
 ```typescript
+// Core content types from Anthropic SDK
+export type ContentBlock =
+  | TextBlock
+  | ToolUseBlock
+  | ServerToolUseBlock
+  | WebSearchToolResultBlock
+  | ThinkingBlock
+  | RedactedThinkingBlock;
+
+export type ContentBlockParam =
+  | ServerToolUseBlockParam
+  | WebSearchToolResultBlockParam
+  | TextBlockParam
+  | ImageBlockParam
+  | ToolUseBlockParam
+  | ToolResultBlockParam
+  | DocumentBlockParam
+  | ThinkingBlockParam
+  | RedactedThinkingBlockParam;
+
+export interface TextBlock {
+  type: 'text';
+  text: string;
+  citations?: Array<TextCitation> | null;
+}
+
+export interface TextBlockParam {
+  text: string;
+  type: 'text';
+  /**
+   * Create a cache control breakpoint at this content block.
+   */
+  cache_control?: CacheControlEphemeral | null;
+  citations?: Array<TextCitationParam> | null;
+}
+
+export interface ImageBlockParam {
+  source: Base64ImageSource | URLImageSource;
+  type: 'image';
+  /**
+   * Create a cache control breakpoint at this content block.
+   */
+  cache_control?: CacheControlEphemeral | null;
+}
+
+export interface Base64ImageSource {
+  data: string;
+  media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  type: 'base64';
+}
+
+export interface URLImageSource {
+  type: 'url';
+  url: string;
+}
+
+export interface DocumentBlockParam {
+  source: Base64PDFSource | PlainTextSource | ContentBlockSource | URLPDFSource;
+  type: 'document';
+  /**
+   * Create a cache control breakpoint at this content block.
+   */
+  cache_control?: CacheControlEphemeral | null;
+  citations?: CitationsConfigParam;
+  context?: string | null;
+  title?: string | null;
+}
+
+export interface Base64PDFSource {
+  data: string;
+  media_type: 'application/pdf';
+  type: 'base64';
+}
+
+export interface URLPDFSource {
+  type: 'url';
+  url: string;
+}
+
+export interface PlainTextSource {
+  data: string;
+  media_type: 'text/plain';
+  type: 'text';
+}
+
+export interface ContentBlockSource {
+  content: string | Array<ContentBlockSourceContent>;
+  type: 'content';
+}
+
+export type ContentBlockSourceContent = TextBlockParam | ImageBlockParam;
+
+export interface CitationsConfigParam {
+  enabled?: boolean;
+}
+
+export interface ToolUseBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: unknown;
+}
+
+export interface ToolUseBlockParam {
+  id: string;
+  input: unknown;
+  name: string;
+  type: 'tool_use';
+  cache_control?: CacheControlEphemeral | null;
+}
+
+export interface ThinkingBlock {
+  type: 'thinking';
+  thinking: string;
+  signature: string;
+}
+
+export interface ThinkingBlockParam {
+  signature: string;
+  thinking: string;
+  type: 'thinking';
+}
+
+export interface RedactedThinkingBlock {
+  type: 'redacted_thinking';
+  data: string;
+}
+
+export interface RedactedThinkingBlockParam {
+  data: string;
+  type: 'redacted_thinking';
+}
+
+export interface ServerToolUseBlock {
+  type: 'server_tool_use';
+  id: string;
+  name: 'web_search';
+  input: unknown;
+}
+
+export interface ServerToolUseBlockParam {
+  id: string;
+  input: unknown;
+  name: 'web_search';
+  type: 'server_tool_use';
+  /**
+   * Create a cache control breakpoint at this content block.
+   */
+  cache_control?: CacheControlEphemeral | null;
+}
+
+export interface WebSearchToolResultBlock {
+  content: WebSearchToolResultBlockContent;
+  tool_use_id: string;
+  type: 'web_search_tool_result';
+}
+
+export interface WebSearchToolResultBlockParam {
+  content: WebSearchToolResultBlockParamContent;
+  tool_use_id: string;
+  type: 'web_search_tool_result';
+  /**
+   * Create a cache control breakpoint at this content block.
+   */
+  cache_control?: CacheControlEphemeral | null;
+}
+
+export interface ToolResultBlockParam {
+  tool_use_id: string;
+  type: 'tool_result';
+  content?: string | Array<TextBlockParam | ImageBlockParam>;
+  is_error?: boolean;
+}
+
+export type StopReason = 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | 'pause_turn' | 'refusal';
+
+## Stream Message Types
+
+Those are only presented at from the streaming output of cc. See `../../../cc-workfiles/knowledge/example-cc-stream-json.jsonl` to understand the structure of the streaming output.
+
 // Claude CLI stream messages - these come from the Claude CLI process
 // Return at the start of streaming immediately.
 export interface SystemInitMessage {
@@ -68,64 +246,10 @@ export interface ResultStreamMessage {
   };
   session_id: string;           // Claude CLI's session ID
 }
-```
 
-## Content Block System
-
-```typescript
-// Core content types from Anthropic SDK
-export type ContentBlock =
-  | TextBlock
-  | ToolUseBlock
-  | ServerToolUseBlock
-  | WebSearchToolResultBlock
-  | ThinkingBlock
-  | RedactedThinkingBlock;
-
-export interface TextBlock {
-  type: 'text';
-  text: string;
-  citations?: Array<TextCitation> | null;
-}
-
-export interface ToolUseBlock {
-  type: 'tool_use';
-  id: string;
-  name: string;
-  input: unknown;
-}
-
-export interface ThinkingBlock {
-  type: 'thinking';
-  thinking: string;
-  signature: string;
-}
-
-export interface RedactedThinkingBlock {
-  type: 'redacted_thinking';
-  data: string;
-}
-
-export interface ServerToolUseBlock {
-  type: 'server_tool_use';
-  id: string;
-  name: 'web_search';
-  input: unknown;
-}
-
-export interface ToolResultBlockParam {
-  tool_use_id: string;
-  type: 'tool_result';
-  content: string | Array<TextBlockParam | ImageBlockParam>;
-  is_error?: boolean;
-}
-
-export type StopReason = 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | 'pause_turn' | 'refusal';
-```
 
 ## API Request/Response Types
 
-```typescript
 export interface StartConversationRequest {
   workingDirectory: string;
   initialPrompt: string;
@@ -174,11 +298,73 @@ export interface ConversationMessage {
   costUSD?: number;             // API cost (assistant messages only)
   durationMs?: number;          // Generation time (assistant messages only)
 }
-```
+
+## Core Message Types (From Anthropic)
+
+export interface Message {
+  id: string;
+  content: Array<ContentBlock>;
+
+  /**
+   * The model that completed the prompt.
+   */
+  model: string;
+
+  /**
+   * Conversational role of the generated message.
+   * This will always be "assistant".
+   */
+  role: 'assistant';
+
+  /**
+   * The reason that we stopped.
+   * - "end_turn": model reached a natural stopping point
+   * - "max_tokens": exceeded the requested max_tokens or model's maximum
+   * - "stop_sequence": one of your provided custom stop_sequences was generated
+   * - "tool_use": model invoked one or more tools
+   */
+  stop_reason: StopReason | null;
+
+  /**
+   * Which custom stop sequence was generated, if any.
+   */
+  stop_sequence: string | null;
+
+  /**
+   * Object type. For Messages, this is always "message".
+   */
+  type: 'message';
+
+  /**
+   * Billing and rate-limit usage.
+   */
+  usage: Usage;
+}
+
+export interface MessageParam {
+  content: string | Array<ContentBlockParam>;
+  role: 'user' | 'assistant';
+}
+
+export interface Usage {
+  cache_creation_input_tokens: number | null;
+  cache_read_input_tokens: number | null;
+  input_tokens: number;
+  output_tokens: number;
+  server_tool_use: ServerToolUsage | null;
+  service_tier: 'standard' | 'priority' | 'batch' | null;
+}
+
+export interface ServerToolUsage {
+  web_search_requests: number;
+}
+
+export interface CacheControlEphemeral {
+  type: 'ephemeral';
+}
 
 ## Configuration Types
 
-```typescript
 // This is used for start conversation endpoint
 export interface ConversationConfig {
   workingDirectory: string;
@@ -189,11 +375,9 @@ export interface ConversationConfig {
   systemPrompt?: string;
   claudeExecutablePath?: string;
 }
-```
 
 ## Stream Event Types
 
-```typescript
 // CCUI internal stream events
 export type StreamEvent = 
   | { type: 'connected'; streaming_id: string; timestamp: string }
@@ -204,11 +388,9 @@ export type StreamEvent =
   | AssistantStreamMessage
   | UserStreamMessage
   | ResultStreamMessage;
-```
 
 ## Tool Definitions and Patterns
 
-```typescript
 // Common tool usage patterns from Claude Code
 interface FileOperationTools {
   Read: { 
@@ -290,4 +472,3 @@ interface AgentTools {
     prompt: string;             // Detailed task instructions
   };
 }
-```
