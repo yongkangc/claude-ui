@@ -188,7 +188,7 @@ describe('Real Claude CLI Integration', () => {
         }
         
         
-        // 7. Resume the conversation
+        // 7. Resume the conversation (should fail fast with API error)
         const resumeResponse = await fetch(`${baseUrl}/api/conversations/resume`, {
           method: 'POST',
           headers: {
@@ -200,82 +200,18 @@ describe('Real Claude CLI Integration', () => {
           })
         });
         
-        expect(resumeResponse.ok).toBe(true);
-        const resumeData = await resumeResponse.json() as { streamingId: string; streamUrl: string };
-        expect(resumeData).toHaveProperty('streamingId');
-        expect(resumeData).toHaveProperty('streamUrl');
+        // With our improved error handling, resume should fail immediately
+        expect(resumeResponse.ok).toBe(false);
+        expect(resumeResponse.status).toBe(500);
+        const resumeError = await resumeResponse.json() as { error: string; code?: string };
+        expect(resumeError.error).toContain('Claude CLI process exited before sending system initialization message');
+        // Can be either "Invalid API key" or "No conversation found" depending on Claude CLI behavior
+        expect(resumeError.error).toMatch(/Invalid API key|No conversation found/);
+        expect(resumeError.code).toBe('CLAUDE_PROCESS_EXITED_EARLY');
         
-        const resumeStreamingId = resumeData.streamingId;
+        // 8. Verify that resume correctly failed immediately (no streaming needed)
         
-        // 8. Stream the resumed conversation
-        const resumeMessages: any[] = [];
-        let hasSecondApiError = false;
-        let resumeStreamClosed = false;
-        
-        const resumeStreamUrl = `${baseUrl}${resumeData.streamUrl}`;
-        const resumeEventSource = new EventSource(resumeStreamUrl);
-        
-        // Wait for second API error from resumed conversation
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            resumeEventSource.close();
-            reject(new Error('Resume streaming timeout - second API error not detected'));
-          }, 8000);
-          
-          resumeEventSource.onmessage = (event: any) => {
-            try {
-              const data = JSON.parse(event.data);
-              resumeMessages.push(data);
-              
-              
-              // Check for API error in message content
-              const content = JSON.stringify(data);
-              if (content.includes('Invalid API key') || 
-                  content.includes('API key') ||
-                  content.includes('login') ||
-                  content.includes('authentication')) {
-                hasSecondApiError = true;
-              }
-              
-              // Also check for "No conversation found" error (expected in fake home)
-              if (content.includes('No conversation found')) {
-                hasSecondApiError = true;
-              }
-              
-              // Also check for result type with error status
-              if (data.type === 'result' && data.is_error) {
-                hasSecondApiError = true;
-              }
-              
-              // Exit early once we have the API error or result
-              if (data.type === 'closed' || data.type === 'result' || hasSecondApiError) {
-                resumeStreamClosed = true;
-                clearTimeout(timeout);
-                resumeEventSource.close();
-                resolve();
-              }
-            } catch (error) {
-              clearTimeout(timeout);
-              resumeEventSource.close();
-              reject(error);
-            }
-          };
-          
-          resumeEventSource.onerror = (error: any) => {
-            if (!resumeStreamClosed) {
-              clearTimeout(timeout);
-              reject(error);
-            }
-          };
-        });
-        
-        // Verify resume streaming worked
-        expect(resumeMessages.length).toBeGreaterThan(0);
-        expect(hasSecondApiError).toBe(true);
-        
-        // 9. Verify resume endpoint functioned correctly
-        // Note: In fake home environment, resume will fail with "No conversation found"
-        // but this proves the resume endpoint works and handles errors properly
+        // 9. Verify conversation details are still accessible (original conversation unaffected)
         
         const updatedDetailsResponse = await fetch(`${baseUrl}/api/conversations/${actualClaudeSessionId}`);
         expect(updatedDetailsResponse.ok).toBe(true);

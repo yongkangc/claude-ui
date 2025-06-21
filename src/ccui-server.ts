@@ -8,7 +8,6 @@ import {
   StartConversationRequest,
   StartConversationResponse,
   ResumeConversationRequest,
-  ResumeConversationResponse,
   ConversationListQuery,
   ConversationDetailsResponse,
   SystemStatusResponse,
@@ -291,16 +290,27 @@ export class CCUIServer {
           throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
         }
         
-        const streamingId = await this.processManager.startConversation(req.body);
+        const { streamingId, systemInit } = await this.processManager.startConversation(req.body);
         
         this.logger.debug('Conversation started successfully', {
           requestId,
-          streamingId
+          streamingId,
+          sessionId: systemInit.session_id,
+          model: systemInit.model,
+          cwd: systemInit.cwd
         });
         
         res.json({ 
-          streamingId: streamingId, 
-          streamUrl: `/api/stream/${streamingId}` 
+          streamingId,
+          streamUrl: `/api/stream/${streamingId}`,
+          // System init fields
+          sessionId: systemInit.session_id,
+          cwd: systemInit.cwd,
+          tools: systemInit.tools,
+          mcpServers: systemInit.mcp_servers,
+          model: systemInit.model,
+          permissionMode: systemInit.permissionMode,
+          apiKeySource: systemInit.apiKeySource
         });
       } catch (error) {
         this.logger.debug('Start conversation failed', {
@@ -312,7 +322,7 @@ export class CCUIServer {
     });
 
     // Resume existing conversation
-    this.app.post('/api/conversations/resume', async (req: Request<{}, ResumeConversationResponse, ResumeConversationRequest>, res, next) => {
+    this.app.post('/api/conversations/resume', async (req: Request<{}, StartConversationResponse, ResumeConversationRequest>, res, next) => {
       const requestId = (req as any).requestId;
       this.logger.debug('Resume conversation request', {
         requestId,
@@ -338,7 +348,7 @@ export class CCUIServer {
           throw new CCUIError('INVALID_FIELDS', `Invalid fields for resume: ${extraFields.join(', ')}. Only sessionId and message are allowed.`, 400);
         }
         
-        const streamingId = await this.processManager.resumeConversation({
+        const { streamingId, systemInit } = await this.processManager.resumeConversation({
           sessionId: req.body.sessionId,
           message: req.body.message
         });
@@ -346,12 +356,23 @@ export class CCUIServer {
         this.logger.debug('Conversation resumed successfully', {
           requestId,
           originalSessionId: req.body.sessionId,
-          newStreamingId: streamingId
+          newStreamingId: streamingId,
+          newSessionId: systemInit.session_id,
+          model: systemInit.model,
+          cwd: systemInit.cwd
         });
         
         res.json({ 
-          streamingId: streamingId, 
-          streamUrl: `/api/stream/${streamingId}` 
+          streamingId,
+          streamUrl: `/api/stream/${streamingId}`,
+          // System init fields
+          sessionId: systemInit.session_id,
+          cwd: systemInit.cwd,
+          tools: systemInit.tools,
+          mcpServers: systemInit.mcp_servers,
+          model: systemInit.model,
+          permissionMode: systemInit.permissionMode,
+          apiKeySource: systemInit.apiKeySource
         });
       } catch (error) {
         this.logger.debug('Resume conversation failed', {
@@ -549,9 +570,10 @@ export class CCUIServer {
     
     // Forward Claude messages to stream
     this.processManager.on('claude-message', ({ streamingId, message }) => {
-      this.logger.debug('Received claude-message event, forwarding to StreamManager', { 
+      this.logger.debug('Received claude-message event', { 
         streamingId, 
         messageType: message?.type,
+        messageSubtype: message?.subtype,
         hasContent: !!message?.content,
         contentLength: message?.content?.length || 0,
         messageKeys: message ? Object.keys(message) : []
@@ -567,7 +589,21 @@ export class CCUIServer {
         this.statusTracker.registerActiveSession(streamingId, claudeSessionId);
       }
       
-      // Stream the Claude message directly as documented
+      // Skip broadcasting system init messages as they're now included in API response
+      if (message && message.type === 'system' && message.subtype === 'init') {
+        this.logger.debug('Skipping broadcast of system init message (included in API response)', {
+          streamingId,
+          sessionId: message.session_id
+        });
+        return;
+      }
+      
+      // Stream other Claude messages as normal
+      this.logger.debug('Broadcasting message to StreamManager', { 
+        streamingId, 
+        messageType: message?.type,
+        messageSubtype: message?.subtype
+      });
       this.streamManager.broadcast(streamingId, message);
     });
 

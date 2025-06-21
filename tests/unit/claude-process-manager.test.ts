@@ -96,11 +96,14 @@ describe('ClaudeProcessManager', () => {
         initialPrompt: 'test'
       };
 
-      const streamingId = await manager.startConversation(config);
+      const { streamingId, systemInit } = await manager.startConversation(config);
       
       expect(streamingId).toBeDefined();
       expect(typeof streamingId).toBe('string');
       expect(streamingId.length).toBeGreaterThan(0);
+      expect(systemInit).toBeDefined();
+      expect(systemInit.type).toBe('system');
+      expect(systemInit.subtype).toBe('init');
       
       // Session should be tracked as active
       expect(manager.getActiveSessions()).toContain(streamingId);
@@ -146,7 +149,7 @@ describe('ClaudeProcessManager', () => {
         initialPrompt: 'test'
       };
       
-      const streamingId = await manager.startConversation(config);
+      const { streamingId } = await manager.startConversation(config);
       expect(manager.isSessionActive(streamingId)).toBe(true);
       
       const result = await manager.stopConversation(streamingId);
@@ -172,7 +175,7 @@ describe('ClaudeProcessManager', () => {
         processClosedEmitted = true;
       });
 
-      const streamingId = await manager.startConversation(config);
+      const { streamingId } = await manager.startConversation(config);
       await manager.stopConversation(streamingId);
       
       // Reduced wait time
@@ -194,8 +197,8 @@ describe('ClaudeProcessManager', () => {
         initialPrompt: 'test2'
       };
 
-      const streamingId1 = await manager.startConversation(config1);
-      const streamingId2 = await manager.startConversation(config2);
+      const { streamingId: streamingId1 } = await manager.startConversation(config1);
+      const { streamingId: streamingId2 } = await manager.startConversation(config2);
       
       // Verify both sessions were created with unique IDs
       expect(streamingId1).not.toBe(streamingId2);
@@ -214,7 +217,7 @@ describe('ClaudeProcessManager', () => {
 
       expect(manager.isSessionActive('non-existent')).toBe(false);
       
-      const streamingId = await manager.startConversation(config);
+      const { streamingId } = await manager.startConversation(config);
       expect(manager.isSessionActive(streamingId)).toBe(true);
       
       await manager.stopConversation(streamingId);

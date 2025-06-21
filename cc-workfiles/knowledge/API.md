@@ -85,6 +85,14 @@ const response = await fetch('/api/conversations/start', {
 interface StartConversationResponse {
   streamingId: string;         // CCUI's internal streaming identifier
   streamUrl: string;           // Streaming endpoint to receive real-time updates
+  // System init fields from Claude CLI (available immediately after process start)
+  sessionId: string;           // Claude CLI's session ID
+  cwd: string;                 // Working directory
+  tools: string[];             // Available tools
+  mcpServers: { name: string; status: string; }[]; // MCP server list
+  model: string;               // Actual model being used
+  permissionMode: string;      // Permission handling mode
+  apiKeySource: string;        // API key source
 }
 ```
 
@@ -92,7 +100,14 @@ interface StartConversationResponse {
 ```json
 {
   "streamingId": "abc123-def456-ghi789",
-  "streamUrl": "/api/stream/abc123-def456-ghi789"
+  "streamUrl": "/api/stream/abc123-def456-ghi789",
+  "sessionId": "claude-session-xyz789",
+  "cwd": "/home/user/project",
+  "tools": ["Bash", "Read", "Write", "Edit"],
+  "mcpServers": [{"name": "filesystem", "status": "connected"}],
+  "model": "claude-3-5-sonnet-20241022",
+  "permissionMode": "auto",
+  "apiKeySource": "environment"
 }
 ```
 
@@ -124,9 +139,18 @@ const response = await fetch('/api/conversations/resume', {
 
 **Response:**
 ```typescript
-interface ResumeConversationResponse {
+// Same as StartConversationResponse
+interface StartConversationResponse {
   streamingId: string;         // CCUI's new internal streaming identifier
   streamUrl: string;           // Streaming endpoint to receive real-time updates
+  // System init fields from Claude CLI (available immediately after process start)
+  sessionId: string;           // Claude CLI's session ID (may differ from original if Claude creates a new session)
+  cwd: string;                 // Working directory (inherited from original conversation)
+  tools: string[];             // Available tools
+  mcpServers: { name: string; status: string; }[]; // MCP server list
+  model: string;               // Actual model being used (inherited from original conversation)
+  permissionMode: string;      // Permission handling mode
+  apiKeySource: string;        // API key source
 }
 ```
 
@@ -134,7 +158,14 @@ interface ResumeConversationResponse {
 ```json
 {
   "streamingId": "def456-ghi789-jkl012",
-  "streamUrl": "/api/stream/def456-ghi789-jkl012"
+  "streamUrl": "/api/stream/def456-ghi789-jkl012",
+  "sessionId": "claude-session-abc456",
+  "cwd": "/home/user/project",
+  "tools": ["Bash", "Read", "Write", "Edit"],
+  "mcpServers": [{"name": "filesystem", "status": "connected"}],
+  "model": "claude-3-5-sonnet-20241022",
+  "permissionMode": "auto",
+  "apiKeySource": "environment"
 }
 ```
 
@@ -143,6 +174,7 @@ interface ResumeConversationResponse {
 - The `streamingId` in the response is a new CCUI streaming identifier for this resumed conversation
 - Session parameters (working directory, model, etc.) are inherited from the original conversation
 - Only `sessionId` and `message` fields are allowed in the request body
+- If the session doesn't exist or Claude CLI fails to resume, the endpoint returns an immediate error with Claude's output (e.g., "No conversation found")
 
 #### `GET /api/conversations`
 
@@ -411,6 +443,8 @@ interface SystemInitMessage {
 }
 ```
 
+**Important Note:** System initialization messages are **NOT** broadcast through the streaming connection. They are included directly in the API response from `/api/conversations/start` and `/api/conversations/resume` endpoints. This allows clients to access session metadata immediately without parsing streaming messages.
+
 **Assistant Message:**
 ```typescript
 interface AssistantStreamMessage {
@@ -601,6 +635,55 @@ interface ErrorResponse {
 - `MODELS_ERROR`: Failed to get available models
 - `PROCESS_START_FAILED`: Failed to start Claude CLI process
 - `PERMISSION_REQUEST_NOT_FOUND`: Permission request doesn't exist
+- `CLAUDE_PROCESS_EXITED_EARLY`: Claude CLI process exited before sending system initialization
+- `SYSTEM_INIT_TIMEOUT`: Timeout waiting for system initialization from Claude CLI (15 seconds)
+- `INVALID_SYSTEM_INIT`: First message from Claude CLI was not a system init message
+- `INCOMPLETE_SYSTEM_INIT`: System init message missing required fields
+- `CLAUDE_NOT_FOUND`: Claude CLI executable not found in PATH
+- `PROCESS_RESUME_FAILED`: Failed to resume Claude process
+- `PROCESS_SPAWN_FAILED`: Failed to spawn Claude process
+
+### Claude CLI Process Error Handling
+
+When Claude CLI fails to start or exits unexpectedly, the backend provides immediate error feedback with context about what went wrong. This is especially useful for authentication and configuration issues.
+
+#### Fast Failure Detection
+
+The backend monitors Claude CLI processes and fails immediately when:
+- Claude CLI outputs plain text errors instead of JSON (e.g., "Invalid API key")
+- The process exits before sending a system initialization message
+- Authentication or configuration issues prevent normal operation
+
+**Example: Authentication Error**
+```json
+{
+  "error": "Claude CLI process exited before sending system initialization message. Claude CLI said: \"Invalid API key · Please run /login\". Exit code: 1",
+  "code": "CLAUDE_PROCESS_EXITED_EARLY"
+}
+```
+
+**Example: Session Not Found (Resume)**
+```json
+{
+  "error": "Claude CLI process exited before sending system initialization message. Claude CLI said: \"No conversation found with session ID: abc123\". Exit code: 1",
+  "code": "CLAUDE_PROCESS_EXITED_EARLY"
+}
+```
+
+**Example: Claude Not Installed**
+```json
+{
+  "error": "Claude CLI not found. Please ensure Claude is installed and in PATH.",
+  "code": "CLAUDE_NOT_FOUND"
+}
+```
+
+#### Benefits for Frontend Development
+
+1. **Immediate Feedback**: Errors are detected and returned immediately instead of waiting for a 15-second timeout
+2. **Clear Error Context**: The actual Claude CLI output is included in error messages
+3. **Actionable Messages**: Users can see exactly what Claude CLI said (e.g., "Please run /login")
+4. **Exit Codes**: Process exit codes are included for debugging
 
 ### Frontend Error Handling
 
@@ -614,7 +697,23 @@ try {
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(`API Error: ${error.error} (${error.code || 'unknown'})`);
+    
+    // Handle specific Claude CLI errors
+    if (error.code === 'CLAUDE_PROCESS_EXITED_EARLY') {
+      // Extract Claude's message from the error
+      const match = error.error.match(/Claude CLI said: "(.+?)"/);
+      if (match && match[1].includes('Invalid API key')) {
+        showAuthError('Claude API key is invalid. Please run "claude login" in your terminal.');
+      } else if (match && match[1].includes('No conversation found')) {
+        showSessionError('The conversation session no longer exists.');
+      } else {
+        showGeneralError(error.error);
+      }
+    } else if (error.code === 'CLAUDE_NOT_FOUND') {
+      showInstallError('Claude CLI is not installed. Please install it first.');
+    } else {
+      throw new Error(`API Error: ${error.error} (${error.code || 'unknown'})`);
+    }
   }
   
   const data = await response.json();
@@ -715,14 +814,33 @@ const startResponse = await fetch('/api/conversations/start', {
   })
 });
 
-const { streamingId, streamUrl } = await startResponse.json();
+const { 
+  streamingId, 
+  streamUrl, 
+  sessionId, 
+  cwd, 
+  tools, 
+  mcpServers, 
+  model, 
+  permissionMode, 
+  apiKeySource 
+} = await startResponse.json();
+
+// System information is now immediately available in the response
+console.log('Conversation started:', {
+  claudeSessionId: sessionId,
+  workingDirectory: cwd,
+  model: model,
+  availableTools: tools,
+  mcpServers: mcpServers
+});
 
 // 2. Connect to stream for real-time updates
 const streamResponse = await fetch(streamUrl);
 const reader = streamResponse.body.getReader();
 const decoder = new TextDecoder();
 
-// 3. Process streaming messages
+// 3. Process streaming messages (note: no system init messages in stream)
 while (true) {
   const { done, value } = await reader.read();
   if (done) break;
@@ -736,9 +854,7 @@ while (true) {
         case 'connected':
           console.log('Connected to stream');
           break;
-        case 'system':
-          console.log('Claude initialized:', message);
-          break;
+        // Note: 'system' init messages are no longer broadcast via stream
         case 'assistant':
           displayAssistantMessage(message.message);
           break;
@@ -827,14 +943,33 @@ async function resumeConversation(claudeSessionId, newMessage) {
       throw new Error(`Resume failed: ${error.error}`);
     }
     
-    const { streamingId: newStreamingId, streamUrl } = await resumeResponse.json();
+    const { 
+      streamingId: newStreamingId, 
+      streamUrl, 
+      sessionId, 
+      cwd, 
+      tools, 
+      mcpServers, 
+      model, 
+      permissionMode, 
+      apiKeySource 
+    } = await resumeResponse.json();
+    
+    // System information is immediately available in the response
+    console.log('Conversation resumed:', {
+      originalSessionId: claudeSessionId,
+      newSessionId: sessionId,  // May be same or different
+      workingDirectory: cwd,
+      model: model,
+      availableTools: tools
+    });
     
     // Connect to the new stream for the resumed conversation
     const streamResponse = await fetch(streamUrl);
     const reader = streamResponse.body.getReader();
     const decoder = new TextDecoder();
     
-    // Process streaming messages as normal
+    // Process streaming messages as normal (no system init in stream)
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -857,5 +992,5 @@ async function resumeConversation(claudeSessionId, newMessage) {
 
 ---
 
-**Last Updated:** January 19, 2025  
-**Backend Version:** Current main branch with resume conversation functionality
+**Last Updated:** January 20, 2025  
+**Backend Version:** Current main branch with resume conversation functionality and improved Claude CLI error handling

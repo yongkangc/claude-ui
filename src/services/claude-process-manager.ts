@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CCUIError } from '@/types';
+import { ConversationConfig, CCUIError, SystemInitMessage } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { JsonLinesParser } from './json-lines-parser';
@@ -28,7 +28,7 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Resume an existing Claude conversation
    */
-  async resumeConversation(config: { sessionId: string; message: string }): Promise<string> {
+  async resumeConversation(config: { sessionId: string; message: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     this.logger.debug('Resume conversation requested', { 
       sessionId: config.sessionId, 
       messageLength: config.message?.length,
@@ -62,7 +62,7 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Start a new Claude conversation
    */
-  async startConversation(config: ConversationConfig): Promise<string> {
+  async startConversation(config: ConversationConfig): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     this.logger.debug('Start conversation requested', { 
       hasInitialPrompt: !!config.initialPrompt,
       promptLength: config.initialPrompt?.length,
@@ -174,6 +174,144 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   /**
+   * Wait for the system init message from Claude CLI
+   * This should always be the first message in the stream
+   */
+  async waitForSystemInit(streamingId: string): Promise<SystemInitMessage> {
+    const sessionLogger = this.logger.child({ streamingId });
+    sessionLogger.debug('Waiting for system init message');
+
+    return new Promise<SystemInitMessage>((resolve, reject) => {
+      let isResolved = false;
+      let stderrOutput = '';
+      
+      // Cleanup function to remove all listeners
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.removeListener('claude-message', messageHandler);
+        this.removeListener('process-closed', processClosedHandler);
+        this.removeListener('process-error', processErrorHandler);
+      };
+      
+      // Set up timeout (15 seconds)
+      const timeout = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          cleanup();
+          sessionLogger.error('Timeout waiting for system init message');
+          reject(new CCUIError('SYSTEM_INIT_TIMEOUT', 'Timeout waiting for system initialization from Claude CLI', 500));
+        }
+      }, 15000);
+
+      // Listen for process exit before system init is received
+      const processClosedHandler = ({ streamingId: closedStreamingId, code }: { streamingId: string; code: number | null }) => {
+        if (closedStreamingId !== streamingId || isResolved) {
+          return; // Not our process or already resolved
+        }
+
+        isResolved = true;
+        cleanup();
+        
+        sessionLogger.error('Claude process exited before system init message', {
+          exitCode: code,
+          stderrOutput: stderrOutput || '(no stderr output)'
+        });
+
+        // Create error message with Claude CLI output if available
+        let errorMessage = 'Claude CLI process exited before sending system initialization message';
+        if (stderrOutput) {
+          // Extract Claude CLI's actual output from parser errors
+          const claudeOutputMatch = stderrOutput.match(/Invalid JSON: (.+)/);
+          if (claudeOutputMatch) {
+            errorMessage += `. Claude CLI said: "${claudeOutputMatch[1]}"`;
+          } else {
+            errorMessage += `. Error output: ${stderrOutput}`;
+          }
+        }
+        if (code !== null) {
+          errorMessage += `. Exit code: ${code}`;
+        }
+
+        reject(new CCUIError('CLAUDE_PROCESS_EXITED_EARLY', errorMessage, 500));
+      };
+
+      // Listen for process errors (including stderr output)
+      const processErrorHandler = ({ streamingId: errorStreamingId, error }: { streamingId: string; error: string }) => {
+        if (errorStreamingId !== streamingId) {
+          return; // Not our process
+        }
+
+        // Capture stderr output for error context
+        stderrOutput += error;
+        sessionLogger.debug('Captured stderr output during system init wait', {
+          errorLength: error.length,
+          totalStderrLength: stderrOutput.length
+        });
+      };
+
+      // Listen for the first claude-message event for this streamingId
+      const messageHandler = ({ streamingId: msgStreamingId, message }: { streamingId: string; message: any }) => {
+        if (msgStreamingId !== streamingId) {
+          return; // Not for our session
+        }
+
+        if (isResolved) {
+          return; // Already resolved
+        }
+
+        isResolved = true;
+        cleanup();
+
+        sessionLogger.debug('Received first message from Claude CLI', {
+          messageType: message?.type,
+          messageSubtype: message?.subtype,
+          hasSessionId: !!message?.session_id
+        });
+
+        // Validate that the first message is a system init message
+        if (!message || message.type !== 'system' || message.subtype !== 'init') {
+          sessionLogger.error('First message is not system init', {
+            actualType: message?.type,
+            actualSubtype: message?.subtype,
+            expectedType: 'system',
+            expectedSubtype: 'init'
+          });
+          reject(new CCUIError('INVALID_SYSTEM_INIT', `Expected system init message as first message, but got: ${message?.type}/${message?.subtype}`, 500));
+          return;
+        }
+
+        // Validate required fields
+        const requiredFields = ['session_id', 'cwd', 'tools', 'mcp_servers', 'model', 'permissionMode', 'apiKeySource'];
+        const missingFields = requiredFields.filter(field => message[field] === undefined);
+        
+        if (missingFields.length > 0) {
+          sessionLogger.error('System init message missing required fields', {
+            missingFields,
+            availableFields: Object.keys(message)
+          });
+          reject(new CCUIError('INCOMPLETE_SYSTEM_INIT', `System init message missing required fields: ${missingFields.join(', ')}`, 500));
+          return;
+        }
+
+        sessionLogger.info('Successfully received valid system init message', {
+          sessionId: message.session_id,
+          cwd: message.cwd,
+          model: message.model,
+          toolCount: message.tools?.length || 0,
+          mcpServerCount: message.mcp_servers?.length || 0
+        });
+
+        resolve(message as SystemInitMessage);
+      };
+
+      // Set up all event listeners
+      this.on('claude-message', messageHandler);
+      this.on('process-closed', processClosedHandler);
+      this.on('process-error', processErrorHandler);
+    });
+  }
+
+  /**
    * Execute common conversation flow for both start and resume operations
    */
   private async executeConversationFlow(
@@ -184,7 +322,7 @@ export class ClaudeProcessManager extends EventEmitter {
     spawnConfig: { executablePath: string; cwd: string; env: Record<string, any> },
     errorCode: string,
     errorPrefix: string
-  ): Promise<string> {
+  ): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     const streamingId = uuidv4(); // CCUI's internal streaming identifier
     const sessionLogger = this.logger.child({ streamingId, ...loggerContext });
     
@@ -198,6 +336,9 @@ export class ClaudeProcessManager extends EventEmitter {
         args,
         argsString: args.join(' ') 
       });
+      
+      // Set up system init promise before spawning process
+      const systemInitPromise = this.waitForSystemInit(streamingId);
       
       const process = this.spawnProcess(spawnConfig, args, sessionLogger);
       
@@ -222,13 +363,21 @@ export class ClaudeProcessManager extends EventEmitter {
         }, 100);
       });
       
-      const result = await Promise.race([spawnErrorPromise, delayPromise]);
+      await Promise.race([spawnErrorPromise, delayPromise]);
+      
+      // Now wait for the system init message
+      sessionLogger.debug('Process spawned successfully, waiting for system init message');
+      const systemInit = await systemInitPromise;
+      
       sessionLogger.info(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
-        streamingId: result,
+        streamingId,
+        sessionId: systemInit.session_id,
+        model: systemInit.model,
+        cwd: systemInit.cwd,
         processCount: this.processes.size
       });
       
-      return result;
+      return { streamingId, systemInit };
     } catch (error) {
       sessionLogger.error(`Error ${operation} conversation`, error, {
         errorName: error instanceof Error ? error.name : 'Unknown',

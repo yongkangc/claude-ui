@@ -622,7 +622,20 @@ describe('CCUIServer', () => {
       jest.spyOn((server as any).historyReader, 'fetchConversation').mockResolvedValue([]);
       jest.spyOn((server as any).historyReader, 'getConversationMetadata').mockResolvedValue(null);
       jest.spyOn((server as any).processManager, 'stopConversation').mockResolvedValue(true);
-      jest.spyOn((server as any).processManager, 'resumeConversation').mockResolvedValue('resume-streaming-id-123');
+      jest.spyOn((server as any).processManager, 'resumeConversation').mockResolvedValue({
+        streamingId: 'resume-streaming-id-123',
+        systemInit: {
+          type: 'system',
+          subtype: 'init',
+          session_id: 'claude-session-456',
+          cwd: '/test/dir',
+          tools: ['Bash', 'Read', 'Write'],
+          mcp_servers: [],
+          model: 'claude-3-5-sonnet-20241022',
+          permissionMode: 'auto',
+          apiKeySource: 'environment'
+        }
+      });
       jest.spyOn((server as any).streamManager, 'addClient').mockImplementation(() => {});
     });
 
@@ -947,7 +960,20 @@ describe('CCUIServer', () => {
 
     describe('POST /api/conversations/resume', () => {
       it('should resume conversation successfully with valid request', async () => {
-        jest.spyOn((server as any).processManager, 'resumeConversation').mockResolvedValue('resume-streaming-id-123');
+        jest.spyOn((server as any).processManager, 'resumeConversation').mockResolvedValue({
+          streamingId: 'resume-streaming-id-123',
+          systemInit: {
+            type: 'system',
+            subtype: 'init',
+            session_id: 'claude-session-456',
+            cwd: '/test/dir',
+            tools: ['Bash', 'Read', 'Write'],
+            mcp_servers: [],
+            model: 'claude-3-5-sonnet-20241022',
+            permissionMode: 'auto',
+            apiKeySource: 'environment'
+          }
+        });
 
         const response = await request(app)
           .post('/api/conversations/resume')
@@ -959,7 +985,14 @@ describe('CCUIServer', () => {
 
         expect(response.body).toEqual({
           streamingId: 'resume-streaming-id-123',
-          streamUrl: '/api/stream/resume-streaming-id-123'
+          streamUrl: '/api/stream/resume-streaming-id-123',
+          sessionId: 'claude-session-456',
+          cwd: '/test/dir',
+          tools: ['Bash', 'Read', 'Write'],
+          mcpServers: [],
+          model: 'claude-3-5-sonnet-20241022',
+          permissionMode: 'auto',
+          apiKeySource: 'environment'
         });
         expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({
           sessionId: 'test-session-123',

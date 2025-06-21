@@ -87,7 +87,7 @@ describe('ClaudeProcessManager - Long Running Process', () => {
       });
 
       // Start conversation
-      const streamingId = await manager.startConversation(config);
+      const { streamingId } = await manager.startConversation(config);
       
       expect(streamingId).toBeDefined();
       expect(typeof streamingId).toBe('string');
