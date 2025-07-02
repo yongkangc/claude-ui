@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from 'child_process';
 import { ConversationConfig, CCUIError, SystemInitMessage } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
+import { existsSync, readFileSync } from 'fs';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
@@ -18,6 +19,7 @@ export class ClaudeProcessManager extends EventEmitter {
   private logger: Logger;
   private envOverrides: Record<string, string | undefined>;
   private historyReader: ClaudeHistoryReader;
+  private mcpConfigPath?: string;
 
   constructor(historyReader: ClaudeHistoryReader, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
     super();
@@ -25,6 +27,14 @@ export class ClaudeProcessManager extends EventEmitter {
     this.claudeExecutablePath = claudeExecutablePath || 'claude';
     this.logger = createLogger('ClaudeProcessManager');
     this.envOverrides = envOverrides || {};
+  }
+
+  /**
+   * Set the MCP config path to be used for all conversations
+   */
+  setMCPConfigPath(path: string): void {
+    this.mcpConfigPath = path;
+    this.logger.debug('MCP config path set', { path });
   }
 
 
@@ -217,8 +227,17 @@ export class ClaudeProcessManager extends EventEmitter {
         if (!isResolved) {
           isResolved = true;
           cleanup();
-          sessionLogger.error('Timeout waiting for system init message');
-          reject(new CCUIError('SYSTEM_INIT_TIMEOUT', 'Timeout waiting for system initialization from Claude CLI', 500));
+          sessionLogger.error('Timeout waiting for system init message', {
+            stderrOutput: stderrOutput || '(no stderr output)'
+          });
+          
+          // Include stderr output in error message if available
+          let errorMessage = 'Timeout waiting for system initialization from Claude CLI';
+          if (stderrOutput) {
+            errorMessage += `. Error output: ${stderrOutput}`;
+          }
+          
+          reject(new CCUIError('SYSTEM_INIT_TIMEOUT', errorMessage, 500));
         }
       }, 15000);
 
@@ -430,7 +449,16 @@ export class ClaudeProcessManager extends EventEmitter {
       '--verbose' // Required when using stream-json with print mode
     );
 
-    this.logger.debug('Built Claude resume args', { args });
+    // Add MCP config if available for resume
+    if (this.mcpConfigPath) {
+      args.push('--mcp-config', this.mcpConfigPath);
+      // Add the permission prompt tool flag
+      args.push('--permission-prompt-tool', 'mcp__ccui-permissions__approval_prompt');
+      // Allow the MCP permission tool
+      args.push('--allowedTools', 'mcp__ccui-permissions__approval_prompt');
+    }
+
+    this.logger.debug('Built Claude resume args', { args, hasMCPConfig: !!this.mcpConfigPath });
     return args;
   }
 
@@ -479,7 +507,19 @@ export class ClaudeProcessManager extends EventEmitter {
       args.push('--system-prompt', config.systemPrompt);
     }
 
-    this.logger.debug('Built Claude args', { args });
+    // Add MCP config if available
+    if (this.mcpConfigPath) {
+      args.push('--mcp-config', this.mcpConfigPath);
+      // Add the permission prompt tool flag
+      args.push('--permission-prompt-tool', 'mcp__ccui-permissions__approval_prompt');
+      // Allow the MCP permission tool
+      const currentAllowedTools = config.allowedTools || [];
+      if (!currentAllowedTools.includes('mcp__ccui-permissions__approval_prompt')) {
+        args.push('--allowedTools', 'mcp__ccui-permissions__approval_prompt');
+      }
+    }
+
+    this.logger.debug('Built Claude args', { args, hasMCPConfig: !!this.mcpConfigPath });
     return args;
   }
 
@@ -492,6 +532,27 @@ export class ClaudeProcessManager extends EventEmitter {
     sessionLogger: Logger
   ): ChildProcess {
     const { executablePath, cwd, env } = spawnConfig;
+    
+    // Check if MCP config is in args and validate it
+    const mcpConfigIndex = args.indexOf('--mcp-config');
+    if (mcpConfigIndex !== -1 && mcpConfigIndex + 1 < args.length) {
+      const mcpConfigPath = args[mcpConfigIndex + 1];
+      sessionLogger.info('MCP config specified', { 
+        mcpConfigPath,
+        exists: existsSync(mcpConfigPath)
+      });
+      
+      // Try to read and log the MCP config content
+      try {
+        const mcpConfigContent = readFileSync(mcpConfigPath, 'utf-8');
+        sessionLogger.debug('MCP config content', { 
+          mcpConfig: JSON.parse(mcpConfigContent) 
+        });
+      } catch (error) {
+        sessionLogger.error('Failed to read MCP config', { error });
+      }
+    }
+    
     sessionLogger.debug('Spawning Claude process', { 
       executablePath, 
       args, 
@@ -603,13 +664,26 @@ export class ClaudeProcessManager extends EventEmitter {
     if (process.stderr) {
       sessionLogger.debug('Setting up stderr handler');
       process.stderr.setEncoding('utf8');
+      let stderrBuffer = '';
+      
       process.stderr.on('data', (data) => {
         const stderrContent = data.toString();
+        stderrBuffer += stderrContent;
+        
+        // Log full stderr content for debugging MCP issues
         sessionLogger.warn('Process stderr output', { 
           data: stderrContent,
           dataLength: stderrContent.length,
-          preview: stderrContent.substring(0, 200) + (stderrContent.length > 200 ? '...' : '')
+          fullStderr: stderrBuffer,
+          containsMCP: stderrContent.toLowerCase().includes('mcp'),
+          containsPermission: stderrContent.toLowerCase().includes('permission'),
+          containsError: stderrContent.toLowerCase().includes('error')
         });
+        
+        // Store stderr for debugging
+        const existingBuffer = this.outputBuffers.get(streamingId) || '';
+        this.outputBuffers.set(streamingId, existingBuffer + '\n[STDERR]: ' + stderrContent);
+        
         this.handleProcessError(streamingId, data);
       });
     } else {

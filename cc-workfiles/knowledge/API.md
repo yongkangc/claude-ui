@@ -24,6 +24,8 @@ Frontend (Browser) ──► CCUI Backend ──► Claude CLI Process
                     (Permission Handling)
 ```
 
+The MCP integration is automatic - CCUI generates a temporary MCP configuration file on startup and passes it to all Claude CLI processes. This enables Claude to request permissions for tool usage through a standardized protocol.
+
 ## Base URL and Configuration
 
 **Default Base URL:** `http://localhost:3001`
@@ -268,9 +270,11 @@ interface StopConversationResponse {
 
 ### Permission Management
 
+CCUI integrates with Claude's Model Context Protocol (MCP) to handle tool permission requests. When Claude attempts to use a tool, it can request permission through the MCP permission server that CCUI automatically configures.
+
 #### `GET /api/permissions`
 
-List pending permission requests.
+List permission requests that have been received from Claude via the MCP server.
 
 **Query Parameters:**
 ```typescript
@@ -298,7 +302,31 @@ interface PermissionRequest {
 }
 ```
 
-#### `POST /api/permissions/:requestId`
+**Note:** Currently, all permission requests are automatically approved. The streamingId may be 'unknown' for requests that arrive before the streaming connection is established.
+
+#### `POST /api/permissions/notify` (Internal)
+
+This endpoint is called by the MCP permission server when Claude requests permission to use a tool. It is not intended for direct frontend use.
+
+**Request Body:**
+```typescript
+interface PermissionNotifyRequest {
+  toolName: string;            // Name of the tool requesting permission
+  toolInput: any;              // Tool parameters
+}
+```
+
+**Response:**
+```typescript
+interface PermissionNotifyResponse {
+  success: boolean;            // Whether the request was recorded
+  id: string;                  // Permission request ID
+}
+```
+
+#### Future: `POST /api/permissions/:requestId`
+
+*Note: This endpoint is planned but not yet implemented. Currently all permissions are auto-approved.*
 
 Approve or deny a permission request.
 

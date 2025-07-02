@@ -316,6 +316,30 @@
         <button onclick="getConversationDetails()">Get Details</button>
         <div id="detailsResult" class="json-viewer-container"></div>
     </div>
+    
+    <!-- List Permissions -->
+    <div class="section">
+        <div class="endpoint">GET /api/permissions</div>
+        <div class="field-group">
+            <div class="inline-fields">
+                <div>
+                    <div class="field-label">Streaming ID <span class="optional">(optional)</span></div>
+                    <input type="text" id="permissionsStreamingId" placeholder="streaming-id">
+                </div>
+                <div>
+                    <div class="field-label">Status <span class="optional">(optional)</span></div>
+                    <select id="permissionsStatus">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="denied">Denied</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <button onclick="listPermissions()">List Permissions</button>
+        <div id="permissionsResult" class="json-viewer-container"></div>
+    </div>
 
     <script>
         let currentStream = null;
@@ -591,6 +615,23 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        async function listPermissions() {
+            try {
+                const params = new URLSearchParams();
+                const streamingId = document.getElementById('permissionsStreamingId').value;
+                const status = document.getElementById('permissionsStatus').value;
+                
+                if (streamingId) params.append('streamingId', streamingId);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`/api/permissions?${params}`);
+                const data = await response.json();
+                showJson('permissionsResult', data);
+            } catch (e) {
+                showJson('permissionsResult', { error: e.message });
+            }
         }
     </script>
 </body>

@@ -80,6 +80,11 @@ describe('Real Claude CLI Integration', () => {
         })
       });
       
+      if (!startResponse.ok) {
+        const errorData = await startResponse.json();
+        throw new Error(`Start conversation failed: ${JSON.stringify(errorData)}`);
+      }
+      
       expect(startResponse.ok).toBe(true);
       const startData = await startResponse.json() as { streamingId: string; streamUrl: string };
       expect(startData).toHaveProperty('streamingId');
@@ -226,6 +231,6 @@ describe('Real Claude CLI Integration', () => {
         expect(updatedConversationDetails.messages.length).toBeGreaterThanOrEqual(originalMessageCount);
         
       }
-    }, 15000);
+    }, 30000);
   });
 });

@@ -4,6 +4,8 @@ import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { ConversationStatusTracker } from './services/conversation-status-tracker';
+import { PermissionTracker } from './services/permission-tracker';
+import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -13,7 +15,8 @@ import {
   SystemStatusResponse,
   ModelsResponse,
   StreamEvent,
-  CCUIError 
+  CCUIError,
+  PermissionRequest
 } from './types';
 import { createLogger } from './services/logger';
 import type { Logger } from 'pino';
@@ -28,6 +31,8 @@ export class CCUIServer {
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
   private statusTracker: ConversationStatusTracker;
+  private permissionTracker: PermissionTracker;
+  private mcpConfigGenerator: MCPConfigGenerator;
   private logger: Logger;
   private port: number;
 
@@ -50,11 +55,14 @@ export class CCUIServer {
     this.processManager = new ClaudeProcessManager(this.historyReader);
     this.streamManager = new StreamManager();
     this.statusTracker = new ConversationStatusTracker();
+    this.permissionTracker = new PermissionTracker();
+    this.mcpConfigGenerator = new MCPConfigGenerator();
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
     this.setupRoutes();
     this.setupProcessManagerIntegration();
+    this.setupPermissionTrackerIntegration();
   }
 
   /**
@@ -63,6 +71,12 @@ export class CCUIServer {
   async start(): Promise<void> {
     this.logger.debug('Start method called');
     try {
+      // Generate MCP config before starting server
+      this.logger.debug('Generating MCP config');
+      const mcpConfigPath = this.mcpConfigGenerator.generateConfig(this.port);
+      this.processManager.setMCPConfigPath(mcpConfigPath);
+      this.logger.info('MCP config generated and set', { path: mcpConfigPath });
+
       // Start Express server
       this.logger.info(`Starting HTTP server on port ${this.port}...`);
       this.logger.debug('Creating HTTP server listener');
@@ -153,6 +167,11 @@ export class CCUIServer {
     // Disconnect all streaming clients
     this.logger.debug('Disconnecting all streaming clients');
     this.streamManager.disconnectAll();
+    
+    // Clean up MCP config
+    this.logger.debug('Cleaning up MCP config');
+    this.mcpConfigGenerator.cleanup();
+    
     this.logger.info('Graceful shutdown complete');
   }
 
@@ -241,6 +260,9 @@ export class CCUIServer {
     
     // System management routes
     this.setupSystemRoutes();
+    
+    // Permission management routes
+    this.setupPermissionRoutes();
     
     // Streaming endpoint
     this.setupStreamingRoute();
@@ -695,5 +717,97 @@ export class CCUIServer {
     } catch (error) {
       throw new CCUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
     }
+  }
+
+  private setupPermissionRoutes(): void {
+    // Notify endpoint - called by MCP server when permission is requested
+    this.app.post('/api/permissions/notify', async (req, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('Permission notification received', {
+        requestId,
+        body: req.body
+      });
+      
+      try {
+        const { toolName, toolInput } = req.body;
+        
+        if (!toolName) {
+          throw new CCUIError('MISSING_TOOL_NAME', 'toolName is required', 400);
+        }
+        
+        // Add permission request (streamingId will be determined later)
+        const request = this.permissionTracker.addPermissionRequest(toolName, toolInput);
+        
+        this.logger.debug('Permission request tracked', {
+          requestId,
+          permissionId: request.id,
+          toolName
+        });
+        
+        res.json({ success: true, id: request.id });
+      } catch (error) {
+        this.logger.debug('Permission notification failed', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        next(error);
+      }
+    });
+
+    // List permissions
+    this.app.get('/api/permissions', async (req, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('List permissions request', {
+        requestId,
+        query: req.query
+      });
+      
+      try {
+        const { streamingId, status } = req.query as { streamingId?: string; status?: 'pending' | 'approved' | 'denied' };
+        
+        const permissions = this.permissionTracker.getPermissionRequests({ streamingId, status });
+        
+        this.logger.debug('Permissions listed successfully', {
+          requestId,
+          count: permissions.length,
+          filter: { streamingId, status }
+        });
+        
+        res.json({ permissions });
+      } catch (error) {
+        this.logger.debug('List permissions failed', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        next(error);
+      }
+    });
+  }
+
+  private setupPermissionTrackerIntegration(): void {
+    this.logger.debug('Setting up PermissionTracker integration');
+    
+    // Forward permission events to stream
+    this.permissionTracker.on('permission_request', (request: PermissionRequest) => {
+      this.logger.debug('Permission request event received', {
+        id: request.id,
+        toolName: request.toolName,
+        streamingId: request.streamingId
+      });
+      
+      // Broadcast to the appropriate streaming session
+      if (request.streamingId && request.streamingId !== 'unknown') {
+        const event: StreamEvent = {
+          type: 'permission_request',
+          data: request,
+          streamingId: request.streamingId,
+          timestamp: new Date().toISOString()
+        };
+        
+        this.streamManager.broadcast(request.streamingId, event);
+      }
+    });
+    
+    this.logger.debug('PermissionTracker integration setup complete');
   }
 }

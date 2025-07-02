@@ -23,7 +23,12 @@ function parseArgs() {
     verbose: false,
     maxTurns: 7,
     prompt: '',
-    workingDir: process.cwd()
+    workingDir: process.cwd(),
+    mcpConfig: null,
+    permissionPromptTool: null,
+    allowedTools: [],
+    resume: false,
+    sessionId: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -52,9 +57,34 @@ function parseArgs() {
           config.workingDir = args[++i];
         }
         break;
+      case '--mcp-config':
+        if (i + 1 < args.length) {
+          config.mcpConfig = args[++i];
+        }
+        break;
+      case '--permission-prompt-tool':
+        if (i + 1 < args.length) {
+          config.permissionPromptTool = args[++i];
+        }
+        break;
+      case '--allowedTools':
+        if (i + 1 < args.length) {
+          config.allowedTools = args[++i].split(',');
+        }
+        break;
+      case '--resume':
+        config.resume = true;
+        if (i + 1 < args.length) {
+          config.sessionId = args[++i];
+          // The next argument after session ID is the message for resume
+          if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+            config.prompt = args[++i];
+          }
+        }
+        break;
       default:
         // If it doesn't start with -, it's probably the prompt
-        if (!arg.startsWith('-')) {
+        if (!arg.startsWith('-') && !config.resume) {
           config.prompt = arg;
         }
         break;
@@ -118,7 +148,7 @@ async function simulateClaudeResponse(config) {
       'Read', 'Edit', 'MultiEdit', 'Write', 'NotebookRead', 
       'NotebookEdit', 'WebFetch', 'TodoRead', 'TodoWrite', 'WebSearch'
     ],
-    mcp_servers: [],
+    mcp_servers: config.mcpConfig ? [{ name: 'ccui-permissions', type: 'stdio' }] : [],
     model: 'claude-opus-4-20250514',
     permissionMode: 'default',
     apiKeySource: 'none'

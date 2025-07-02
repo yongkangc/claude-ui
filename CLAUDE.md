@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code, cc in short) when wo
 
 CCUI (Claude Code Web UI) is a backend server that provides a web interface for managing Claude CLI processes. The project enables users to interact with Claude through a web browser rather than the command line, offering features like conversation management, real-time streaming, and permission handling through the Model Context Protocol (MCP).
 
+### MCP Permission System
+
+CCUI includes an integrated MCP server that handles tool permission requests from Claude CLI:
+- Automatically generates MCP configuration on server startup
+- Provides `approval_prompt` tool for Claude to request permissions
+- Tracks all permission requests through the PermissionTracker service
+- Currently auto-approves all requests (future versions will support user approval/denial)
+
 ## Development Commands
 
 ```bash
@@ -40,21 +48,26 @@ npm run lint
 The backend follows a service-oriented architecture with these key components:
 
 - **CCUIServer** (`src/ccui-server.ts`) - Main Express server that coordinates all components
-- **ClaudeProcessManager** (`src/services/claude-process-manager.ts`) - Manages Claude CLI process lifecycle
+- **ClaudeProcessManager** (`src/services/claude-process-manager.ts`) - Manages Claude CLI process lifecycle with MCP integration
 - **StreamManager** (`src/services/stream-manager.ts`) - Handles client streaming connections  
 - **ClaudeHistoryReader** (`src/services/claude-history-reader.ts`) - Reads conversation history from ~/.claude and provides working directory lookup
 - **ConversationStatusTracker** (`src/services/conversation-status-tracker.ts`) - Tracks conversation status based on active streams
 - **JsonLinesParser** (`src/services/json-lines-parser.ts`) - Parses JSONL streams from Claude CLI
+- **PermissionTracker** (`src/services/permission-tracker.ts`) - Tracks MCP permission requests from Claude
+- **MCPConfigGenerator** (`src/services/mcp-config-generator.ts`) - Generates dynamic MCP configuration files
+- **MCP Permission Server** (`src/mcp-server/index.ts`) - Standalone MCP server for handling permission requests
 
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
 
 ### Data Flow Architecture
 
 1. **Frontend** makes REST API calls to start/manage conversations
-2. **Backend** spawns Claude CLI processes independently
+2. **Backend** spawns Claude CLI processes independently with MCP configuration
 3. **Claude CLI** outputs JSONL streams that are parsed and forwarded
 4. **JsonLinesParser** transforms Claude output into structured events
 5. **StreamManager** provides real-time updates to connected web clients via HTTP streaming
+6. **MCP Server** receives permission requests from Claude and notifies backend
+7. **PermissionTracker** manages and broadcasts permission events to clients
 
 ### File Structure Conventions
 
@@ -84,8 +97,20 @@ Key types include:
 - Uses `child_process.spawn()` for real-time output streaming
 - Parse JSONL output incrementally using custom `JsonLinesParser`
 - Handle graceful shutdown with SIGTERM/SIGKILL fallback
+- Automatically includes MCP configuration for permission handling
+- Uses `--permission-prompt-tool` flag to enable MCP permission flow
+
+**MCP Integration:**
+- Dynamic MCP config generated on server startup
+- Config includes CCUI permission server with proper port
+- All conversations automatically get MCP permission tool enabled
+- Permission requests are tracked and broadcast to clients
 
 **Important:** Claude CLI in print mode (`-p`) runs once and exits. It does not accept stdin input for continuing conversations.
+
+## Memories and Notes
+
+- Check Anthropic.Message | Anthropic.MessageParam implementation at node_modules/@anthropic-ai/sdk/src/resources/messages/messages.ts when working on rendering/parsing message outputs
 
 ## Testing Architecture
 
@@ -108,7 +133,7 @@ Key types include:
 - **Service classes** in `src/services/` for core business logic
 - **Type definitions** centralized in `src/types/index.ts`
 - **CLI commands** in `src/cli/commands/` with Commander.js
-- **Path aliases** using `@/` prefix for clean imports
+- **Path aliases** use `@/` prefix for clean imports
 
 > See subdirectory CLAUDE.md files for detailed implementation patterns:
 > - `src/services/CLAUDE.md` - Service architecture and error handling
@@ -173,6 +198,7 @@ Ongoing conversations include an optional `streamingId` field in API responses f
 PORT=3001                                    # Server port
 LOG_LEVEL=info                              # Logging level (silent, debug, info, warn, error)
 CLAUDE_HOME_PATH=~/.claude                  # Claude CLI home directory
+CCUI_SERVER_PORT=3001                       # Port used by MCP server to connect back (defaults to PORT)
 ```
 
 ## Development Status
