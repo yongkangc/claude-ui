@@ -373,6 +373,122 @@ interface ModelsResponse {
 }
 ```
 
+### File System Utilities
+
+#### `GET /api/filesystem/list`
+
+List directory contents with comprehensive security checks.
+
+**Query Parameters:**
+```typescript
+interface FileSystemListQuery {
+  path: string;                // Absolute path to directory (required)
+}
+```
+
+**Example Request:**
+```javascript
+const response = await fetch('/api/filesystem/list?path=/home/user/project');
+```
+
+**Response:**
+```typescript
+interface FileSystemListResponse {
+  path: string;                // Normalized absolute path
+  entries: FileSystemEntry[];  // Array of files and directories
+  total: number;               // Total number of entries
+}
+
+interface FileSystemEntry {
+  name: string;                // File or directory name
+  type: 'file' | 'directory';  // Entry type
+  size?: number;               // File size in bytes (files only)
+  lastModified: string;        // ISO 8601 timestamp
+}
+```
+
+**Example Response:**
+```json
+{
+  "path": "/home/user/project",
+  "entries": [
+    {
+      "name": "src",
+      "type": "directory",
+      "lastModified": "2025-01-20T10:30:00.000Z"
+    },
+    {
+      "name": "package.json",
+      "type": "file",
+      "size": 1234,
+      "lastModified": "2025-01-19T15:45:00.000Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+#### `GET /api/filesystem/read`
+
+Read file contents with security validation and size limits.
+
+**Query Parameters:**
+```typescript
+interface FileSystemReadQuery {
+  path: string;                // Absolute path to file (required)
+}
+```
+
+**Example Request:**
+```javascript
+const response = await fetch('/api/filesystem/read?path=/home/user/project/package.json');
+```
+
+**Response:**
+```typescript
+interface FileSystemReadResponse {
+  path: string;                // Normalized absolute path
+  content: string;             // File contents (UTF-8)
+  size: number;                // File size in bytes
+  lastModified: string;        // ISO 8601 timestamp
+  encoding: string;            // Always "utf-8"
+}
+```
+
+**Example Response:**
+```json
+{
+  "path": "/home/user/project/package.json",
+  "content": "{\n  \"name\": \"my-project\",\n  \"version\": \"1.0.0\"\n}",
+  "size": 54,
+  "lastModified": "2025-01-19T15:45:00.000Z",
+  "encoding": "utf-8"
+}
+```
+
+**Security Features:**
+- **Path Traversal Prevention**: Rejects paths containing `..`
+- **Absolute Paths Required**: All paths must be absolute
+- **Hidden Files Blocked**: Files/directories starting with `.` are rejected
+- **Null Byte Protection**: Paths with null bytes are rejected
+- **Invalid Character Validation**: Rejects paths with `<>:|?*`
+- **File Size Limits**: Default 10MB limit (configurable)
+- **Binary File Detection**: Only UTF-8 text files are allowed
+- **Optional Base Path Restrictions**: Can be configured via FileSystemService
+
+**Error Codes:**
+- `INVALID_PATH`: Path is not absolute or contains invalid format
+- `PATH_TRAVERSAL_DETECTED`: Path contains traversal attempt (`..`)
+- `PATH_NOT_ALLOWED`: Path is outside allowed directories (when restricted)
+- `PATH_NOT_FOUND`: Directory or file does not exist
+- `NOT_A_DIRECTORY`: Path exists but is not a directory (list endpoint)
+- `NOT_A_FILE`: Path exists but is not a file (read endpoint)
+- `ACCESS_DENIED`: No read permission for the path
+- `FILE_TOO_LARGE`: File exceeds maximum size limit
+- `BINARY_FILE`: File contains binary data or invalid UTF-8
+- `LIST_DIRECTORY_FAILED`: General directory listing failure
+- `READ_FILE_FAILED`: General file reading failure
+
 ## Real-Time Streaming
 
 ### `GET /api/stream/:streamingId`
@@ -572,6 +688,36 @@ interface MCPPermissionResponse {
   behavior: 'allow' | 'deny';
   updatedInput?: any;
   message?: string;
+}
+
+// File system types
+interface FileSystemEntry {
+  name: string;
+  type: 'file' | 'directory';
+  size?: number;
+  lastModified: string;
+}
+
+interface FileSystemListQuery {
+  path: string;
+}
+
+interface FileSystemListResponse {
+  path: string;
+  entries: FileSystemEntry[];
+  total: number;
+}
+
+interface FileSystemReadQuery {
+  path: string;
+}
+
+interface FileSystemReadResponse {
+  path: string;
+  content: string;
+  size: number;
+  lastModified: string;
+  encoding: string;
 }
 ```
 
@@ -1020,5 +1166,5 @@ async function resumeConversation(claudeSessionId, newMessage) {
 
 ---
 
-**Last Updated:** January 20, 2025  
-**Backend Version:** Current main branch with resume conversation functionality and improved Claude CLI error handling
+**Last Updated:** January 2025  
+**Backend Version:** Current main branch with resume conversation functionality, improved Claude CLI error handling, and file system utility endpoints

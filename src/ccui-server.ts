@@ -6,6 +6,7 @@ import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { ConversationStatusTracker } from './services/conversation-status-tracker';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
+import { FileSystemService } from './services/file-system-service';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -16,7 +17,11 @@ import {
   ModelsResponse,
   StreamEvent,
   CCUIError,
-  PermissionRequest
+  PermissionRequest,
+  FileSystemListQuery,
+  FileSystemListResponse,
+  FileSystemReadQuery,
+  FileSystemReadResponse
 } from './types';
 import { createLogger } from './services/logger';
 import type { Logger } from 'pino';
@@ -33,6 +38,7 @@ export class CCUIServer {
   private statusTracker: ConversationStatusTracker;
   private permissionTracker: PermissionTracker;
   private mcpConfigGenerator: MCPConfigGenerator;
+  private fileSystemService: FileSystemService;
   private logger: Logger;
   private port: number;
 
@@ -57,6 +63,7 @@ export class CCUIServer {
     this.statusTracker = new ConversationStatusTracker();
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
+    this.fileSystemService = new FileSystemService();
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
@@ -263,6 +270,9 @@ export class CCUIServer {
     
     // Permission management routes
     this.setupPermissionRoutes();
+    
+    // File system routes
+    this.setupFileSystemRoutes();
     
     // Streaming endpoint
     this.setupStreamingRoute();
@@ -777,6 +787,74 @@ export class CCUIServer {
       } catch (error) {
         this.logger.debug('List permissions failed', {
           requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        next(error);
+      }
+    });
+  }
+
+  private setupFileSystemRoutes(): void {
+    // List directory contents
+    this.app.get('/api/filesystem/list', async (req: Request<{}, FileSystemListResponse, {}, FileSystemListQuery>, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('List directory request', {
+        requestId,
+        path: req.query.path
+      });
+      
+      try {
+        // Validate required parameters
+        if (!req.query.path) {
+          throw new CCUIError('MISSING_PATH', 'path query parameter is required', 400);
+        }
+        
+        const result = await this.fileSystemService.listDirectory(req.query.path);
+        
+        this.logger.debug('Directory listed successfully', {
+          requestId,
+          path: result.path,
+          entryCount: result.entries.length
+        });
+        
+        res.json(result);
+      } catch (error) {
+        this.logger.debug('List directory failed', {
+          requestId,
+          path: req.query.path,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        next(error);
+      }
+    });
+
+    // Read file contents
+    this.app.get('/api/filesystem/read', async (req: Request<{}, FileSystemReadResponse, {}, FileSystemReadQuery>, res, next) => {
+      const requestId = (req as any).requestId;
+      this.logger.debug('Read file request', {
+        requestId,
+        path: req.query.path
+      });
+      
+      try {
+        // Validate required parameters
+        if (!req.query.path) {
+          throw new CCUIError('MISSING_PATH', 'path query parameter is required', 400);
+        }
+        
+        const result = await this.fileSystemService.readFile(req.query.path);
+        
+        this.logger.debug('File read successfully', {
+          requestId,
+          path: result.path,
+          size: result.size
+        });
+        
+        res.json(result);
+      } catch (error) {
+        this.logger.debug('Read file failed', {
+          requestId,
+          path: req.query.path,
           error: error instanceof Error ? error.message : String(error)
         });
         next(error);

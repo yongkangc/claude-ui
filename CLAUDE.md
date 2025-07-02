@@ -166,6 +166,20 @@ Key types include:
 - `GET /api/system/status` - System status including Claude version and active conversations
 - `GET /health` - Health check endpoint
 
+### File System Utilities
+- `GET /api/filesystem/list?path=/absolute/path` - List directory contents with security checks
+- `GET /api/filesystem/read?path=/absolute/path/file.txt` - Read file contents (max 10MB, UTF-8 only)
+
+**Security Features:**
+- Path traversal prevention (rejects paths containing `..`)
+- Absolute paths required
+- Hidden files/directories blocked (starting with `.`)
+- Null byte protection
+- Invalid character validation
+- Optional base path restrictions via FileSystemService constructor
+- File size limits (configurable, default 10MB)
+- Binary file detection and rejection
+
 ### Resume Conversation
 
 Resume existing conversations using Claude CLI's `--resume` functionality:

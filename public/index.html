@@ -341,6 +341,28 @@
         <div id="permissionsResult" class="json-viewer-container"></div>
     </div>
 
+    <!-- List Directory -->
+    <div class="section">
+        <div class="endpoint">GET /api/filesystem/list</div>
+        <div class="field-group">
+            <div class="field-label">Path <span style="color: red;">*</span></div>
+            <input type="text" id="listPath" placeholder="/absolute/path/to/directory">
+        </div>
+        <button onclick="listDirectory()">List Directory</button>
+        <div id="listResult" class="json-viewer-container"></div>
+    </div>
+
+    <!-- Read File -->
+    <div class="section">
+        <div class="endpoint">GET /api/filesystem/read</div>
+        <div class="field-group">
+            <div class="field-label">Path <span style="color: red;">*</span></div>
+            <input type="text" id="readPath" placeholder="/absolute/path/to/file.txt">
+        </div>
+        <button onclick="readFile()">Read File</button>
+        <div id="readResult" class="json-viewer-container"></div>
+    </div>
+
     <script>
         let currentStream = null;
         let availableSessions = [];
@@ -631,6 +653,44 @@
                 showJson('permissionsResult', data);
             } catch (e) {
                 showJson('permissionsResult', { error: e.message });
+            }
+        }
+
+        async function listDirectory() {
+            try {
+                const path = document.getElementById('listPath').value;
+                if (!path) {
+                    showJson('listResult', { error: 'Path is required' });
+                    return;
+                }
+                
+                const params = new URLSearchParams();
+                params.append('path', path);
+                
+                const response = await fetch(`/api/filesystem/list?${params}`);
+                const data = await response.json();
+                showJson('listResult', data);
+            } catch (e) {
+                showJson('listResult', { error: e.message });
+            }
+        }
+
+        async function readFile() {
+            try {
+                const path = document.getElementById('readPath').value;
+                if (!path) {
+                    showJson('readResult', { error: 'Path is required' });
+                    return;
+                }
+                
+                const params = new URLSearchParams();
+                params.append('path', path);
+                
+                const response = await fetch(`/api/filesystem/read?${params}`);
+                const data = await response.json();
+                showJson('readResult', data);
+            } catch (e) {
+                showJson('readResult', { error: e.message });
             }
         }
     </script>

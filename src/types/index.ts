@@ -199,3 +199,33 @@ export class CCUIError extends Error {
     this.name = 'CCUIError';
   }
 }
+
+// File system types
+export interface FileSystemEntry {
+  name: string;
+  type: 'file' | 'directory';
+  size?: number;
+  lastModified: string;
+}
+
+export interface FileSystemListQuery {
+  path: string;
+}
+
+export interface FileSystemListResponse {
+  path: string;
+  entries: FileSystemEntry[];
+  total: number;
+}
+
+export interface FileSystemReadQuery {
+  path: string;
+}
+
+export interface FileSystemReadResponse {
+  path: string;
+  content: string;
+  size: number;
+  lastModified: string;
+  encoding: string;
+}
