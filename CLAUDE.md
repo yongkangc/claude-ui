@@ -204,6 +204,7 @@ CCUI maintains **two separate session ID systems**:
 
 - **Logging**: Always use `@/services/logger.ts` for logging. NEVER USE CONSOLE.LOG in production code
 - **API Documentation**: Update `@cc-workfiles/knowledge/API.md` after altering API endpoints
+- **Web UI**: Update `/public/index.html` when API endpoints change to keep the raw JSON interface in sync
 - **Claude CLI Streaming**: See `@cc-workfiles/knowledge/example-cc-stream-json.md` to understand raw JSONL output format
 - **Integration Testing**: See `@cc-workfiles/knowledge/cc-with-fake-home-example.txt` for Claude CLI behavior with fake home directories
 - **Claude Home Structure**: See `@cc-workfiles/knowledge/example-cc-config-folder.md` for `.claude` directory structure

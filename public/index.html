@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CCUI Raw Interface</title>
+    
+    <!-- JSON Viewer Web Component -->
+    <script src="https://unpkg.com/@alenaksu/json-viewer@2.1.0/dist/json-viewer.bundle.js"></script>
+    
+    <style>
+        body {
+            font-family: monospace;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        
+        .section {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        input, textarea, button, select {
+            font-family: monospace;
+            display: block;
+            margin: 5px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .field-group {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 3px;
+        }
+        
+        .field-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .optional {
+            color: #999;
+            font-size: 10px;
+        }
+        
+        .json-viewer-container {
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: #fafafa;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        /* Style the json-viewer web component */
+        json-viewer {
+            --background-color: #fafafa;
+            --font-family: monospace;
+            --font-size: 13px;
+            --indent-size: 2;
+            --string-color: #0b7500;
+            --property-color: #0451a5;
+            --number-color: #098658;
+            --boolean-color: #0000ff;
+            --null-color: #666;
+        }
+        
+        .stream-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 3px;
+            max-height: 400px;
+            overflow: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .stream-line {
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px dotted #333;
+        }
+        
+        button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-right: 10px;
+            display: inline-block;
+            width: auto;
+        }
+        
+        button:hover {
+            background: #555;
+        }
+        
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        
+        .endpoint {
+            font-weight: bold;
+            color: #0066cc;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .inline-fields {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .inline-fields > div {
+            flex: 1;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        h2 {
+            color: #666;
+            font-size: 16px;
+            margin-top: 0;
+        }
+        
+        .tools-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .tools-list {
+            flex: 1;
+        }
+        
+        .tools-list label {
+            display: block;
+            padding: 3px 0;
+        }
+        
+        .tools-list input[type="checkbox"] {
+            width: auto;
+            display: inline;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CCUI Raw JSON Interface</h1>
+    
+    <!-- System Status -->
+    <div class="section">
+        <div class="endpoint">GET /api/system/status</div>
+        <button onclick="getSystemStatus()">Get Status</button>
+        <div id="statusResult" class="json-viewer-container"></div>
+    </div>
+    
+    <!-- List Conversations -->
+    <div class="section">
+        <div class="endpoint">GET /api/conversations</div>
+        <div class="field-group">
+            <div class="inline-fields">
+                <div>
+                    <div class="field-label">Limit <span class="optional">(optional)</span></div>
+                    <input type="number" id="conversationsLimit" placeholder="20" value="20">
+                </div>
+                <div>
+                    <div class="field-label">Offset <span class="optional">(optional)</span></div>
+                    <input type="number" id="conversationsOffset" placeholder="0" value="0">
+                </div>
+                <div>
+                    <div class="field-label">Project Path <span class="optional">(optional)</span></div>
+                    <input type="text" id="conversationsProjectPath" placeholder="/path/to/project">
+                </div>
+            </div>
+        </div>
+        <button onclick="listConversations()">List Conversations</button>
+        <div id="conversationsResult" class="json-viewer-container"></div>
+    </div>
+    
+    <!-- Start Conversation -->
+    <div class="section">
+        <div class="endpoint">POST /api/conversations/start</div>
+        <div class="field-group">
+            <div class="field-label">Working Directory <span style="color: red;">*</span></div>
+            <input type="text" id="workingDir" placeholder="/Users/..." value="/tmp">
+        </div>
+        <div class="field-group">
+            <div class="field-label">Initial Prompt <span style="color: red;">*</span></div>
+            <textarea id="initialPrompt" rows="3" placeholder="Your prompt here...">Hello</textarea>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Model <span class="optional">(optional)</span></div>
+            <select id="model">
+                <option value="">Default</option>
+                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <div class="field-label">System Prompt <span class="optional">(optional)</span></div>
+            <textarea id="systemPrompt" rows="2" placeholder="System prompt..."></textarea>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Claude Executable Path <span class="optional">(optional)</span></div>
+            <input type="text" id="claudeExecutablePath" placeholder="/usr/local/bin/claude">
+        </div>
+        <div class="field-group">
+            <h2>Tool Configuration</h2>
+            <div class="tools-container">
+                <div class="tools-list">
+                    <div class="field-label">Allowed Tools <span class="optional">(optional)</span></div>
+                    <label><input type="checkbox" name="allowedTools" value="Read"> Read</label>
+                    <label><input type="checkbox" name="allowedTools" value="Write"> Write</label>
+                    <label><input type="checkbox" name="allowedTools" value="Edit"> Edit</label>
+                    <label><input type="checkbox" name="allowedTools" value="MultiEdit"> MultiEdit</label>
+                    <label><input type="checkbox" name="allowedTools" value="Bash"> Bash</label>
+                    <label><input type="checkbox" name="allowedTools" value="Grep"> Grep</label>
+                    <label><input type="checkbox" name="allowedTools" value="Glob"> Glob</label>
+                    <label><input type="checkbox" name="allowedTools" value="LS"> LS</label>
+                    <label><input type="checkbox" name="allowedTools" value="WebSearch"> WebSearch</label>
+                    <label><input type="checkbox" name="allowedTools" value="WebFetch"> WebFetch</label>
+                    <label><input type="checkbox" name="allowedTools" value="TodoRead"> TodoRead</label>
+                    <label><input type="checkbox" name="allowedTools" value="TodoWrite"> TodoWrite</label>
+                    <label><input type="checkbox" name="allowedTools" value="Task"> Task</label>
+                </div>
+                <div class="tools-list">
+                    <div class="field-label">Disallowed Tools <span class="optional">(optional)</span></div>
+                    <label><input type="checkbox" name="disallowedTools" value="Read"> Read</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Write"> Write</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Edit"> Edit</label>
+                    <label><input type="checkbox" name="disallowedTools" value="MultiEdit"> MultiEdit</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Bash"> Bash</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Grep"> Grep</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Glob"> Glob</label>
+                    <label><input type="checkbox" name="disallowedTools" value="LS"> LS</label>
+                    <label><input type="checkbox" name="disallowedTools" value="WebSearch"> WebSearch</label>
+                    <label><input type="checkbox" name="disallowedTools" value="WebFetch"> WebFetch</label>
+                    <label><input type="checkbox" name="disallowedTools" value="TodoRead"> TodoRead</label>
+                    <label><input type="checkbox" name="disallowedTools" value="TodoWrite"> TodoWrite</label>
+                    <label><input type="checkbox" name="disallowedTools" value="Task"> Task</label>
+                </div>
+            </div>
+        </div>
+        <button onclick="startConversation()">Start Conversation</button>
+        <div id="startResult" class="json-viewer-container"></div>
+    </div>
+    
+    <!-- Resume Conversation -->
+    <div class="section">
+        <div class="endpoint">POST /api/conversations/resume</div>
+        <div class="field-group">
+            <div class="field-label">Session ID <span style="color: red;">*</span></div>
+            <select id="sessionIdDropdown" onchange="onSessionSelect('sessionId', 'sessionIdDropdown')" style="margin-bottom: 5px;">
+                <option value="">Select a session...</option>
+            </select>
+            <input type="text" id="sessionId" placeholder="claude-session-id or select from dropdown">
+        </div>
+        <div class="field-group">
+            <div class="field-label">Message <span style="color: red;">*</span></div>
+            <input type="text" id="resumeMessage" placeholder="Continue with this message...">
+        </div>
+        <button onclick="resumeConversation()">Resume Conversation</button>
+        <div id="resumeResult" class="json-viewer-container"></div>
+    </div>
+    
+    <!-- Stream -->
+    <div class="section">
+        <div class="endpoint">GET /api/stream/:streamingId</div>
+        <div class="field-group">
+            <div class="field-label">Streaming ID <span style="color: red;">*</span></div>
+            <input type="text" id="streamingId" placeholder="streaming-id">
+        </div>
+        <button onclick="startStream()">Start Stream</button>
+        <button onclick="stopStream()">Stop Stream</button>
+        <button onclick="clearStream()">Clear</button>
+        <div id="streamResult" class="stream-container"></div>
+    </div>
+    
+    <!-- Stop Conversation -->
+    <div class="section">
+        <div class="endpoint">POST /api/conversations/:streamingId/stop</div>
+        <div class="field-group">
+            <div class="field-label">Streaming ID <span style="color: red;">*</span></div>
+            <input type="text" id="stopStreamingId" placeholder="streaming-id">
+        </div>
+        <button onclick="stopConversation()">Stop Conversation</button>
+        <div id="stopResult" class="json-viewer-container"></div>
+    </div>
+    
+    <!-- Get Conversation Details -->
+    <div class="section">
+        <div class="endpoint">GET /api/conversations/:sessionId</div>
+        <div class="field-group">
+            <div class="field-label">Session ID <span style="color: red;">*</span></div>
+            <select id="detailSessionIdDropdown" onchange="onSessionSelect('detailSessionId', 'detailSessionIdDropdown')" style="margin-bottom: 5px;">
+                <option value="">Select a session...</option>
+            </select>
+            <input type="text" id="detailSessionId" placeholder="claude-session-id or select from dropdown">
+        </div>
+        <button onclick="getConversationDetails()">Get Details</button>
+        <div id="detailsResult" class="json-viewer-container"></div>
+    </div>
+
+    <script>
+        let currentStream = null;
+        let availableSessions = [];
+
+        // Helper to create/update JSON viewer
+        function showJson(elementId, data) {
+            const container = document.getElementById(elementId);
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            // Create json-viewer element
+            const viewer = document.createElement('json-viewer');
+            viewer.data = data;
+            
+            // Expand first level by default
+            viewer.expandAll = false;
+            viewer.expand('$.*');
+            
+            container.appendChild(viewer);
+        }
+        
+        // Load available sessions on page load
+        async function loadAvailableSessions() {
+            try {
+                const response = await fetch('/api/conversations?limit=100&sortBy=updated&order=desc');
+                const data = await response.json();
+                availableSessions = data.conversations || [];
+                updateSessionDropdowns();
+            } catch (e) {
+                console.error('Failed to load sessions:', e);
+            }
+        }
+        
+        // Update all session dropdowns
+        function updateSessionDropdowns() {
+            const dropdowns = ['sessionIdDropdown', 'detailSessionIdDropdown'];
+            
+            dropdowns.forEach(dropdownId => {
+                const select = document.getElementById(dropdownId);
+                if (!select) return;
+                
+                // Clear existing options
+                select.innerHTML = '<option value="">Select a session...</option>';
+                
+                // Add sessions as options
+                availableSessions.forEach(session => {
+                    const option = document.createElement('option');
+                    option.value = session.sessionId;
+                    const summary = session.summary || 'No summary';
+                    const date = new Date(session.updatedAt).toLocaleString();
+                    option.textContent = `${session.sessionId.substring(0, 8)}... - ${summary.substring(0, 50)}... (${date})`;
+                    option.title = `${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`;
+                    select.appendChild(option);
+                });
+            });
+        }
+        
+        // Handle session dropdown changes
+        function onSessionSelect(inputId, dropdownId) {
+            const select = document.getElementById(dropdownId);
+            const input = document.getElementById(inputId);
+            if (select.value) {
+                input.value = select.value;
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAvailableSessions();
+        });
+
+        // Helper to get selected tools
+        function getSelectedTools(name) {
+            const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
+            return Array.from(checked).map(cb => cb.value);
+        }
+
+        async function getSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                showJson('statusResult', data);
+            } catch (e) {
+                showJson('statusResult', { error: e.message });
+            }
+        }
+
+        async function listConversations() {
+            try {
+                const params = new URLSearchParams();
+                const limit = document.getElementById('conversationsLimit').value;
+                const offset = document.getElementById('conversationsOffset').value;
+                const projectPath = document.getElementById('conversationsProjectPath').value;
+                
+                if (limit) params.append('limit', limit);
+                if (offset) params.append('offset', offset);
+                if (projectPath) params.append('projectPath', projectPath);
+                
+                // Always sort by newest first
+                params.append('sortBy', 'updated');
+                params.append('order', 'desc');
+                
+                const response = await fetch(`/api/conversations?${params}`);
+                const data = await response.json();
+                showJson('conversationsResult', data);
+                
+                // Update available sessions for dropdowns
+                if (data.conversations) {
+                    availableSessions = data.conversations;
+                    updateSessionDropdowns();
+                }
+            } catch (e) {
+                showJson('conversationsResult', { error: e.message });
+            }
+        }
+
+        async function startConversation() {
+            try {
+                const body = {
+                    workingDirectory: document.getElementById('workingDir').value,
+                    initialPrompt: document.getElementById('initialPrompt').value
+                };
+                
+                // Add optional fields if provided
+                const model = document.getElementById('model').value;
+                const systemPrompt = document.getElementById('systemPrompt').value;
+                const claudeExecutablePath = document.getElementById('claudeExecutablePath').value;
+                const allowedTools = getSelectedTools('allowedTools');
+                const disallowedTools = getSelectedTools('disallowedTools');
+                
+                if (model) body.model = model;
+                if (systemPrompt) body.systemPrompt = systemPrompt;
+                if (claudeExecutablePath) body.claudeExecutablePath = claudeExecutablePath;
+                if (allowedTools.length > 0) body.allowedTools = allowedTools;
+                if (disallowedTools.length > 0) body.disallowedTools = disallowedTools;
+                
+                const response = await fetch('/api/conversations/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                showJson('startResult', data);
+                
+                // Auto-fill streaming ID and start streaming
+                if (data.streamingId) {
+                    document.getElementById('streamingId').value = data.streamingId;
+                    document.getElementById('stopStreamingId').value = data.streamingId;
+                    // Auto-start streaming
+                    startStream();
+                    // Refresh session list
+                    loadAvailableSessions();
+                }
+            } catch (e) {
+                showJson('startResult', { error: e.message });
+            }
+        }
+
+        async function resumeConversation() {
+            try {
+                const response = await fetch('/api/conversations/resume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: document.getElementById('sessionId').value,
+                        message: document.getElementById('resumeMessage').value
+                    })
+                });
+                const data = await response.json();
+                showJson('resumeResult', data);
+                
+                // Auto-fill streaming ID and start streaming
+                if (data.streamingId) {
+                    document.getElementById('streamingId').value = data.streamingId;
+                    document.getElementById('stopStreamingId').value = data.streamingId;
+                    // Auto-start streaming
+                    startStream();
+                    // Refresh session list
+                    loadAvailableSessions();
+                }
+            } catch (e) {
+                showJson('resumeResult', { error: e.message });
+            }
+        }
+
+        async function startStream() {
+            const streamingId = document.getElementById('streamingId').value;
+            const result = document.getElementById('streamResult');
+            
+            if (!streamingId) {
+                result.innerHTML = '<span style="color: #ff6b6b;">Please enter a streaming ID</span>';
+                return;
+            }
+            
+            result.innerHTML = '<span style="color: #51cf66;">Connecting to stream...</span>\n\n';
+            result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            try {
+                const response = await fetch(`/api/stream/${streamingId}`);
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                currentStream = reader;
+                let buffer = '';
+                let lineCount = 0;
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        result.innerHTML += '\n<span style="color: #868e96;">[Stream ended]</span>';
+                        break;
+                    }
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            lineCount++;
+                            const lineDiv = document.createElement('div');
+                            lineDiv.className = 'stream-line';
+                            lineDiv.innerHTML = `<span style="color: #868e96;">${lineCount}:</span> ${escapeHtml(line)}`;
+                            result.appendChild(lineDiv);
+                            result.scrollTop = result.scrollHeight;
+                        }
+                    }
+                }
+            } catch (e) {
+                result.innerHTML += `\n<span style="color: #ff6b6b;">Error: ${e.message}</span>`;
+            }
+        }
+
+        function stopStream() {
+            if (currentStream) {
+                currentStream.cancel();
+                currentStream = null;
+                document.getElementById('streamResult').innerHTML += '\n<span style="color: #ffd43b;">[Stream stopped by user]</span>';
+            }
+        }
+
+        function clearStream() {
+            document.getElementById('streamResult').innerHTML = '';
+        }
+
+        async function stopConversation() {
+            try {
+                const streamingId = document.getElementById('stopStreamingId').value;
+                const response = await fetch(`/api/conversations/${streamingId}/stop`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                showJson('stopResult', data);
+            } catch (e) {
+                showJson('stopResult', { error: e.message });
+            }
+        }
+
+        async function getConversationDetails() {
+            try {
+                const sessionId = document.getElementById('detailSessionId').value;
+                const response = await fetch(`/api/conversations/${sessionId}`);
+                const data = await response.json();
+                showJson('detailsResult', data);
+            } catch (e) {
+                showJson('detailsResult', { error: e.message });
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
