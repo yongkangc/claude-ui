@@ -12,6 +12,7 @@
     "build:mcp": "chmod +x dist/mcp-server/index.js",
     "cli": "node dist/cli/index.js",
     "test": "jest",
+    "test:debug": "LOG_LEVEL=debug jest",
     "unit-tests": "jest tests/unit",
     "integration-tests": "jest tests/integration",
     "test:watch": "jest --watch",

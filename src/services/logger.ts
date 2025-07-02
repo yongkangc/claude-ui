@@ -25,7 +25,7 @@ class LoggerService {
         }
       },
       timestamp: pino.stdTimeFunctions.isoTime,
-      // Suppress logs in test environment
+      // Suppress logs in test environment unless explicitly set to debug
       enabled: process.env.NODE_ENV !== 'test' || process.env.LOG_LEVEL === 'debug'
     });
   }

@@ -33,15 +33,21 @@ describe('Real Claude CLI Integration', () => {
     (server as any).historyReader = historyReader;
     
     // Replace the ProcessManager with one that uses fake HOME
+    const claudePath = 'node_modules/.bin/claude';
+    console.log('DEBUG: Using Claude CLI at:', claudePath);
+    console.log('DEBUG: Claude CLI exists:', require('fs').existsSync(claudePath));
+    console.log('DEBUG: Temp home dir:', tempHomeDir);
+    
     (server as any).processManager = new ClaudeProcessManager(
       historyReader,
-      'node_modules/.bin/claude',
+      claudePath,
       { HOME: tempHomeDir }
     );
     
     // Re-setup the ProcessManager integration since we replaced it
     (server as any).setupProcessManagerIntegration();
     
+    // Start the server - this will generate MCP config and set it on our processManager
     await server.start();
   }, 15000);
 

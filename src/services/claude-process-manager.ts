@@ -569,6 +569,16 @@ export class ClaudeProcessManager extends EventEmitter {
         stderr: 'pipe'
       });
       
+      // Log the exact command for debugging
+      const fullCommand = `${executablePath} ${args.join(' ')}`;
+      sessionLogger.error('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
+        fullCommand,
+        executablePath,
+        args,
+        cwd,
+        env: Object.keys(env)
+      });
+      
       const claudeProcess = spawn(executablePath, args, {
         cwd,
         env,
@@ -670,9 +680,9 @@ export class ClaudeProcessManager extends EventEmitter {
         const stderrContent = data.toString();
         stderrBuffer += stderrContent;
         
-        // Log full stderr content for debugging MCP issues
-        sessionLogger.warn('Process stderr output', { 
-          data: stderrContent,
+        // ALWAYS log stderr content at error level for visibility
+        sessionLogger.error('Process stderr output received', { 
+          stderr: stderrContent,
           dataLength: stderrContent.length,
           fullStderr: stderrBuffer,
           containsMCP: stderrContent.toLowerCase().includes('mcp'),
@@ -684,7 +694,8 @@ export class ClaudeProcessManager extends EventEmitter {
         const existingBuffer = this.outputBuffers.get(streamingId) || '';
         this.outputBuffers.set(streamingId, existingBuffer + '\n[STDERR]: ' + stderrContent);
         
-        this.handleProcessError(streamingId, data);
+        // Emit stderr for error tracking
+        this.emit('process-error', { streamingId, error: stderrContent });
       });
     } else {
       sessionLogger.warn('No stderr stream available');
@@ -707,11 +718,12 @@ export class ClaudeProcessManager extends EventEmitter {
 
     // Handle process exit
     process.on('exit', (code, signal) => {
-      sessionLogger.info('Process exited', { 
+      sessionLogger.error('Process exited', { 
         exitCode: code,
         signal: signal,
         normalExit: code === 0,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        outputBuffer: this.outputBuffers.get(streamingId) || 'No output captured'
       });
       this.handleProcessClose(streamingId, code);
     });
