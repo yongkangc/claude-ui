@@ -1,5 +1,6 @@
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
+import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -184,7 +185,12 @@ export class TestHelpers {
    * Create a test process manager
    */
   static createTestProcessManager(): ClaudeProcessManager {
-    const manager = new ClaudeProcessManager();
+    // Create a mock history reader
+    const mockHistoryReader = new ClaudeHistoryReader();
+    // Mock the getConversationWorkingDirectory method to return current directory
+    jest.spyOn(mockHistoryReader, 'getConversationWorkingDirectory').mockResolvedValue(process.cwd());
+    
+    const manager = new ClaudeProcessManager(mockHistoryReader);
     
     
     return manager;

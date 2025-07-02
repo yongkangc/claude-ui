@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
+import { ClaudeHistoryReader } from './claude-history-reader';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -16,9 +17,11 @@ export class ClaudeProcessManager extends EventEmitter {
   private claudeExecutablePath: string;
   private logger: Logger;
   private envOverrides: Record<string, string | undefined>;
+  private historyReader: ClaudeHistoryReader;
 
-  constructor(claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
+  constructor(historyReader: ClaudeHistoryReader, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
     super();
+    this.historyReader = historyReader;
     this.claudeExecutablePath = claudeExecutablePath || 'claude';
     this.logger = createLogger('ClaudeProcessManager');
     this.envOverrides = envOverrides || {};
@@ -35,10 +38,26 @@ export class ClaudeProcessManager extends EventEmitter {
       claudePath: this.claudeExecutablePath 
     });
     
+    // Fetch the original conversation's working directory
+    const workingDirectory = await this.historyReader.getConversationWorkingDirectory(config.sessionId);
+    
+    if (!workingDirectory) {
+      throw new CCUIError(
+        'CONVERSATION_NOT_FOUND',
+        `Could not find working directory for session ${config.sessionId}`,
+        404
+      );
+    }
+    
+    this.logger.debug('Found working directory for resume session', {
+      sessionId: config.sessionId,
+      workingDirectory
+    });
+    
     const args = this.buildResumeArgs(config);
     const spawnConfig = {
       executablePath: this.claudeExecutablePath,
-      cwd: process.cwd(),
+      cwd: workingDirectory, // Use the original conversation's working directory
       env: { ...process.env }
     };
     

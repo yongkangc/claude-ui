@@ -1,4 +1,5 @@
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
+import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { ConversationConfig } from '@/types';
 import * as path from 'path';
 
@@ -9,6 +10,7 @@ function getMockClaudeExecutablePath(): string {
 
 describe('ClaudeProcessManager', () => {
   let manager: ClaudeProcessManager;
+  let mockHistoryReader: ClaudeHistoryReader;
 
   beforeAll(() => {
     // Mock Claude is always available as it's checked into the repository
@@ -33,7 +35,13 @@ describe('ClaudeProcessManager', () => {
 
   beforeEach(async () => {
     const mockClaudePath = getMockClaudeExecutablePath();
-    manager = new ClaudeProcessManager(mockClaudePath);
+    
+    // Create a mock history reader
+    mockHistoryReader = new ClaudeHistoryReader();
+    // Mock the getConversationWorkingDirectory method
+    jest.spyOn(mockHistoryReader, 'getConversationWorkingDirectory').mockResolvedValue(process.cwd());
+    
+    manager = new ClaudeProcessManager(mockHistoryReader, mockClaudePath);
   });
 
   afterEach(async () => {

@@ -46,9 +46,9 @@ export class CCUIServer {
     
     // Initialize services
     this.logger.debug('Initializing services');
-    this.processManager = new ClaudeProcessManager();
-    this.streamManager = new StreamManager();
     this.historyReader = new ClaudeHistoryReader();
+    this.processManager = new ClaudeProcessManager(this.historyReader);
+    this.streamManager = new StreamManager();
     this.statusTracker = new ConversationStatusTracker();
     this.logger.debug('Services initialized successfully');
     
@@ -191,6 +191,9 @@ export class CCUIServer {
   private setupMiddleware(): void {
     this.app.use(cors());
     this.app.use(express.json());
+    
+    // Serve static files from public directory
+    this.app.use(express.static('public'));
     
     // Request logging
     this.app.use((req, res, next) => {

@@ -25,17 +25,19 @@ describe('Real Claude CLI Integration', () => {
     // Create server
     server = new CCUIServer({ port: serverPort });
     
+    // Replace the HistoryReader with one that uses fake HOME first
+    const { ClaudeHistoryReader } = require('@/services/claude-history-reader');
+    const historyReader = new ClaudeHistoryReader();
+    // Override the claudeHomePath to point to fake home
+    historyReader.claudeHomePath = path.join(tempHomeDir, '.claude');
+    (server as any).historyReader = historyReader;
+    
     // Replace the ProcessManager with one that uses fake HOME
     (server as any).processManager = new ClaudeProcessManager(
+      historyReader,
       'node_modules/.bin/claude',
       { HOME: tempHomeDir }
     );
-    
-    // Replace the HistoryReader with one that uses fake HOME
-    const { ClaudeHistoryReader } = require('@/services/claude-history-reader');
-    (server as any).historyReader = new ClaudeHistoryReader();
-    // Override the claudeHomePath to point to fake home
-    (server as any).historyReader.claudeHomePath = path.join(tempHomeDir, '.claude');
     
     // Re-setup the ProcessManager integration since we replaced it
     (server as any).setupProcessManagerIntegration();

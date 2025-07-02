@@ -27,7 +27,7 @@ describe('Conversation Status Integration', () => {
     // Override the ProcessManager with one that uses mock Claude path
     const mockClaudePath = getMockClaudeExecutablePath();
     const { ClaudeProcessManager } = await import('@/services/claude-process-manager');
-    (server as any).processManager = new ClaudeProcessManager(mockClaudePath);
+    (server as any).processManager = new ClaudeProcessManager((server as any).historyReader, mockClaudePath);
     
     // Re-setup the ProcessManager integration since we replaced it
     (server as any).setupProcessManagerIntegration();
