@@ -214,14 +214,6 @@ export class ClaudeProcessManager extends EventEmitter {
       let isResolved = false;
       let stderrOutput = '';
       
-      // Cleanup function to remove all listeners
-      const cleanup = () => {
-        clearTimeout(timeout);
-        this.removeListener('claude-message', messageHandler);
-        this.removeListener('process-closed', processClosedHandler);
-        this.removeListener('process-error', processErrorHandler);
-      };
-      
       // Set up timeout (15 seconds)
       const timeout = setTimeout(() => {
         if (!isResolved) {
@@ -240,6 +232,19 @@ export class ClaudeProcessManager extends EventEmitter {
           reject(new CCUIError('SYSTEM_INIT_TIMEOUT', errorMessage, 500));
         }
       }, 15000);
+      
+      // Cleanup function to remove all listeners
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.removeListener('claude-message', messageHandler);
+        this.removeListener('process-closed', processClosedHandler);
+        this.removeListener('process-error', processErrorHandler);
+      };
+      
+      // Register timeout for cleanup on process termination
+      const existingTimeouts = this.timeouts.get(streamingId) || [];
+      existingTimeouts.push(timeout);
+      this.timeouts.set(streamingId, existingTimeouts);
 
       // Listen for process exit before system init is received
       const processClosedHandler = ({ streamingId: closedStreamingId, code }: { streamingId: string; code: number | null }) => {
@@ -422,6 +427,16 @@ export class ClaudeProcessManager extends EventEmitter {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorCode: error instanceof CCUIError ? error.code : undefined
       });
+      
+      // Clean up any resources if process fails
+      const timeouts = this.timeouts.get(streamingId);
+      if (timeouts) {
+        timeouts.forEach(timeout => clearTimeout(timeout));
+        this.timeouts.delete(streamingId);
+      }
+      this.processes.delete(streamingId);
+      this.outputBuffers.delete(streamingId);
+      
       if (error instanceof CCUIError) {
         throw error;
       }
@@ -752,6 +767,13 @@ export class ClaudeProcessManager extends EventEmitter {
       hadOutputBuffer: hadBuffer,
       remainingProcesses: this.processes.size - (hadProcess ? 1 : 0)
     });
+    
+    // Clear any pending timeouts for this session
+    const timeouts = this.timeouts.get(streamingId);
+    if (timeouts) {
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      this.timeouts.delete(streamingId);
+    }
     
     this.processes.delete(streamingId);
     this.outputBuffers.delete(streamingId);

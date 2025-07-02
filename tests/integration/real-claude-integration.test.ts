@@ -34,9 +34,6 @@ describe('Real Claude CLI Integration', () => {
     
     // Replace the ProcessManager with one that uses fake HOME
     const claudePath = 'node_modules/.bin/claude';
-    console.log('DEBUG: Using Claude CLI at:', claudePath);
-    console.log('DEBUG: Claude CLI exists:', require('fs').existsSync(claudePath));
-    console.log('DEBUG: Temp home dir:', tempHomeDir);
     
     (server as any).processManager = new ClaudeProcessManager(
       historyReader,
@@ -54,8 +51,8 @@ describe('Real Claude CLI Integration', () => {
   afterAll(async () => {
     if (server) {
       await server.stop();
-      // Small delay to ensure port is fully released
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Longer delay to ensure all async operations complete and port is fully released
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // Clean up temporary directory
@@ -145,6 +142,7 @@ describe('Real Claude CLI Integration', () => {
         eventSource.onerror = (error: any) => {
           if (!streamClosed) {
             clearTimeout(timeout);
+            eventSource.close();
             reject(error);
           }
         };

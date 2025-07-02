@@ -111,6 +111,7 @@ Key types include:
 ## Memories and Notes
 
 - Check Anthropic.Message | Anthropic.MessageParam implementation at node_modules/@anthropic-ai/sdk/src/resources/messages/messages.ts when working on rendering/parsing message outputs
+- Use test:debug for trouble shooting
 
 ## Testing Architecture
 
