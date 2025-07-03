@@ -388,12 +388,24 @@ List directory contents with comprehensive security checks.
 ```typescript
 interface FileSystemListQuery {
   path: string;                // Absolute path to directory (required)
+  recursive?: boolean;         // Include subdirectories recursively (optional, default: false)
+  respectGitignore?: boolean;  // Filter out gitignored files (optional, default: false)
 }
 ```
 
-**Example Request:**
+**Example Requests:**
 ```javascript
+// Basic listing
 const response = await fetch('/api/filesystem/list?path=/home/user/project');
+
+// Recursive listing
+const response = await fetch('/api/filesystem/list?path=/home/user/project&recursive=true');
+
+// Respect gitignore patterns
+const response = await fetch('/api/filesystem/list?path=/home/user/project&respectGitignore=true');
+
+// Both recursive and gitignore
+const response = await fetch('/api/filesystem/list?path=/home/user/project&recursive=true&respectGitignore=true');
 ```
 
 **Response:**
@@ -405,14 +417,14 @@ interface FileSystemListResponse {
 }
 
 interface FileSystemEntry {
-  name: string;                // File or directory name
+  name: string;                // File or directory name (relative path for recursive)
   type: 'file' | 'directory';  // Entry type
   size?: number;               // File size in bytes (files only)
   lastModified: string;        // ISO 8601 timestamp
 }
 ```
 
-**Example Response:**
+**Example Response (Non-recursive):**
 ```json
 {
   "path": "/home/user/project",
@@ -430,6 +442,44 @@ interface FileSystemEntry {
     }
   ],
   "total": 2
+}
+```
+
+**Example Response (Recursive):**
+```json
+{
+  "path": "/home/user/project",
+  "entries": [
+    {
+      "name": "src",
+      "type": "directory",
+      "lastModified": "2025-01-20T10:30:00.000Z"
+    },
+    {
+      "name": "src/index.ts",
+      "type": "file",
+      "size": 567,
+      "lastModified": "2025-01-20T11:00:00.000Z"
+    },
+    {
+      "name": "src/components",
+      "type": "directory",
+      "lastModified": "2025-01-20T10:45:00.000Z"
+    },
+    {
+      "name": "src/components/Button.tsx",
+      "type": "file",
+      "size": 890,
+      "lastModified": "2025-01-20T10:45:00.000Z"
+    },
+    {
+      "name": "package.json",
+      "type": "file",
+      "size": 1234,
+      "lastModified": "2025-01-19T15:45:00.000Z"
+    }
+  ],
+  "total": 5
 }
 ```
 
@@ -480,6 +530,12 @@ interface FileSystemReadResponse {
 - **File Size Limits**: Default 10MB limit (configurable)
 - **Binary File Detection**: Only UTF-8 text files are allowed
 - **Optional Base Path Restrictions**: Can be configured via FileSystemService
+
+**Gitignore Behavior:**
+- When `respectGitignore=true`, the endpoint reads `.gitignore` files in the requested directory
+- Patterns from `.gitignore` are applied to filter out matching files and directories
+- The `.git` directory is always excluded when gitignore is enabled
+- Works with both flat and recursive listings
 
 **Error Codes:**
 - `INVALID_PATH`: Path is not absolute or contains invalid format

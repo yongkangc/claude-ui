@@ -6,13 +6,17 @@ Backend server for the Claude Code Web UI (CCUI) project.
 
 This backend provides a REST API and WebSocket streaming interface to interact with Claude CLI processes. It enables web-based management of Claude conversations, permission handling, and real-time streaming of Claude responses.
 
+The project now includes a modern React-based web interface with TUI-inspired design for interacting with Claude through a browser.
+
 ## Architecture
 
 - **Express.js** server with TypeScript
+- **React** frontend integrated with vite-express
 - **Claude Process Management** - Spawns and manages Claude CLI processes
 - **Streaming Communication** - Real-time updates via newline-delimited JSON streams
 - **MCP Integration** - Model Context Protocol for permission handling
 - **History Management** - Reads Claude conversation history from local files
+- **Single-port architecture** - Frontend and backend served on the same port
 
 ## Key Components
 
@@ -47,6 +51,41 @@ This backend provides a REST API and WebSocket streaming interface to interact w
 ```bash
 npm install
 ```
+
+## Web UI
+
+The project includes an integrated React-based web interface with TUI-inspired design.
+
+### Features
+- Real-time conversation streaming
+- Conversation history and management
+- Mobile-responsive TUI-inspired design
+- JSON syntax highlighting for message content
+- Single-port architecture using vite-express
+
+### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server (port 3001)
+npm run dev
+```
+
+Access the UI at `http://localhost:3001` - both backend API and frontend are served on the same port.
+
+### Production
+
+```bash
+# Build everything (web UI + backend)
+npm run build
+
+# Run in production mode
+NODE_ENV=production npm start
+```
+
+The server automatically serves the optimized web UI at `http://localhost:3001`.
 
 ## Development
 

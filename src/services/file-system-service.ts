@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import ignore from 'ignore';
 import { CCUIError, FileSystemEntry } from '@/types';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
@@ -25,8 +26,12 @@ export class FileSystemService {
   /**
    * List directory contents with security checks
    */
-  async listDirectory(requestedPath: string): Promise<{ path: string; entries: FileSystemEntry[]; total: number }> {
-    this.logger.debug('List directory requested', { requestedPath });
+  async listDirectory(
+    requestedPath: string, 
+    recursive: boolean = false,
+    respectGitignore: boolean = false
+  ): Promise<{ path: string; entries: FileSystemEntry[]; total: number }> {
+    this.logger.debug('List directory requested', { requestedPath, recursive, respectGitignore });
     
     try {
       // Validate and normalize path
@@ -38,23 +43,16 @@ export class FileSystemService {
         throw new CCUIError('NOT_A_DIRECTORY', `Path is not a directory: ${requestedPath}`, 400);
       }
       
-      // Read directory contents
-      const dirents = await fs.readdir(safePath, { withFileTypes: true });
+      // Initialize gitignore if requested
+      let ig: ReturnType<typeof ignore> | null = null;
+      if (respectGitignore) {
+        ig = await this.loadGitignore(safePath);
+      }
       
-      // Convert to FileSystemEntry format
-      const entries: FileSystemEntry[] = await Promise.all(
-        dirents.map(async (dirent) => {
-          const fullPath = path.join(safePath, dirent.name);
-          const stats = await fs.stat(fullPath);
-          
-          return {
-            name: dirent.name,
-            type: dirent.isDirectory() ? 'directory' : 'file',
-            size: dirent.isFile() ? stats.size : undefined,
-            lastModified: stats.mtime.toISOString()
-          } as FileSystemEntry;
-        })
-      );
+      // Get entries
+      const entries: FileSystemEntry[] = recursive
+        ? await this.listDirectoryRecursive(safePath, safePath, ig)
+        : await this.listDirectoryFlat(safePath, ig);
       
       // Sort entries: directories first, then by name
       entries.sort((a, b) => {
@@ -66,7 +64,9 @@ export class FileSystemService {
       
       this.logger.debug('Directory listed successfully', { 
         path: safePath, 
-        entryCount: entries.length 
+        entryCount: entries.length,
+        recursive,
+        respectGitignore
       });
       
       return {
@@ -253,5 +253,102 @@ export class FileSystemService {
     }
     
     return true;
+  }
+
+  /**
+   * List directory contents without recursion
+   */
+  private async listDirectoryFlat(
+    dirPath: string,
+    ig: ReturnType<typeof ignore> | null
+  ): Promise<FileSystemEntry[]> {
+    const dirents = await fs.readdir(dirPath, { withFileTypes: true });
+    const entries: FileSystemEntry[] = [];
+    
+    for (const dirent of dirents) {
+      const fullPath = path.join(dirPath, dirent.name);
+      
+      // Check gitignore if enabled
+      if (ig && ig.ignores(dirent.name)) {
+        continue;
+      }
+      
+      const stats = await fs.stat(fullPath);
+      entries.push({
+        name: dirent.name,
+        type: dirent.isDirectory() ? 'directory' : 'file',
+        size: dirent.isFile() ? stats.size : undefined,
+        lastModified: stats.mtime.toISOString()
+      });
+    }
+    
+    return entries;
+  }
+
+  /**
+   * List directory contents recursively
+   */
+  private async listDirectoryRecursive(
+    dirPath: string,
+    basePath: string,
+    ig: ReturnType<typeof ignore> | null
+  ): Promise<FileSystemEntry[]> {
+    const entries: FileSystemEntry[] = [];
+    
+    async function traverse(currentPath: string): Promise<void> {
+      const dirents = await fs.readdir(currentPath, { withFileTypes: true });
+      
+      for (const dirent of dirents) {
+        const fullPath = path.join(currentPath, dirent.name);
+        const relativePath = path.relative(basePath, fullPath);
+        
+        // Check gitignore if enabled
+        if (ig && ig.ignores(relativePath)) {
+          continue;
+        }
+        
+        const stats = await fs.stat(fullPath);
+        entries.push({
+          name: relativePath,
+          type: dirent.isDirectory() ? 'directory' : 'file',
+          size: dirent.isFile() ? stats.size : undefined,
+          lastModified: stats.mtime.toISOString()
+        });
+        
+        // Recurse into subdirectories
+        if (dirent.isDirectory()) {
+          await traverse(fullPath);
+        }
+      }
+    }
+    
+    await traverse(dirPath);
+    return entries;
+  }
+
+  /**
+   * Load gitignore patterns from a directory and its parents
+   */
+  private async loadGitignore(dirPath: string): Promise<ReturnType<typeof ignore>> {
+    const ig = ignore();
+    
+    // Load .gitignore from the directory
+    try {
+      const gitignorePath = path.join(dirPath, '.gitignore');
+      const content = await fs.readFile(gitignorePath, 'utf-8');
+      ig.add(content);
+      this.logger.debug('Loaded .gitignore', { path: gitignorePath });
+    } catch (error) {
+      // .gitignore doesn't exist or can't be read - that's fine
+      const errorCode = (error as any).code;
+      if (errorCode !== 'ENOENT') {
+        this.logger.debug('Error reading .gitignore', { error, path: dirPath });
+      }
+    }
+    
+    // Always ignore .git directory
+    ig.add('.git');
+    
+    return ig;
   }
 }

@@ -175,3 +175,25 @@ h2 {
     font-size: 16px;
     margin-top: 0;
 }
+
+.json-viewer-wrapper {
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    background: #666;
+    z-index: 10;
+}
+
+.copy-btn:hover {
+    background: #555;
+}
+
+.copy-btn.copied {
+    background: #4caf50;
+}

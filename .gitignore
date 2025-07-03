@@ -6,6 +6,9 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# Exclude React build output from backend
+public/dist/
+public/node_modules/
 
 # Environment variables
 .env

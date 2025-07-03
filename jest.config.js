@@ -6,7 +6,8 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/index.ts'
+    '!src/index.ts',
+    '!src/web/**/*'
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

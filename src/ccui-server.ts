@@ -26,6 +26,12 @@ import {
 import { createLogger } from './services/logger';
 import type { Logger } from 'pino';
 
+// Conditionally import ViteExpress only in non-test environments
+let ViteExpress: any;
+if (process.env.NODE_ENV !== 'test') {
+  ViteExpress = require('vite-express');
+}
+
 /**
  * Main CCUI server class
  */
@@ -85,26 +91,45 @@ export class CCUIServer {
       this.logger.info('MCP config generated and set', { path: mcpConfigPath });
 
       // Start Express server
-      this.logger.info(`Starting HTTP server on port ${this.port}...`);
-      this.logger.debug('Creating HTTP server listener');
+      const isTestEnv = process.env.NODE_ENV === 'test';
+      this.logger.info(`Starting HTTP server${!isTestEnv ? ' with Vite' : ''} on port ${this.port}...`);
+      this.logger.debug('Creating HTTP server listener', { 
+        useViteExpress: !isTestEnv,
+        environment: process.env.NODE_ENV 
+      });
+      
       await new Promise<void>((resolve, reject) => {
-        this.server = this.app.listen(this.port, () => {
-          this.logger.info(`CCUI backend server running on port ${this.port}`);
-          this.logger.debug('Server successfully bound to port', {
-            port: this.port,
-            address: this.server?.address()
+        // Use ViteExpress in non-test environments, regular Express in tests
+        if (!isTestEnv && ViteExpress) {
+          this.server = ViteExpress.listen(this.app, this.port, () => {
+            this.logger.info(`CCUI server with Vite running on port ${this.port}`);
+            this.logger.debug('Server successfully bound to port', {
+              port: this.port,
+              address: this.server?.address()
+            });
+            resolve();
           });
-          resolve();
-        });
+        } else {
+          this.server = this.app.listen(this.port, () => {
+            this.logger.info(`CCUI server running on port ${this.port}`);
+            this.logger.debug('Server successfully bound to port', {
+              port: this.port,
+              address: this.server?.address()
+            });
+            resolve();
+          });
+        }
 
-        this.server.on('error', (error: Error) => {
-          this.logger.error('Failed to start HTTP server:', error, {
-            errorCode: (error as any).code,
-            errorSyscall: (error as any).syscall,
-            port: this.port
+        if (this.server) {
+          this.server.on('error', (error: Error) => {
+            this.logger.error('Failed to start HTTP server:', error, {
+              errorCode: (error as any).code,
+              errorSyscall: (error as any).syscall,
+              port: this.port
+            });
+            reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
           });
-          reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
-        });
+        }
       });
       this.logger.debug('Server start successful');
     } catch (error) {
@@ -218,8 +243,11 @@ export class CCUIServer {
     this.app.use(cors());
     this.app.use(express.json());
     
-    // Serve static files from public directory
-    this.app.use(express.static('public'));
+    // In test environment, serve static files normally
+    // In production/dev, ViteExpress handles static file serving
+    if (process.env.NODE_ENV === 'test') {
+      this.app.use(express.static('public'));
+    }
     
     // Request logging
     this.app.use((req, res, next) => {
@@ -276,6 +304,8 @@ export class CCUIServer {
     
     // Streaming endpoint
     this.setupStreamingRoute();
+    
+    // ViteExpress handles React app routing automatically
     
     // Error handling - MUST be last
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -806,11 +836,13 @@ export class CCUIServer {
 
   private setupFileSystemRoutes(): void {
     // List directory contents
-    this.app.get('/api/filesystem/list', async (req: Request<{}, FileSystemListResponse, {}, FileSystemListQuery>, res, next) => {
+    this.app.get('/api/filesystem/list', async (req: Request<{}, FileSystemListResponse, {}, any>, res, next) => {
       const requestId = (req as any).requestId;
       this.logger.debug('List directory request', {
         requestId,
-        path: req.query.path
+        path: req.query.path,
+        recursive: req.query.recursive,
+        respectGitignore: req.query.respectGitignore
       });
       
       try {
@@ -819,7 +851,11 @@ export class CCUIServer {
           throw new CCUIError('MISSING_PATH', 'path query parameter is required', 400);
         }
         
-        const result = await this.fileSystemService.listDirectory(req.query.path);
+        const result = await this.fileSystemService.listDirectory(
+          req.query.path as string,
+          req.query.recursive === 'true',
+          req.query.respectGitignore === 'true'
+        );
         
         this.logger.debug('Directory listed successfully', {
           requestId,

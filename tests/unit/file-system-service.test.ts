@@ -1,5 +1,8 @@
 import { FileSystemService } from '@/services/file-system-service';
 import { CCUIError } from '@/types';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as os from 'os';
 
 describe('FileSystemService', () => {
   let service: FileSystemService;
@@ -72,6 +75,110 @@ describe('FileSystemService', () => {
       await expect(restrictedService.listDirectory('/home/user/documents')).rejects.toThrow(
         new CCUIError('PATH_NOT_FOUND', 'Path not found: /home/user/documents', 404)
       );
+    });
+  });
+
+  describe('Recursive directory listing', () => {
+    let testDir: string;
+
+    beforeEach(async () => {
+      // Create a temporary test directory structure
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-'));
+      
+      // Create test structure
+      await fs.mkdir(path.join(testDir, 'src'));
+      await fs.mkdir(path.join(testDir, 'src', 'components'));
+      await fs.writeFile(path.join(testDir, 'README.md'), 'Test readme');
+      await fs.writeFile(path.join(testDir, 'src', 'index.ts'), 'export {};');
+      await fs.writeFile(path.join(testDir, 'src', 'components', 'Button.tsx'), 'export {};');
+    });
+
+    afterEach(async () => {
+      // Clean up test directory
+      await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    it('should list directory non-recursively by default', async () => {
+      const result = await service.listDirectory(testDir);
+      
+      expect(result.entries).toHaveLength(2);
+      expect(result.entries.map(e => e.name)).toEqual(expect.arrayContaining(['src', 'README.md']));
+      expect(result.entries.find(e => e.name === 'src')?.type).toBe('directory');
+      expect(result.entries.find(e => e.name === 'README.md')?.type).toBe('file');
+    });
+
+    it('should list directory recursively when requested', async () => {
+      const result = await service.listDirectory(testDir, true);
+      
+      expect(result.entries).toHaveLength(5);
+      expect(result.entries.map(e => e.name)).toEqual(expect.arrayContaining([
+        'README.md',
+        'src',
+        path.join('src', 'components'),
+        path.join('src', 'index.ts'),
+        path.join('src', 'components', 'Button.tsx')
+      ]));
+    });
+  });
+
+  describe('Gitignore support', () => {
+    let testDir: string;
+
+    beforeEach(async () => {
+      // Create a temporary test directory structure
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-'));
+      
+      // Create test structure
+      await fs.mkdir(path.join(testDir, 'src'));
+      await fs.mkdir(path.join(testDir, 'node_modules'));
+      await fs.mkdir(path.join(testDir, 'dist'));
+      await fs.writeFile(path.join(testDir, '.gitignore'), 'node_modules\ndist\n*.log');
+      await fs.writeFile(path.join(testDir, 'README.md'), 'Test readme');
+      await fs.writeFile(path.join(testDir, 'app.log'), 'Log file');
+      await fs.writeFile(path.join(testDir, 'src', 'index.ts'), 'export {};');
+      await fs.writeFile(path.join(testDir, 'node_modules', 'package.json'), '{}');
+      await fs.writeFile(path.join(testDir, 'dist', 'index.js'), 'module.exports = {};');
+    });
+
+    afterEach(async () => {
+      // Clean up test directory
+      await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    it('should respect gitignore patterns when requested', async () => {
+      const result = await service.listDirectory(testDir, false, true);
+      
+      const names = result.entries.map(e => e.name);
+      expect(names).toContain('src');
+      expect(names).toContain('README.md');
+      expect(names).not.toContain('node_modules');
+      expect(names).not.toContain('dist');
+      expect(names).not.toContain('app.log');
+    });
+
+    it('should include ignored files when gitignore is not respected', async () => {
+      const result = await service.listDirectory(testDir, false, false);
+      
+      const names = result.entries.map(e => e.name);
+      expect(names).toContain('src');
+      expect(names).toContain('README.md');
+      expect(names).toContain('node_modules');
+      expect(names).toContain('dist');
+      expect(names).toContain('app.log');
+    });
+
+    it('should respect gitignore with recursive listing', async () => {
+      const result = await service.listDirectory(testDir, true, true);
+      
+      const names = result.entries.map(e => e.name);
+      expect(names).toContain('src');
+      expect(names).toContain('README.md');
+      expect(names).toContain(path.join('src', 'index.ts'));
+      expect(names).not.toContain('node_modules');
+      expect(names).not.toContain('dist');
+      expect(names).not.toContain('app.log');
+      expect(names).not.toContain(path.join('node_modules', 'package.json'));
+      expect(names).not.toContain(path.join('dist', 'index.js'));
     });
   });
 });

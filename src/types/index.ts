@@ -210,6 +210,8 @@ export interface FileSystemEntry {
 
 export interface FileSystemListQuery {
   path: string;
+  recursive?: boolean;
+  respectGitignore?: boolean;
 }
 
 export interface FileSystemListResponse {
