@@ -32,20 +32,32 @@ describe('Real Claude CLI Integration', () => {
     historyReader.claudeHomePath = path.join(tempHomeDir, '.claude');
     (server as any).historyReader = historyReader;
     
+    // Store the original process manager to get MCP config path after server starts
+    const originalProcessManager = (server as any).processManager;
+    
     // Replace the ProcessManager with one that uses fake HOME
     const claudePath = 'node_modules/.bin/claude';
     
-    (server as any).processManager = new ClaudeProcessManager(
+    const newProcessManager = new ClaudeProcessManager(
       historyReader,
       claudePath,
       { HOME: tempHomeDir }
     );
+    
+    (server as any).processManager = newProcessManager;
     
     // Re-setup the ProcessManager integration since we replaced it
     (server as any).setupProcessManagerIntegration();
     
     // Start the server - this will generate MCP config and set it on our processManager
     await server.start();
+    
+    // Transfer the MCP config path from the original process manager
+    // The server.start() creates MCP config but sets it on the original process manager
+    const mcpConfigPath = originalProcessManager.mcpConfigPath;
+    if (mcpConfigPath) {
+      newProcessManager.setMCPConfigPath(mcpConfigPath);
+    }
   }, 15000);
 
   afterAll(async () => {
