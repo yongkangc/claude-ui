@@ -8,6 +8,9 @@ import { logger } from '@/services/logger';
 // Get CCUI server URL from environment
 const CCUI_SERVER_URL = process.env.CCUI_SERVER_URL || `http://localhost:${process.env.CCUI_SERVER_PORT || '3001'}`;
 
+// Get CCUI streaming ID from environment (passed by ClaudeProcessManager)
+const CCUI_STREAMING_ID = process.env.CCUI_STREAMING_ID;
+
 // Create MCP server
 const server = new Server({
   name: 'ccui-permissions',
@@ -50,7 +53,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     // Log the permission request
-    logger.debug('MCP Permission request received', { tool_name, input });
+    logger.debug('MCP Permission request received', { tool_name, input, streamingId: CCUI_STREAMING_ID });
 
     // Send the permission request to CCUI server
     const response = await fetch(`${CCUI_SERVER_URL}/api/permissions/notify`, {
@@ -61,6 +64,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       body: JSON.stringify({
         toolName: tool_name,
         toolInput: input,
+        streamingId: CCUI_STREAMING_ID || 'unknown', // Include the streaming ID from environment
       }),
     });
 

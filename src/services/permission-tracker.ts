@@ -108,4 +108,31 @@ export class PermissionTracker extends EventEmitter {
   size(): number {
     return this.permissionRequests.size;
   }
+
+  /**
+   * Remove all permissions for a specific streaming ID
+   * Used for cleanup when a conversation ends
+   */
+  removePermissionsByStreamingId(streamingId: string): number {
+    const toRemove: string[] = [];
+    
+    // Find all permissions with this streamingId
+    for (const [id, request] of this.permissionRequests.entries()) {
+      if (request.streamingId === streamingId) {
+        toRemove.push(id);
+      }
+    }
+    
+    // Remove them
+    toRemove.forEach(id => this.permissionRequests.delete(id));
+    
+    if (toRemove.length > 0) {
+      logger.info('Removed permissions for streaming session', { 
+        streamingId, 
+        removedCount: toRemove.length 
+      });
+    }
+    
+    return toRemove.length;
+  }
 }

@@ -279,7 +279,7 @@ List permission requests that have been received from Claude via the MCP server.
 **Query Parameters:**
 ```typescript
 interface PermissionListQuery {
-  streamingId?: string;        // Filter by CCUI streaming ID
+  streamingId?: string;        // Filter by CCUI streaming ID (optional)
   status?: 'pending' | 'approved' | 'denied';  // Filter by status
 }
 ```
@@ -302,7 +302,11 @@ interface PermissionRequest {
 }
 ```
 
-**Note:** Currently, all permission requests are automatically approved. The streamingId may be 'unknown' for requests that arrive before the streaming connection is established.
+**Notes:**
+- Currently, all permission requests are automatically approved
+- The streamingId field is properly associated with each permission request via environment variables passed to the MCP server
+- Permission requests are automatically cleaned up when a conversation ends
+- You can retrieve all permissions without filtering, or filter by specific streamingId or status
 
 #### `POST /api/permissions/notify` (Internal)
 
@@ -313,6 +317,7 @@ This endpoint is called by the MCP permission server when Claude requests permis
 interface PermissionNotifyRequest {
   toolName: string;            // Name of the tool requesting permission
   toolInput: any;              // Tool parameters
+  streamingId?: string;        // CCUI streaming ID (automatically provided by MCP server)
 }
 ```
 
@@ -1167,4 +1172,4 @@ async function resumeConversation(claudeSessionId, newMessage) {
 ---
 
 **Last Updated:** January 2025  
-**Backend Version:** Current main branch with resume conversation functionality, improved Claude CLI error handling, and file system utility endpoints
+**Backend Version:** Current main branch with resume conversation functionality, improved Claude CLI error handling, file system utility endpoints, and enhanced permission tracking with proper streaming ID association

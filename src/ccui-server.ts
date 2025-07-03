@@ -655,6 +655,15 @@ export class CCUIServer {
       this.logger.debug('Unregistering session from status tracker', { streamingId });
       this.statusTracker.unregisterActiveSession(streamingId);
       
+      // Clean up permissions for this streaming session
+      const removedCount = this.permissionTracker.removePermissionsByStreamingId(streamingId);
+      if (removedCount > 0) {
+        this.logger.debug('Cleaned up permissions for closed session', { 
+          streamingId, 
+          removedPermissions: removedCount 
+        });
+      }
+      
       this.streamManager.closeSession(streamingId);
     });
 
@@ -739,19 +748,20 @@ export class CCUIServer {
       });
       
       try {
-        const { toolName, toolInput } = req.body;
+        const { toolName, toolInput, streamingId } = req.body;
         
         if (!toolName) {
           throw new CCUIError('MISSING_TOOL_NAME', 'toolName is required', 400);
         }
         
-        // Add permission request (streamingId will be determined later)
-        const request = this.permissionTracker.addPermissionRequest(toolName, toolInput);
+        // Add permission request with the provided streamingId
+        const request = this.permissionTracker.addPermissionRequest(toolName, toolInput, streamingId);
         
         this.logger.debug('Permission request tracked', {
           requestId,
           permissionId: request.id,
-          toolName
+          toolName,
+          streamingId: request.streamingId
         });
         
         res.json({ success: true, id: request.id });

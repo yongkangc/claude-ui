@@ -383,7 +383,17 @@ export class ClaudeProcessManager extends EventEmitter {
       // Set up system init promise before spawning process
       const systemInitPromise = this.waitForSystemInit(streamingId);
       
-      const process = this.spawnProcess(spawnConfig, args, sessionLogger);
+      // Add streamingId to environment for MCP server to use
+      const envWithStreamingId = {
+        ...spawnConfig.env,
+        CCUI_STREAMING_ID: streamingId
+      };
+      
+      const process = this.spawnProcess(
+        { ...spawnConfig, env: envWithStreamingId }, 
+        args, 
+        sessionLogger
+      );
       
       this.processes.set(streamingId, process);
       this.setupProcessHandlers(streamingId, process);

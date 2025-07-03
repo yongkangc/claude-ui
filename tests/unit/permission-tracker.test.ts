@@ -201,4 +201,58 @@ describe('PermissionTracker', () => {
       expect(tracker.size()).toBe(2);
     });
   });
+
+  describe('removePermissionsByStreamingId', () => {
+    beforeEach(() => {
+      // Add requests for different streaming IDs
+      tracker.addPermissionRequest('Bash', { command: 'ls' }, 'stream-1');
+      tracker.addPermissionRequest('Read', { file_path: '/tmp/a.txt' }, 'stream-2');
+      tracker.addPermissionRequest('Write', { file_path: '/tmp/b.txt' }, 'stream-1');
+      tracker.addPermissionRequest('Edit', { file_path: '/tmp/c.txt' }, 'stream-3');
+    });
+
+    it('should remove all permissions for a specific streaming ID', () => {
+      expect(tracker.size()).toBe(4);
+
+      const removedCount = tracker.removePermissionsByStreamingId('stream-1');
+
+      expect(removedCount).toBe(2);
+      expect(tracker.size()).toBe(2);
+
+      // Verify that only stream-1 permissions were removed
+      const remaining = tracker.getAllPermissionRequests();
+      expect(remaining).toHaveLength(2);
+      expect(remaining[0].streamingId).toBe('stream-2');
+      expect(remaining[1].streamingId).toBe('stream-3');
+    });
+
+    it('should return 0 when no permissions match the streaming ID', () => {
+      const removedCount = tracker.removePermissionsByStreamingId('non-existent-stream');
+
+      expect(removedCount).toBe(0);
+      expect(tracker.size()).toBe(4);
+    });
+
+    it('should handle removing permissions from empty tracker', () => {
+      tracker.clear();
+
+      const removedCount = tracker.removePermissionsByStreamingId('stream-1');
+
+      expect(removedCount).toBe(0);
+      expect(tracker.size()).toBe(0);
+    });
+
+    it('should remove all permissions when all have same streaming ID', () => {
+      tracker.clear();
+      tracker.addPermissionRequest('Bash', { command: 'ls' }, 'stream-x');
+      tracker.addPermissionRequest('Read', { file_path: '/tmp/test.txt' }, 'stream-x');
+      tracker.addPermissionRequest('Write', { file_path: '/tmp/out.txt' }, 'stream-x');
+
+      const removedCount = tracker.removePermissionsByStreamingId('stream-x');
+
+      expect(removedCount).toBe(3);
+      expect(tracker.size()).toBe(0);
+      expect(tracker.getAllPermissionRequests()).toEqual([]);
+    });
+  });
 });
