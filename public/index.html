@@ -103,20 +103,20 @@
                         <div class="inline-fields">
                             <div>
                                 <div class="field-label">Limit <span class="optional">(optional)</span></div>
-                                <input type="number" id="conversationsLimit" placeholder="20" value="20">
+                                <input type="number" id="sidebarConversationsLimit" placeholder="20" value="20">
                             </div>
                             <div>
                                 <div class="field-label">Offset <span class="optional">(optional)</span></div>
-                                <input type="number" id="conversationsOffset" placeholder="0" value="0">
+                                <input type="number" id="sidebarConversationsOffset" placeholder="0" value="0">
                             </div>
                             <div>
                                 <div class="field-label">Project Path <span class="optional">(optional)</span></div>
-                                <input type="text" id="conversationsProjectPath" placeholder="/path/to/project">
+                                <input type="text" id="sidebarConversationsProjectPath" placeholder="/path/to/project">
                             </div>
                         </div>
                     </div>
-                    <button onclick="listConversations()">List Conversations</button>
-                    <div id="conversationsResult" class="json-viewer-container"></div>
+                    <button onclick="listConversationsSidebar()">List Conversations</button>
+                    <div id="sidebarConversationsResult" class="json-viewer-container"></div>
                 </div>
             </div>
             

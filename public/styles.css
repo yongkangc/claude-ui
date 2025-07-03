@@ -52,14 +52,11 @@ body {
 }
 
 .collapsible-content {
-    transition: max-height 0.2s ease-out;
     overflow: hidden;
 }
 
 .collapsed + .collapsible-content {
-    max-height: 0 !important;
-    padding-top: 0;
-    padding-bottom: 0;
+    display: none;
 }
 
 input, textarea, button, select {

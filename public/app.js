@@ -4,6 +4,10 @@ let availableSessions = [];
 // Helper to create/update JSON viewer
 function showJson(elementId, data) {
     const container = document.getElementById(elementId);
+    if (!container) {
+        console.error(`Container with id '${elementId}' not found!`);
+        return;
+    }
     
     // Clear existing content
     container.innerHTML = '';
@@ -27,7 +31,7 @@ async function loadAvailableSessions() {
         availableSessions = data.conversations || [];
         updateSessionDropdowns();
     } catch (e) {
-        console.error('Failed to load sessions:', e);
+        // Silently fail - sessions may not be available yet
     }
 }
 
@@ -67,14 +71,6 @@ function onSessionSelect(inputId, dropdownId) {
 // Toggle collapse function
 function toggleCollapse(element) {
     element.classList.toggle('collapsed');
-    const content = element.nextElementSibling;
-    if (content) {
-        if (element.classList.contains('collapsed')) {
-            content.style.maxHeight = '0';
-        } else {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }
-    }
 }
 
 async function getSystemStatus() {
@@ -113,6 +109,35 @@ async function listConversations() {
         }
     } catch (e) {
         showJson('conversationsResult', { error: e.message });
+    }
+}
+
+async function listConversationsSidebar() {
+    try {
+        const params = new URLSearchParams();
+        const limit = document.getElementById('sidebarConversationsLimit').value;
+        const offset = document.getElementById('sidebarConversationsOffset').value;
+        const projectPath = document.getElementById('sidebarConversationsProjectPath').value;
+        
+        if (limit) params.append('limit', limit);
+        if (offset) params.append('offset', offset);
+        if (projectPath) params.append('projectPath', projectPath);
+        
+        // Always sort by newest first
+        params.append('sortBy', 'updated');
+        params.append('order', 'desc');
+        
+        const response = await fetch(`/api/conversations?${params}`);
+        const data = await response.json();
+        showJson('sidebarConversationsResult', data);
+        
+        // Update available sessions for dropdowns
+        if (data.conversations) {
+            availableSessions = data.conversations;
+            updateSessionDropdowns();
+        }
+    } catch (e) {
+        showJson('sidebarConversationsResult', { error: e.message });
     }
 }
 
@@ -326,17 +351,7 @@ async function readFile() {
     }
 }
 
-// Initialize collapsible sections to proper max-height
+// Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
     loadAvailableSessions();
-    
-    const collapsibles = document.querySelectorAll('.collapsible-content');
-    collapsibles.forEach(content => {
-        const isCollapsed = content.previousElementSibling.classList.contains('collapsed');
-        if (isCollapsed) {
-            content.style.maxHeight = '0';
-        } else {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }
-    });
 });
