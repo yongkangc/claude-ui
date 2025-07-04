@@ -146,7 +146,7 @@ Key types include:
 
 - Check Anthropic.Message | Anthropic.MessageParam implementation at node_modules/@anthropic-ai/sdk/src/resources/messages/messages.ts when working on rendering/parsing message outputs
 - Use test:debug for trouble shooting
-- The @cc-worktrees/ is used for isolated working tree with git worktree. Create worktree there and cd into it when instructed to use worktree to implement feature
+- The cc-worktrees/ is used for isolated working tree with git worktree. Create worktree there and cd into it when instructed to use worktree to implement feature
 - If mcp are missing in real claude test/usage, it might be that we need to build and build:mcp to chmod mcp endpoiints
 
 ## Testing Architecture
