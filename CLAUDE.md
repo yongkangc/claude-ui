@@ -14,14 +14,42 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 - Tracks all permission requests through the PermissionTracker service
 - Currently auto-approves all requests (future versions will support user approval/denial)
 
+## Recent Major Features
+
+### React-based Web UI with Vite Integration
+- Modern React + TypeScript frontend replacing vanilla JavaScript
+- Vite development server integration for hot module replacement
+- Real-time conversation streaming with proper content block rendering
+- File system navigation with security boundaries
+- Comprehensive error handling and status tracking
+
+### Enhanced File System API
+- Secure file system access with multiple security layers
+- Path traversal prevention and validation
+- Support for listing directories and reading files
+- Binary file detection and size limits
+- Optional base path restrictions for sandboxing
+
+### MCP Permission System Integration
+- Automatic MCP configuration generation on server startup
+- Permission request tracking and broadcasting
+- Integration with Claude CLI's `--permission-prompt-tool` flag
+- Real-time permission event streaming to clients
+
 ## Development Commands
 
 ```bash
 # Development server with hot reloading (uses tsx)
 npm run dev
 
+# Development server with Vite for React UI
+npm run dev:vite
+
 # Build TypeScript to JavaScript with path alias resolution
 npm run build
+
+# Build React frontend for production
+npm run build:web
 
 # Run the CLI after building
 npm run cli
@@ -37,6 +65,9 @@ npm run integration-tests
 
 # Lint TypeScript files
 npm run lint
+
+# Type check TypeScript files
+npm run typecheck
 ```
 
 > For CLI commands and testing details, see `src/cli/CLAUDE.md` and `tests/CLAUDE.md`
@@ -56,6 +87,7 @@ The backend follows a service-oriented architecture with these key components:
 - **PermissionTracker** (`src/services/permission-tracker.ts`) - Tracks MCP permission requests from Claude
 - **MCPConfigGenerator** (`src/services/mcp-config-generator.ts`) - Generates dynamic MCP configuration files
 - **MCP Permission Server** (`src/mcp-server/index.ts`) - Standalone MCP server for handling permission requests
+- **FileSystemService** (`src/services/file-system-service.ts`) - Secure file system access with validation and sandboxing
 
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
 
@@ -134,7 +166,9 @@ Key types include:
 - **Service classes** in `src/services/` for core business logic
 - **Type definitions** centralized in `src/types/index.ts`
 - **CLI commands** in `src/cli/commands/` with Commander.js
+- **React components** in `src/web/` for the web UI
 - **Path aliases** use `@/` prefix for clean imports
+- **TypeScript configs** separated by concern (base, node, web)
 
 > See subdirectory CLAUDE.md files for detailed implementation patterns:
 > - `src/services/CLAUDE.md` - Service architecture and error handling
@@ -227,8 +261,12 @@ This is a **fully functional implementation** with:
 - ✅ Error handling and graceful shutdown
 - ✅ Structured logging and monitoring
 - ✅ TypeScript type safety throughout
+- ✅ React-based web UI with Vite integration
+- ✅ Secure file system API with validation
+- ✅ MCP permission system integration
+- ✅ Real-time permission tracking and broadcasting
 
-The backend is production-ready and provides a robust foundation for web-based Claude CLI interaction.
+The project provides a production-ready foundation for web-based Claude CLI interaction with a modern, responsive UI.
 
 ## Session ID Architecture
 
@@ -245,8 +283,10 @@ CCUI maintains **two separate session ID systems**:
 
 - **Logging**: Always use `@/services/logger.ts` for logging. NEVER USE CONSOLE.LOG in production code
 - **API Documentation**: Update `@cc-workfiles/knowledge/API.md` after altering API endpoints
-- **Web UI**: Update `/public/index.html` when API endpoints change to keep the raw JSON interface in sync
+- **Web UI**: React app in `src/web/` with Vite for development. Use `npm run dev:vite` for HMR
+- **TypeScript Configs**: Separate configs for different environments (tsconfig.base.json, tsconfig.node.json, tsconfig.web.json)
 - **Claude CLI Streaming**: See `@cc-workfiles/knowledge/example-cc-stream-json.md` to understand raw JSONL output format
 - **Integration Testing**: See `@cc-workfiles/knowledge/cc-with-fake-home-example.txt` for Claude CLI behavior with fake home directories
 - **Claude Home Structure**: See `@cc-workfiles/knowledge/example-cc-config-folder.md` for `.claude` directory structure
 - **Process Independence**: Each conversation runs as a separate Claude CLI child process
+- **Vite Integration**: Server conditionally loads ViteExpress in non-test environments to avoid Jest compatibility issues
