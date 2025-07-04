@@ -6,6 +6,11 @@ export default defineConfig({
   root: 'src/web',
   plugins: [react()],
   publicDir: false,
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
   build: {
     outDir: '../../dist/web',
     emptyOutDir: true,

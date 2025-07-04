@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import LogWindow from './LogWindow';
 import './styles/console.css';
 
 declare global {
@@ -43,6 +44,7 @@ function ConsoleApp() {
   const [listRecursive, setListRecursive] = useState(false);
   const [listRespectGitignore, setListRespectGitignore] = useState(false);
   const [readPath, setReadPath] = useState('');
+  const [logWindowVisible, setLogWindowVisible] = useState(false);
 
   // Result states
   const [results, setResults] = useState<Record<string, any>>({});
@@ -589,8 +591,9 @@ function ConsoleApp() {
       
       {/* Main Content Area */}
       <div className="main">
-        {/* Get Conversation Details */}
-        <div className="section">
+        <div className="main-content">
+          {/* Get Conversation Details */}
+          <div className="section">
           <div className="endpoint">GET /api/conversations/:sessionId</div>
           <div className="field-group">
             <div className="field-label">Session ID <span style={{ color: 'red' }}>*</span></div>
@@ -629,6 +632,11 @@ function ConsoleApp() {
             {streamResult}
           </div>
         </div>
+        </div>
+        <LogWindow 
+          isVisible={logWindowVisible}
+          onToggle={() => setLogWindowVisible(!logWindowVisible)}
+        />
       </div>
     </div>
   );

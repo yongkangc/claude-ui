@@ -22,6 +22,7 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 - Real-time conversation streaming with proper content block rendering
 - File system navigation with security boundaries
 - Comprehensive error handling and status tracking
+- Real-time log viewer with filtering and JSONL parsing
 
 ### Enhanced File System API
 - Secure file system access with multiple security layers

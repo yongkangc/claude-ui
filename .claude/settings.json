@@ -58,7 +58,23 @@
       "Bash(NODE_ENV=test LOG_LEVEL=debug npm run integration-tests -- --verbose --testNamePattern=\"should handle complete streaming lifecycle\")",
       "Bash(LOG_LEVEL=debug npm run integration-tests -- --verbose --no-coverage --testNamePattern=\"should handle complete streaming lifecycle\" 2>&1)",
       "Bash(pkill:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(./run-resume-test.sh:*)",
+      "Bash(npx tsx:*)",
+      "Bash(LOG_LEVEL=debug npm run integration-tests -- --testNamePattern=\"should retrieve session ID\")",
+      "Bash(LOG_LEVEL=debug npm test -- tests/integration/resume-session-integration.test.ts --timeout 40000)",
+      "Bash(LOG_LEVEL=debug npm test -- tests/integration/resume-session-integration.test.ts --testTimeout=40000)",
+      "Bash(LOG_LEVEL=debug npm run integration-tests -- --testNamePattern=\"should handle real Claude CLI with API error\" --verbose)",
+      "Bash(LOG_LEVEL=debug npm run integration-tests -- --testNamePattern=\"should handle real Claude CLI with API error\")",
+      "Bash(LOG_LEVEL=debug npm test -- tests/integration/real-claude-integration.test.ts --testNamePattern=\"should handle real Claude CLI\")",
+      "Bash(LOG_LEVEL=debug node_modules/.bin/jest tests/integration/real-claude-integration.test.ts --testNamePattern=\"should handle real Claude CLI\")",
+      "Bash(LOG_LEVEL=debug node_modules/.bin/jest --setupFilesAfterEnv tests/setup-debug.ts tests/setup.ts -- tests/integration/real-claude-integration.test.ts --testNamePattern=\"should handle real Claude CLI\")",
+      "Bash(tmux new-session:*)",
+      "Bash(npx eslint:*)",
+      "Bash(true)",
+      "Bash(kill:*)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": []
   }

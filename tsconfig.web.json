@@ -7,7 +7,7 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/web/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src/web/**/*", "src/web/vite-env.d.ts", "vite.config.ts"],

@@ -5,9 +5,14 @@ import ChatApp from './chat/ChatApp';
 
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
-        <Route path="/" element={<ChatApp />} />
+        <Route path="/*" element={<ChatApp />} />
         <Route path="/console" element={<ConsoleApp />} />
       </Routes>
     </Router>

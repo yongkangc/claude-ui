@@ -7,6 +7,7 @@ import { ConversationStatusTracker } from './services/conversation-status-tracke
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
+import { logStreamBuffer } from './services/log-stream-buffer';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -301,6 +302,9 @@ export class CCUIServer {
     
     // File system routes
     this.setupFileSystemRoutes();
+    
+    // Log routes
+    this.setupLogRoutes();
     
     // Streaming endpoint
     this.setupStreamingRoute();
@@ -905,6 +909,75 @@ export class CCUIServer {
         });
         next(error);
       }
+    });
+  }
+
+  private setupLogRoutes(): void {
+    // Get recent logs
+    this.app.get('/api/logs/recent', (req, res) => {
+      const requestId = (req as any).requestId;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      this.logger.debug('Get recent logs request', {
+        requestId,
+        limit
+      });
+      
+      try {
+        const logs = logStreamBuffer.getRecentLogs(limit);
+        res.json({ logs });
+      } catch (error) {
+        this.logger.error('Failed to get recent logs', error, { requestId });
+        res.status(500).json({ error: 'Failed to retrieve logs' });
+      }
+    });
+    
+    // Stream logs via SSE
+    this.app.get('/api/logs/stream', (req, res) => {
+      const requestId = (req as any).requestId;
+      
+      this.logger.debug('Log stream connection request', {
+        requestId,
+        headers: {
+          'accept': req.headers.accept,
+          'user-agent': req.headers['user-agent']
+        }
+      });
+      
+      // Set SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no' // Disable proxy buffering
+      });
+      
+      // Send initial connection confirmation
+      res.write(':ok\n\n');
+      
+      // Create log listener
+      const logListener = (logLine: string) => {
+        res.write(`data: ${logLine}\n\n`);
+      };
+      
+      // Subscribe to log events
+      logStreamBuffer.on('log', logListener);
+      
+      // Handle client disconnect
+      req.on('close', () => {
+        this.logger.debug('Log stream connection closed', { requestId });
+        logStreamBuffer.removeListener('log', logListener);
+      });
+      
+      // Send heartbeat every 30 seconds to keep connection alive
+      const heartbeat = setInterval(() => {
+        res.write(':heartbeat\n\n');
+      }, 30000);
+      
+      // Clean up heartbeat on disconnect
+      req.on('close', () => {
+        clearInterval(heartbeat);
+      });
     });
   }
 

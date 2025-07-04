@@ -1,0 +1,255 @@
+/* Container */
+.container {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--color-bg-primary);
+}
+
+.messageList {
+  padding: var(--spacing-md);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-muted);
+}
+
+/* Loading state */
+.loadingMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.loadingSpinner {
+  display: flex;
+  gap: 4px;
+}
+
+.loadingSpinner span {
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loadingSpinner span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loadingSpinner span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Message */
+.message {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  animation: slideInFromBottom var(--transition-normal);
+}
+
+.message + .message {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.messageIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.message.user .messageIcon {
+  color: var(--color-info);
+}
+
+.message.assistant .messageIcon {
+  color: var(--color-success);
+}
+
+.message.error .messageIcon {
+  color: var(--color-error);
+}
+
+.messageContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.messageType {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.messageTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Content styles */
+.textContent {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.errorContent {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm);
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.blocksContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.textBlock {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Tool blocks */
+.toolBlock {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toolHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.toggleButton:hover {
+  color: var(--color-text-primary);
+}
+
+.toolName {
+  flex: 1;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.copyButton:hover {
+  color: var(--color-text-primary);
+}
+
+.toolContent {
+  padding: var(--spacing-sm);
+}
+
+/* Thinking blocks */
+.thinkingBlock {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.thinkingHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thinkingLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.thinkingContent {
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* JSON blocks */
+.jsonBlock {
+  margin-top: var(--spacing-xs);
+}
+
+/* Streaming indicator */
+.streamingIndicator {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: var(--spacing-xs);
+}
+
+.streamingIndicator span {
+  width: 3px;
+  height: 3px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+
+.streamingIndicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.streamingIndicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}

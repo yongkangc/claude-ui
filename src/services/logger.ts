@@ -1,4 +1,5 @@
 import pino, { Logger } from 'pino';
+import { PassThrough } from 'stream';
 
 export interface LogContext {
   component?: string;
@@ -17,6 +18,25 @@ class LoggerService {
   private baseLogger: Logger;
 
   private constructor() {
+    // Create a pass-through stream to intercept logs
+    const logInterceptStream = new PassThrough();
+    
+    // Forward logs to the log buffer (lazy loaded to avoid circular dependency)
+    logInterceptStream.on('data', (chunk) => {
+      const logLine = chunk.toString().trim();
+      if (logLine) {
+        // Lazy load to avoid circular dependency
+        const { logStreamBuffer } = require('@/services/log-stream-buffer');
+        logStreamBuffer.addLog(logLine);
+      }
+    });
+    
+    // Create multi-stream configuration
+    const streams = [
+      { stream: process.stdout },  // Original stdout
+      { stream: logInterceptStream }  // Log buffer stream
+    ];
+    
     this.baseLogger = pino({
       level: process.env.LOG_LEVEL || 'info',
       formatters: {
@@ -27,7 +47,7 @@ class LoggerService {
       timestamp: pino.stdTimeFunctions.isoTime,
       // Suppress logs in test environment unless explicitly set to debug
       enabled: process.env.NODE_ENV !== 'test' || process.env.LOG_LEVEL === 'debug'
-    });
+    }, pino.multistream(streams));
   }
 
   /**
