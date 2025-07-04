@@ -123,10 +123,15 @@ export function useStreaming(
 
   useEffect(() => {
     if (streamingId) {
+      console.log('[useStreaming] Effect triggered - connecting to stream:', streamingId);
       connect();
+    } else {
+      console.log('[useStreaming] Effect triggered - no streamingId, disconnecting');
+      disconnect();
     }
 
     return () => {
+      console.log('[useStreaming] Cleanup - disconnecting from stream:', streamingId);
       disconnect();
     };
   }, [streamingId]); // Only depend on streamingId, not the callbacks

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
@@ -17,6 +17,14 @@ export function NewConversation() {
   );
   const [showWorkingDirInput, setShowWorkingDirInput] = useState(true);
   const navigate = useNavigate();
+
+  // Clear messages when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear messages on cleanup
+      setMessages([]);
+    };
+  }, []);
 
   // Handle streaming messages
   const handleStreamMessage = useCallback((event: StreamEvent) => {
@@ -69,15 +77,24 @@ export function NewConversation() {
         break;
 
       case 'result':
-        // Mark streaming as complete
-        setMessages(prev => 
-          prev.map(m => ({ ...m, isStreaming: false }))
-        );
+        // Mark streaming as complete and navigate with current messages
+        setMessages(prev => {
+          const updatedMessages = prev.map(m => ({ ...m, isStreaming: false }));
+          
+          // Navigate to the session page with current messages and streamingId
+          if (event.session_id) {
+            navigate(`/c/${event.session_id}`, { 
+              state: { 
+                messages: updatedMessages,
+                fromNewConversation: true,
+                streamingId: streamingId 
+              } 
+            });
+          }
+          
+          return updatedMessages;
+        });
         setStreamingId(null);
-        // Navigate to the session page
-        if (event.session_id) {
-          navigate(`/c/${event.session_id}`);
-        }
         break;
 
       case 'error':
@@ -90,7 +107,7 @@ export function NewConversation() {
         setStreamingId(null);
         break;
     }
-  }, []);
+  }, [navigate]);
 
   const { isConnected } = useStreaming(streamingId, {
     onMessage: handleStreamMessage,
