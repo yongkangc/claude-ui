@@ -9,7 +9,19 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message }: MessageItemProps) {
-  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
+  // Initialize expanded blocks based on message type
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    // Auto-expand all blocks for assistant messages
+    if (message.type === 'assistant' && Array.isArray(message.content)) {
+      message.content.forEach((block: any, index: number) => {
+        if (block.type === 'tool_use' || block.type === 'thinking') {
+          initial.add(`${message.id}-${index}`);
+        }
+      });
+    }
+    return initial;
+  });
   const [copiedBlocks, setCopiedBlocks] = useState<Set<string>>(new Set());
 
   const toggleBlock = (blockId: string) => {
@@ -133,7 +145,7 @@ export function MessageItem({ message }: MessageItemProps) {
             // Default: render as JSON
             return (
               <div key={blockId} className={styles.jsonBlock}>
-                <JsonViewer data={block} />
+                <JsonViewer data={block} collapsed={message.type === 'user'} />
               </div>
             );
           })}
@@ -144,7 +156,7 @@ export function MessageItem({ message }: MessageItemProps) {
     // Fallback: render as JSON
     return (
       <div className={styles.jsonBlock}>
-        <JsonViewer data={message.content} />
+        <JsonViewer data={message.content} collapsed={message.type === 'user'} />
       </div>
     );
   };

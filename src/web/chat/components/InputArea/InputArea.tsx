@@ -78,10 +78,6 @@ export function InputArea({ onSubmit, isLoading = false, placeholder = "Type a m
           )}
         </div>
       </div>
-      
-      <div className={styles.hint}>
-        Press <kbd>Enter</kbd> to send, <kbd>Shift + Enter</kbd> for new line
-      </div>
     </form>
   );
 }

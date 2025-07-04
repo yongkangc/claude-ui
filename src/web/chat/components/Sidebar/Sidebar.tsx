@@ -29,12 +29,10 @@ export function Sidebar() {
   useEffect(() => {
     loadConversations();
     
-    // Refresh conversations every 10 seconds if there are ongoing conversations
+    // Refresh conversations every 5 seconds
     const interval = setInterval(() => {
-      if (conversations.some(c => c.status === 'ongoing')) {
-        loadConversations();
-      }
-    }, 10000);
+      loadConversations();
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);

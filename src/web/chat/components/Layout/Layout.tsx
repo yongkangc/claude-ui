@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
 import styles from './Layout.module.css';
 
@@ -11,7 +12,9 @@ interface LayoutProps {
 export function Layout({ sidebar, children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
   const theme = useTheme();
+  const location = useLocation();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -24,10 +27,78 @@ export function Layout({ sidebar, children }: LayoutProps) {
   }, []);
 
   useEffect(() => {
+    // Handle visual viewport changes on iOS Safari
+    const updateViewportHeight = () => {
+      // Use visualViewport API if available (Safari 13+)
+      if (window.visualViewport) {
+        const vh = window.visualViewport.height;
+        setViewportHeight(vh);
+        // Update CSS custom property for use in styles
+        document.documentElement.style.setProperty('--actual-vh', `${vh}px`);
+      } else {
+        // Fallback for older browsers
+        const vh = window.innerHeight;
+        setViewportHeight(vh);
+        document.documentElement.style.setProperty('--actual-vh', `${vh}px`);
+      }
+    };
+
+    // Initial update
+    updateViewportHeight();
+
+    // Listen for viewport changes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    }
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+
+    // Force update after a slight delay to handle Safari's initial load
+    const timeoutId = setTimeout(updateViewportHeight, 100);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
+      }
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
     // Close sidebar when switching from mobile to desktop
     if (!isMobile && sidebarOpen) {
       setSidebarOpen(false);
     }
+  }, [isMobile, sidebarOpen]);
+
+  useEffect(() => {
+    // Close sidebar on mobile when navigating to a new route
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Prevent body scrolling when sidebar is open on mobile
+    if (isMobile && sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
   }, [isMobile, sidebarOpen]);
 
   return (

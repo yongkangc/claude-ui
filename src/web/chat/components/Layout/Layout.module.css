@@ -2,14 +2,21 @@
   display: flex;
   width: 100%;
   height: 100vh;
+  height: -webkit-fill-available;
+  height: 100dvh;
+  /* Use actual viewport height from JavaScript if available */
+  height: var(--actual-vh, 100vh);
   overflow: hidden;
   background-color: var(--color-bg-primary);
+  /* Ensure container respects safe areas */
+  position: relative;
 }
 
 /* Header (mobile only) */
 .header {
   position: fixed;
   top: 0;
+  top: var(--safe-area-inset-top);
   left: 0;
   right: 0;
   height: var(--header-height);
@@ -19,6 +26,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--spacing-md);
+  padding-left: max(var(--spacing-md), var(--safe-area-inset-left));
+  padding-right: max(var(--spacing-md), var(--safe-area-inset-right));
   z-index: 100;
 }
 
@@ -59,11 +68,15 @@
 
 .sidebarMobile {
   position: fixed;
-  top: var(--header-height);
+  top: calc(var(--header-height) + var(--safe-area-inset-top));
   left: 0;
   bottom: 0;
+  bottom: var(--safe-area-inset-bottom);
   z-index: 90;
   transform: translateX(-100%);
+  /* Ensure sidebar respects safe areas */
+  padding-left: var(--safe-area-inset-left);
+  padding-bottom: var(--safe-area-inset-bottom);
 }
 
 .sidebarOpen {
@@ -83,12 +96,15 @@
 .sidebarContent {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent content from being hidden behind home indicator */
+  padding-bottom: var(--safe-area-inset-bottom);
 }
 
 /* Overlay (mobile only) */
 .overlay {
   position: fixed;
-  top: var(--header-height);
+  top: calc(var(--header-height) + var(--safe-area-inset-top));
   left: 0;
   right: 0;
   bottom: 0;
@@ -106,7 +122,7 @@
 }
 
 .mainMobile {
-  padding-top: var(--header-height);
+  padding-top: calc(var(--header-height) + var(--safe-area-inset-top));
 }
 
 /* Responsive */

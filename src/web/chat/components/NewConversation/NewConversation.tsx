@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { FolderOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
@@ -15,6 +16,7 @@ export function NewConversation() {
     process.env.NODE_ENV === 'development' ? '/tmp' : ''
   );
   const [showWorkingDirInput, setShowWorkingDirInput] = useState(true);
+  const navigate = useNavigate();
 
   // Handle streaming messages
   const handleStreamMessage = useCallback((event: StreamEvent) => {
@@ -23,6 +25,7 @@ export function NewConversation() {
         console.log('Stream connected');
         break;
 
+
       case 'user':
         const userMessage: ChatMessage = {
           id: `user-${Date.now()}`,
@@ -30,7 +33,14 @@ export function NewConversation() {
           content: event.message.content,
           timestamp: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, userMessage]);
+        setMessages(prev => {
+          // Replace pending message or add new one
+          const pendingIndex = prev.findIndex(m => m.id.startsWith('user-pending-'));
+          if (pendingIndex !== -1) {
+            return prev.map((m, i) => i === pendingIndex ? userMessage : m);
+          }
+          return [...prev, userMessage];
+        });
         break;
 
       case 'assistant':
@@ -64,6 +74,10 @@ export function NewConversation() {
           prev.map(m => ({ ...m, isStreaming: false }))
         );
         setStreamingId(null);
+        // Navigate to the session page
+        if (event.session_id) {
+          navigate(`/c/${event.session_id}`);
+        }
         break;
 
       case 'error':
@@ -93,6 +107,15 @@ export function NewConversation() {
     }
 
     setError(null);
+
+    // Add user message immediately
+    const tempUserMessage: ChatMessage = {
+      id: `user-pending-${Date.now()}`,
+      type: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, tempUserMessage]);
 
     try {
       // Always start a new conversation

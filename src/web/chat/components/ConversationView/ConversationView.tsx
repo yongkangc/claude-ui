@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
@@ -10,6 +10,7 @@ import styles from './ConversationView.module.css';
 export function ConversationView() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +75,14 @@ export function ConversationView() {
           content: event.message.content,
           timestamp: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, userMessage]);
+        setMessages(prev => {
+          // Replace pending message or add new one
+          const pendingIndex = prev.findIndex(m => m.id.startsWith('user-pending-'));
+          if (pendingIndex !== -1) {
+            return prev.map((m, i) => i === pendingIndex ? userMessage : m);
+          }
+          return [...prev, userMessage];
+        });
         break;
 
       case 'assistant':
@@ -108,6 +116,10 @@ export function ConversationView() {
           prev.map(m => ({ ...m, isStreaming: false }))
         );
         setStreamingId(null);
+        // Navigate to the new session page
+        if (event.session_id) {
+          navigate(`/c/${event.session_id}`);
+        }
         break;
 
       case 'error':
@@ -134,6 +146,15 @@ export function ConversationView() {
     if (!sessionId) return;
 
     setError(null);
+
+    // Add user message immediately
+    const tempUserMessage: ChatMessage = {
+      id: `user-pending-${Date.now()}`,
+      type: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, tempUserMessage]);
 
     try {
       const response = await api.resumeConversation({
