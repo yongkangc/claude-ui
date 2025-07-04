@@ -378,6 +378,125 @@ interface ModelsResponse {
 }
 ```
 
+### Log Streaming
+
+#### `GET /api/logs/recent`
+
+Get recent server logs from the circular buffer.
+
+**Query Parameters:**
+```typescript
+interface LogQuery {
+  limit?: number;              // Maximum number of log entries to return (default: 100, use 0 for empty array)
+}
+```
+
+**Example Requests:**
+```javascript
+// Get last 50 logs
+const response = await fetch('/api/logs/recent?limit=50');
+
+// Get empty array (useful for clearing UI)
+const emptyResponse = await fetch('/api/logs/recent?limit=0');
+```
+
+**Response:**
+```typescript
+interface LogResponse {
+  logs: string[];              // Array of log lines (JSONL format)
+}
+```
+
+**Example Response:**
+```json
+{
+  "logs": [
+    "{\"level\":\"info\",\"time\":\"2025-07-04T09:25:46.406Z\",\"pid\":53980,\"hostname\":\"server\",\"component\":\"CCUIServer\",\"msg\":\"Starting CCUI server on port 3001\"}",
+    "{\"level\":\"debug\",\"time\":\"2025-07-04T09:25:46.407Z\",\"pid\":53980,\"hostname\":\"server\",\"component\":\"StreamManager\",\"msg\":\"Stream connection opened\"}"
+  ]
+}
+```
+
+#### `GET /api/logs/stream`
+
+Establish a real-time streaming connection to receive server logs via Server-Sent Events.
+
+**Connection Type:** Server-Sent Events (SSE)
+
+**Headers Set by Server:**
+```
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+X-Accel-Buffering: no
+```
+
+**Frontend Implementation:**
+```javascript
+// Connect to log stream
+const response = await fetch('/api/logs/stream');
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+let buffer = '';
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value, { stream: true });
+  buffer += chunk;
+  const lines = buffer.split('\n');
+  buffer = lines.pop() || '';
+  
+  for (const line of lines) {
+    if (line.trim()) {
+      if (line.startsWith('data: ')) {
+        const logLine = line.substring(6);
+        handleLogLine(logLine);
+      }
+      // Skip heartbeat and comments (lines starting with :)
+    }
+  }
+}
+```
+
+**Stream Events:**
+- **Log Data:** `data: {JSON log entry}`
+- **Heartbeat:** `:heartbeat` (every 30 seconds)
+- **Connection Confirmation:** `:ok` (on initial connect)
+
+**Log Entry Format:**
+Log entries are streamed as JSONL (JSON Lines) format. Each log entry typically contains:
+
+```typescript
+interface LogEntry {
+  level: 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+  time: string;                // ISO 8601 timestamp
+  pid: number;                 // Process ID
+  hostname: string;            // Server hostname
+  component?: string;          // Source component name
+  msg: string;                 // Log message
+  requestId?: string;          // Request correlation ID
+  streamingId?: string;        // CCUI streaming ID (for conversation-related logs)
+  sessionId?: string;          // Claude session ID (for conversation-related logs)
+  [key: string]: any;          // Additional context fields
+}
+```
+
+**Example Log Entries:**
+```json
+{"level":"info","time":"2025-07-04T09:25:46.406Z","pid":53980,"hostname":"server","component":"CCUIServer","msg":"Starting CCUI server on port 3001"}
+{"level":"debug","time":"2025-07-04T09:25:46.407Z","pid":53980,"hostname":"server","component":"StreamManager","streamingId":"abc-123","msg":"Stream connection opened"}
+{"level":"warn","time":"2025-07-04T09:25:46.408Z","pid":53980,"hostname":"server","component":"ClaudeProcessManager","requestId":"req-456","msg":"Claude process took longer than expected"}
+```
+
+**Notes:**
+- The log stream captures all server logs in real-time
+- Logs are also written to stdout as usual
+- Connection includes automatic heartbeat to prevent timeouts
+- Logs are buffered in a circular buffer (default 1000 entries)
+- Both endpoints are designed for development and debugging purposes
+
 ### File System Utilities
 
 #### `GET /api/filesystem/list`

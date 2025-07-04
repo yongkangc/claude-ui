@@ -89,6 +89,7 @@ The backend follows a service-oriented architecture with these key components:
 - **MCPConfigGenerator** (`src/services/mcp-config-generator.ts`) - Generates dynamic MCP configuration files
 - **MCP Permission Server** (`src/mcp-server/index.ts`) - Standalone MCP server for handling permission requests
 - **FileSystemService** (`src/services/file-system-service.ts`) - Secure file system access with validation and sandboxing
+- **LogStreamBuffer** (`src/services/log-stream-buffer.ts`) - Circular buffer for capturing and streaming server logs
 
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
 
@@ -145,6 +146,8 @@ Key types include:
 
 - Check Anthropic.Message | Anthropic.MessageParam implementation at node_modules/@anthropic-ai/sdk/src/resources/messages/messages.ts when working on rendering/parsing message outputs
 - Use test:debug for trouble shooting
+- The @cc-worktrees/ is used for isolated working tree with git worktree. Create worktree there and cd into it when instructed to use worktree to implement feature
+- If mcp are missing in real claude test/usage, it might be that we need to build and build:mcp to chmod mcp endpoiints
 
 ## Testing Architecture
 
@@ -204,6 +207,10 @@ Key types include:
 ### File System Utilities
 - `GET /api/filesystem/list?path=/absolute/path` - List directory contents with security checks
 - `GET /api/filesystem/read?path=/absolute/path/file.txt` - Read file contents (max 10MB, UTF-8 only)
+
+### Log Streaming
+- `GET /api/logs/recent?limit=100` - Get recent buffered logs 
+- `GET /api/logs/stream` - Real-time log streaming via Server-Sent Events
 
 **Security Features:**
 - Path traversal prevention (rejects paths containing `..`)
@@ -266,6 +273,7 @@ This is a **fully functional implementation** with:
 - ✅ Secure file system API with validation
 - ✅ MCP permission system integration
 - ✅ Real-time permission tracking and broadcasting
+- ✅ Real-time log streaming and console integration
 
 The project provides a production-ready foundation for web-based Claude CLI interaction with a modern, responsive UI.
 
@@ -291,3 +299,4 @@ CCUI maintains **two separate session ID systems**:
 - **Claude Home Structure**: See `@cc-workfiles/knowledge/example-cc-config-folder.md` for `.claude` directory structure
 - **Process Independence**: Each conversation runs as a separate Claude CLI child process
 - **Vite Integration**: Server conditionally loads ViteExpress in non-test environments to avoid Jest compatibility issues
+```

@@ -916,15 +916,17 @@ export class CCUIServer {
     // Get recent logs
     this.app.get('/api/logs/recent', (req, res) => {
       const requestId = (req as any).requestId;
-      const limit = parseInt(req.query.limit as string) || 100;
+      const limitParam = req.query.limit as string;
+      const limit = limitParam !== undefined ? parseInt(limitParam) : 100;
+      const validLimit = isNaN(limit) ? 100 : limit;
       
       this.logger.debug('Get recent logs request', {
         requestId,
-        limit
+        limit: validLimit
       });
       
       try {
-        const logs = logStreamBuffer.getRecentLogs(limit);
+        const logs = logStreamBuffer.getRecentLogs(validLimit);
         res.json({ logs });
       } catch (error) {
         this.logger.error('Failed to get recent logs', error, { requestId });
@@ -953,7 +955,7 @@ export class CCUIServer {
       });
       
       // Send initial connection confirmation
-      res.write(':ok\n\n');
+      res.write('data: {"type":"connected"}\n\n');
       
       // Create log listener
       const logListener = (logLine: string) => {

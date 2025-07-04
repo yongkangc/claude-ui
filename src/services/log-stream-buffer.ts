@@ -31,7 +31,13 @@ export class LogStreamBuffer extends EventEmitter {
   }
   
   public getRecentLogs(limit?: number): string[] {
-    if (!limit || limit >= this.buffer.length) {
+    // Handle zero limit explicitly
+    if (limit === 0) {
+      return [];
+    }
+    
+    // Handle undefined/null limit or limit larger than buffer
+    if (limit === undefined || limit === null || limit >= this.buffer.length) {
       return [...this.buffer];
     }
     
