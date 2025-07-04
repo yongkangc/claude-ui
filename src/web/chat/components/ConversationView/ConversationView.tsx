@@ -37,6 +37,19 @@ export function ConversationView() {
         const details = await api.getConversationDetails(sessionId);
         const chatMessages = convertToChatlMessages(details);
         setMessages(chatMessages);
+        
+        // Check if this conversation has an active stream
+        // First, get the conversation summary to check status
+        const conversationsResponse = await api.getConversations({ limit: 100 });
+        const currentConversation = conversationsResponse.conversations.find(
+          conv => conv.sessionId === sessionId
+        );
+        
+        if (currentConversation?.status === 'ongoing' && currentConversation.streamingId) {
+          // Automatically connect to the existing stream
+          console.log(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
+          setStreamingId(currentConversation.streamingId);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load conversation');
       } finally {
