@@ -79,7 +79,7 @@ export class FileSystemService {
         throw error;
       }
       
-      const errorCode = (error as any).code;
+      const errorCode = (error as NodeJS.ErrnoException).code;
       if (errorCode === 'ENOENT') {
         throw new CCUIError('PATH_NOT_FOUND', `Path not found: ${requestedPath}`, 404);
       } else if (errorCode === 'EACCES') {
@@ -141,7 +141,7 @@ export class FileSystemService {
         throw error;
       }
       
-      const errorCode = (error as any).code;
+      const errorCode = (error as NodeJS.ErrnoException).code;
       if (errorCode === 'ENOENT') {
         throw new CCUIError('FILE_NOT_FOUND', `File not found: ${requestedPath}`, 404);
       } else if (errorCode === 'EACCES') {
@@ -340,7 +340,7 @@ export class FileSystemService {
       this.logger.debug('Loaded .gitignore', { path: gitignorePath });
     } catch (error) {
       // .gitignore doesn't exist or can't be read - that's fine
-      const errorCode = (error as any).code;
+      const errorCode = (error as NodeJS.ErrnoException).code;
       if (errorCode !== 'ENOENT') {
         this.logger.debug('Error reading .gitignore', { error, path: dirPath });
       }

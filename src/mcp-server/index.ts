@@ -49,7 +49,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
   }
 
-  const { tool_name, input } = request.params.arguments as { tool_name: string; input: any };
+  const { tool_name, input } = request.params.arguments as { tool_name: string; input: Record<string, any> };
 
   try {
     // Log the permission request

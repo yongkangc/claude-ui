@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CCUIError, SystemInitMessage } from '@/types';
+import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
@@ -64,11 +64,17 @@ export class ClaudeProcessManager extends EventEmitter {
       workingDirectory
     });
     
+    // Create a full ConversationConfig from the resume parameters
+    const fullConfig: ConversationConfig = {
+      workingDirectory,
+      initialPrompt: config.message
+    };
+    
     const args = this.buildResumeArgs(config);
     const spawnConfig = {
       executablePath: this.claudeExecutablePath,
       cwd: workingDirectory, // Use the original conversation's working directory
-      env: { ...process.env }
+      env: { ...process.env } as NodeJS.ProcessEnv
     };
     
     this.logger.debug('Resume spawn config prepared', {
@@ -80,7 +86,7 @@ export class ClaudeProcessManager extends EventEmitter {
     return this.executeConversationFlow(
       'resuming',
       { resumeSessionId: config.sessionId },
-      config,
+      fullConfig,
       args,
       spawnConfig,
       'PROCESS_RESUME_FAILED',
@@ -107,7 +113,7 @@ export class ClaudeProcessManager extends EventEmitter {
     const spawnConfig = {
       executablePath: config.claudeExecutablePath || this.claudeExecutablePath,
       cwd: config.workingDirectory || process.cwd(),
-      env: { ...process.env, ...this.envOverrides }
+      env: { ...process.env, ...this.envOverrides } as NodeJS.ProcessEnv
     };
     
     this.logger.debug('Start spawn config prepared', {
@@ -293,7 +299,7 @@ export class ClaudeProcessManager extends EventEmitter {
       };
 
       // Listen for the first claude-message event for this streamingId
-      const messageHandler = ({ streamingId: msgStreamingId, message }: { streamingId: string; message: any }) => {
+      const messageHandler = ({ streamingId: msgStreamingId, message }: { streamingId: string; message: StreamEvent }) => {
         if (msgStreamingId !== streamingId) {
           return; // Not for our session
         }
@@ -307,44 +313,47 @@ export class ClaudeProcessManager extends EventEmitter {
 
         sessionLogger.debug('Received first message from Claude CLI', {
           messageType: message?.type,
-          messageSubtype: message?.subtype,
-          hasSessionId: !!message?.session_id
+          messageSubtype: 'subtype' in message ? message.subtype : undefined,
+          hasSessionId: 'session_id' in message ? !!message.session_id : false
         });
 
         // Validate that the first message is a system init message
-        if (!message || message.type !== 'system' || message.subtype !== 'init') {
+        if (!message || message.type !== 'system' || !('subtype' in message) || message.subtype !== 'init') {
           sessionLogger.error('First message is not system init', {
             actualType: message?.type,
-            actualSubtype: message?.subtype,
+            actualSubtype: 'subtype' in message ? message.subtype : undefined,
             expectedType: 'system',
             expectedSubtype: 'init'
           });
-          reject(new CCUIError('INVALID_SYSTEM_INIT', `Expected system init message as first message, but got: ${message?.type}/${message?.subtype}`, 500));
+          reject(new CCUIError('INVALID_SYSTEM_INIT', `Expected system init message as first message, but got: ${message?.type}/${'subtype' in message ? message.subtype : 'undefined'}`, 500));
           return;
         }
 
+        // At this point, TypeScript knows message is SystemInitMessage
+        const systemInitMessage = message as SystemInitMessage;
+        
         // Validate required fields
-        const requiredFields = ['session_id', 'cwd', 'tools', 'mcp_servers', 'model', 'permissionMode', 'apiKeySource'];
-        const missingFields = requiredFields.filter(field => message[field] === undefined);
+        const requiredFields = ['session_id', 'cwd', 'tools', 'mcp_servers', 'model', 'permissionMode', 'apiKeySource'] as const;
+        const missingFields = requiredFields.filter(field => systemInitMessage[field] === undefined);
         
         if (missingFields.length > 0) {
           sessionLogger.error('System init message missing required fields', {
             missingFields,
-            availableFields: Object.keys(message)
+            availableFields: Object.keys(systemInitMessage)
           });
           reject(new CCUIError('INCOMPLETE_SYSTEM_INIT', `System init message missing required fields: ${missingFields.join(', ')}`, 500));
           return;
         }
 
         sessionLogger.info('Successfully received valid system init message', {
-          sessionId: message.session_id,
-          cwd: message.cwd,
-          model: message.model,
-          toolCount: message.tools?.length || 0,
-          mcpServerCount: message.mcp_servers?.length || 0
+          sessionId: systemInitMessage.session_id,
+          cwd: systemInitMessage.cwd,
+          model: systemInitMessage.model,
+          toolCount: systemInitMessage.tools?.length || 0,
+          mcpServerCount: systemInitMessage.mcp_servers?.length || 0
         });
 
-        resolve(message as SystemInitMessage);
+        resolve(systemInitMessage);
       };
 
       // Set up all event listeners
@@ -360,9 +369,9 @@ export class ClaudeProcessManager extends EventEmitter {
   private async executeConversationFlow(
     operation: string,
     loggerContext: Record<string, any>,
-    config: any,
+    config: ConversationConfig,
     args: string[],
-    spawnConfig: { executablePath: string; cwd: string; env: Record<string, any> },
+    spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
     errorCode: string,
     errorPrefix: string
   ): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
@@ -552,7 +561,7 @@ export class ClaudeProcessManager extends EventEmitter {
    * Consolidated method to spawn Claude processes for both start and resume operations
    */
   private spawnProcess(
-    spawnConfig: { executablePath: string; cwd: string; env: Record<string, any> },
+    spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
     args: string[],
     sessionLogger: Logger
   ): ChildProcess {
@@ -611,13 +620,13 @@ export class ClaudeProcessManager extends EventEmitter {
       });
       
       // Handle spawn errors (like ENOENT when claude is not found)
-      claudeProcess.on('error', (error: any) => {
+      claudeProcess.on('error', (error: Error & NodeJS.ErrnoException) => {
         sessionLogger.error('Claude process spawn error', error, {
           errorCode: error.code,
           errorErrno: error.errno,
           errorSyscall: error.syscall,
           errorPath: error.path,
-          errorSpawnargs: error.spawnargs
+          errorSpawnargs: (error as Error & NodeJS.ErrnoException & { spawnargs?: string[] }).spawnargs // spawnargs is not in the type definition but exists at runtime
         });
         // Emit error event instead of throwing synchronously in callback
         if (error.code === 'ENOENT') {
@@ -754,13 +763,12 @@ export class ClaudeProcessManager extends EventEmitter {
     });
   }
 
-  private handleClaudeMessage(streamingId: string, message: any): void {
+  private handleClaudeMessage(streamingId: string, message: StreamEvent): void {
     this.logger.debug('Handling Claude message', { 
       streamingId, 
       messageType: message?.type,
       isError: message?.type === 'error',
-      isCompletion: message?.type === 'completion',
-      hasToolUse: message?.tool_use !== undefined
+      isResult: message?.type === 'result'
     });
     this.emit('claude-message', { streamingId, message });
   }

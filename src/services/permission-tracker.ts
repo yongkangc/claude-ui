@@ -16,7 +16,7 @@ export class PermissionTracker extends EventEmitter {
   /**
    * Add a new permission request
    */
-  addPermissionRequest(toolName: string, toolInput: any, streamingId?: string): PermissionRequest {
+  addPermissionRequest(toolName: string, toolInput: Record<string, any>, streamingId?: string): PermissionRequest {
     const id = uuidv4();
     const request: PermissionRequest = {
       id,
@@ -73,7 +73,7 @@ export class PermissionTracker extends EventEmitter {
   updatePermissionStatus(
     id: string, 
     status: 'approved' | 'denied', 
-    options?: { modifiedInput?: any; denyReason?: string }
+    options?: { modifiedInput?: Record<string, any>; denyReason?: string }
   ): boolean {
     const request = this.permissionRequests.get(id);
     if (!request) {

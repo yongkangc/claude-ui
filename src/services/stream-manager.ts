@@ -46,7 +46,7 @@ export class StreamManager extends EventEmitter {
     });
     
     // Send initial connection confirmation
-    const connectionMessage = {
+    const connectionMessage: StreamEvent = {
       type: 'connected',
       streaming_id: streamingId,
       timestamp: new Date().toISOString()
@@ -99,7 +99,7 @@ export class StreamManager extends EventEmitter {
     this.logger.debug('Broadcasting event to clients', { 
       streamingId, 
       eventType: event?.type,
-      eventSubtype: (event as any)?.subtype 
+      eventSubtype: 'subtype' in event ? event.subtype : undefined 
     });
     
     const clients = this.clients.get(streamingId);
@@ -121,7 +121,7 @@ export class StreamManager extends EventEmitter {
         this.logger.debug('Successfully sent SSE event to client', { 
           streamingId, 
           eventType: event?.type,
-          eventSubtype: (event as any)?.subtype 
+          eventSubtype: 'subtype' in event ? event.subtype : undefined 
         });
       } catch (error) {
         this.logger.error('Failed to send SSE event to client', error, { streamingId });
@@ -136,7 +136,7 @@ export class StreamManager extends EventEmitter {
   /**
    * Send an SSE event to a specific client
    */
-  private sendSSEEvent(res: Response, message: any, eventType?: string): void {
+  private sendSSEEvent(res: Response, message: StreamEvent, eventType?: string): void {
     if (res.writableEnded || res.destroyed) {
       throw new Error('Response is no longer writable');
     }
@@ -151,8 +151,8 @@ export class StreamManager extends EventEmitter {
     this.logger.debug('Sending SSE event', {
       eventType,
       messageType: message?.type,
-      messageSubtype: (message as any)?.subtype,
-      streamingId: message?.streamingId || message?.streaming_id,
+      messageSubtype: 'subtype' in message ? message.subtype : undefined,
+      streamingId: 'streamingId' in message ? message.streamingId : 'streaming_id' in message ? message.streaming_id : undefined,
       sseDataLength: sseData.length
     });
     

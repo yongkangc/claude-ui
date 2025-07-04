@@ -4,6 +4,7 @@ import * as os from 'os';
 import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface RawJsonEntry {
   type: string;
@@ -11,7 +12,7 @@ interface RawJsonEntry {
   sessionId?: string;
   parentUuid?: string;
   timestamp?: string;
-  message?: any;
+  message?: Anthropic.Message | Anthropic.MessageParam;
   cwd?: string;
   costUSD?: number;
   durationMs?: number;
@@ -20,7 +21,6 @@ interface RawJsonEntry {
   version?: string;
   summary?: string;
   leafUuid?: string;
-  [key: string]: any;
 }
 
 interface ConversationChain {
@@ -282,7 +282,7 @@ export class ClaudeHistoryReader {
     try {
       return await fs.readdir(dirPath);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];
       }
       throw error;
@@ -433,7 +433,7 @@ export class ClaudeHistoryReader {
   /**
    * Extract text content from message object
    */
-  private extractMessageContent(message: any): string {
+  private extractMessageContent(message: Anthropic.Message | Anthropic.MessageParam | string): string {
     if (typeof message === 'string') {
       return message;
     }
@@ -445,8 +445,8 @@ export class ClaudeHistoryReader {
       
       if (Array.isArray(message.content)) {
         // Find first text content block
-        const textBlock = message.content.find((block: any) => block.type === 'text');
-        return textBlock ? textBlock.text || '' : '';
+        const textBlock = message.content.find((block) => block.type === 'text');
+        return textBlock && 'text' in textBlock ? textBlock.text : '';
       }
     }
     
@@ -459,7 +459,7 @@ export class ClaudeHistoryReader {
   private extractModel(messages: ConversationMessage[]): string {
     for (const message of messages) {
       if (message.message && typeof message.message === 'object') {
-        const messageObj = message.message as any;
+        const messageObj = message.message as { model?: string };
         if (messageObj.model) {
           return messageObj.model;
         }
@@ -473,7 +473,7 @@ export class ClaudeHistoryReader {
     return {
       uuid: entry.uuid || '',
       type: entry.type as 'user' | 'assistant' | 'system',
-      message: entry.message,
+      message: entry.message!,  // Non-null assertion since ConversationMessage requires it
       timestamp: entry.timestamp || '',
       sessionId: entry.sessionId || '',
       parentUuid: entry.parentUuid,

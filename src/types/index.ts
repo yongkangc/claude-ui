@@ -85,10 +85,10 @@ export interface PermissionRequest {
   id: string;
   streamingId: string; // CCUI's internal streaming identifier
   toolName: string;
-  toolInput: any;
+  toolInput: Record<string, any>;
   timestamp: string;
   status: 'pending' | 'approved' | 'denied';
-  modifiedInput?: any;
+  modifiedInput?: Record<string, any>;
   denyReason?: string;
 }
 
@@ -153,7 +153,7 @@ export interface ConversationDetailsResponse {
 
 export interface PermissionDecisionRequest {
   action: 'approve' | 'deny';
-  modifiedInput?: any;
+  modifiedInput?: Record<string, any>;
 }
 
 export interface SystemStatusResponse {
@@ -177,7 +177,7 @@ export interface MCPPermissionToolInput {
 
 export interface MCPPermissionResponse {
   behavior: 'allow' | 'deny';
-  updatedInput?: any;
+  updatedInput?: Record<string, any>;
   message?: string;
 }
 
