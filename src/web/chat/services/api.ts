@@ -72,6 +72,7 @@ class ApiService {
   }
 
   async resumeConversation(request: ResumeConversationRequest): Promise<StartConversationResponse> {
+    console.log(`[API] Resume conversation called at ${new Date().toISOString()}:`, request);
     return this.apiCall('/api/conversations/resume', {
       method: 'POST',
       body: JSON.stringify(request),

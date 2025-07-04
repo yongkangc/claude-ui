@@ -15,9 +15,45 @@ export function useStreaming(
   const [isConnected, setIsConnected] = useState(false);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const optionsRef = useRef(options);
+  
+  // Keep options ref up to date
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  const disconnect = useCallback(() => {
+    if (readerRef.current) {
+      readerRef.current.cancel().catch(() => {});
+      readerRef.current = null;
+    }
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    setIsConnected((prev) => {
+      if (prev) {
+        optionsRef.current.onDisconnect?.();
+      }
+      return false;
+    });
+  }, []);
 
   const connect = useCallback(async () => {
-    if (!streamingId || readerRef.current) return;
+    // Guard against multiple connections
+    if (!streamingId || readerRef.current || abortControllerRef.current) {
+      console.log('[useStreaming] Skipping connect:', { 
+        streamingId, 
+        hasReader: !!readerRef.current, 
+        hasAbortController: !!abortControllerRef.current,
+        isConnected 
+      });
+      return;
+    }
+
+    console.log('[useStreaming] Connecting to stream:', streamingId);
 
     try {
       abortControllerRef.current = new AbortController();
@@ -37,7 +73,8 @@ export function useStreaming(
       const reader = response.body.getReader();
       readerRef.current = reader;
       setIsConnected(true);
-      options.onConnect?.();
+      console.log('[useStreaming] Stream connected successfully');
+      optionsRef.current.onConnect?.();
 
       const decoder = new TextDecoder();
       let buffer = '';
@@ -67,7 +104,7 @@ export function useStreaming(
               }
               
               const event = JSON.parse(jsonLine) as StreamEvent;
-              options.onMessage(event);
+              optionsRef.current.onMessage(event);
             } catch (err) {
               console.error('Failed to parse stream message:', line, err);
             }
@@ -77,29 +114,12 @@ export function useStreaming(
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Stream error:', error);
-        options.onError?.(error);
+        optionsRef.current.onError?.(error);
       }
     } finally {
       disconnect();
     }
-  }, [streamingId, options]);
-
-  const disconnect = useCallback(() => {
-    if (readerRef.current) {
-      readerRef.current.cancel().catch(() => {});
-      readerRef.current = null;
-    }
-    
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-
-    if (isConnected) {
-      setIsConnected(false);
-      options.onDisconnect?.();
-    }
-  }, [isConnected, options]);
+  }, [streamingId, disconnect]);
 
   useEffect(() => {
     if (streamingId) {
@@ -109,7 +129,7 @@ export function useStreaming(
     return () => {
       disconnect();
     };
-  }, [streamingId, connect, disconnect]);
+  }, [streamingId]); // Only depend on streamingId, not the callbacks
 
   return {
     isConnected,

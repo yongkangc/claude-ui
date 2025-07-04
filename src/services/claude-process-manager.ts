@@ -42,9 +42,13 @@ export class ClaudeProcessManager extends EventEmitter {
    * Resume an existing Claude conversation
    */
   async resumeConversation(config: { sessionId: string; message: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
-    this.logger.debug('Resume conversation requested', { 
+    const timestamp = new Date().toISOString();
+    this.logger.info('Resume conversation requested', { 
+      timestamp,
       sessionId: config.sessionId, 
       messageLength: config.message?.length,
+      messagePreview: config.message?.substring(0, 50) + (config.message?.length > 50 ? '...' : ''),
+      activeProcessCount: this.processes.size,
       claudePath: this.claudeExecutablePath 
     });
     
