@@ -174,6 +174,19 @@ Key types include:
 - **Path aliases** use `@/` prefix for clean imports
 - **TypeScript configs** separated by concern (base, node, web)
 
+### Web UI Structure (`src/web/`)
+- **App.tsx** - Main application entry point with routing
+- **chat/** - Chat interface components and logic
+  - **components/** - Reusable UI components (Layout, Sidebar, MessageList, etc.)
+  - **hooks/** - Custom React hooks (useStreaming, useTheme)
+  - **services/** - API client for backend communication
+  - **styles/** - Global styles and theme configuration
+- **console/** - Console/log viewing interface
+  - **ConsoleApp.tsx** - Main console application
+  - **LogWindow.tsx** - Log display component
+- **main.tsx** - React application bootstrap
+- **index.html** - HTML template for Vite
+
 > See subdirectory CLAUDE.md files for detailed implementation patterns:
 > - `src/services/CLAUDE.md` - Service architecture and error handling
 > - `src/cli/CLAUDE.md` - CLI command patterns
@@ -299,4 +312,5 @@ CCUI maintains **two separate session ID systems**:
 - **Claude Home Structure**: See `@cc-workfiles/knowledge/example-cc-config-folder.md` for `.claude` directory structure
 - **Process Independence**: Each conversation runs as a separate Claude CLI child process
 - **Vite Integration**: Server conditionally loads ViteExpress in non-test environments to avoid Jest compatibility issues
+- **Web UI Architecture**: See `src/web/chat/README.md` for detailed chat interface documentation
 ```
