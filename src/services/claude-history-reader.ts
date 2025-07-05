@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
 import { createLogger } from './logger';
+import { SessionInfoService } from './session-info-service';
 import type { Logger } from 'pino';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -41,10 +42,12 @@ interface ConversationChain {
 export class ClaudeHistoryReader {
   private claudeHomePath: string;
   private logger: Logger;
+  private sessionInfoService: SessionInfoService;
   
   constructor() {
     this.claudeHomePath = path.join(os.homedir(), '.claude');
     this.logger = createLogger('ClaudeHistoryReader');
+    this.sessionInfoService = SessionInfoService.getInstance();
   }
 
   get homePath(): string {
@@ -62,19 +65,37 @@ export class ClaudeHistoryReader {
       // Parse all conversations from all JSONL files
       const conversationChains = await this.parseAllConversations();
       
-      // Convert to ConversationSummary format
-      const allConversations: ConversationSummary[] = conversationChains.map(chain => ({
-        sessionId: chain.sessionId,
-        projectPath: chain.projectPath,
-        summary: chain.summary,
-        createdAt: chain.createdAt,
-        updatedAt: chain.updatedAt,
-        messageCount: chain.messages.length,
-        totalCost: chain.totalCost,
-        totalDuration: chain.totalDuration,
-        model: chain.model,
-        status: 'completed' as const // Default status, will be updated by server
-      }));
+      // Convert to ConversationSummary format and enhance with custom names
+      const allConversations: ConversationSummary[] = await Promise.all(
+        conversationChains.map(async (chain) => {
+          // Get custom name from SessionInfoService
+          let customName = '';
+          try {
+            const sessionInfo = await this.sessionInfoService.getSessionInfo(chain.sessionId);
+            customName = sessionInfo.custom_name;
+          } catch (error) {
+            this.logger.warn('Failed to get session info for conversation', { 
+              sessionId: chain.sessionId, 
+              error: error instanceof Error ? error.message : String(error) 
+            });
+            // Continue with empty custom name on error
+          }
+
+          return {
+            sessionId: chain.sessionId,
+            projectPath: chain.projectPath,
+            summary: chain.summary,
+            custom_name: customName,
+            createdAt: chain.createdAt,
+            updatedAt: chain.updatedAt,
+            messageCount: chain.messages.length,
+            totalCost: chain.totalCost,
+            totalDuration: chain.totalDuration,
+            model: chain.model,
+            status: 'completed' as const // Default status, will be updated by server
+          };
+        })
+      );
       
       // Apply filters and pagination
       const filtered = this.applyFilters(allConversations, filter);

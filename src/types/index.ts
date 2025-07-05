@@ -6,6 +6,7 @@ export interface ConversationSummary {
   sessionId: string; // Claude CLI's actual session ID (used for history files)
   projectPath: string;
   summary: string;
+  custom_name: string; // Custom name from SessionInfoService, default: ""
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -236,4 +237,34 @@ export interface FileSystemReadResponse {
   size: number;
   lastModified: string;
   encoding: string;
+}
+
+// Session Info Database types for lowdb
+export interface SessionInfo {
+  custom_name: string;          // Custom name for the session, default: ""
+  created_at: string;           // ISO 8601 timestamp when session info was created
+  updated_at: string;           // ISO 8601 timestamp when session info was last updated
+  version: number;              // Schema version for future migrations
+}
+
+export interface DatabaseMetadata {
+  schema_version: number;       // Current schema version
+  created_at: string;          // When database was first created
+  last_updated: string;        // Last database update timestamp
+}
+
+export interface SessionInfoDatabase {
+  sessions: Record<string, SessionInfo>; // session-id -> SessionInfo mapping
+  metadata: DatabaseMetadata;
+}
+
+// API types for session renaming
+export interface SessionRenameRequest {
+  customName: string;
+}
+
+export interface SessionRenameResponse {
+  success: boolean;
+  sessionId: string;
+  customName: string;
 }

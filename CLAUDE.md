@@ -90,6 +90,7 @@ The backend follows a service-oriented architecture with these key components:
 - **MCP Permission Server** (`src/mcp-server/index.ts`) - Standalone MCP server for handling permission requests
 - **FileSystemService** (`src/services/file-system-service.ts`) - Secure file system access with validation and sandboxing
 - **LogStreamBuffer** (`src/services/log-stream-buffer.ts`) - Circular buffer for capturing and streaming server logs
+- **SessionInfoService** (`src/services/session-info-service.ts`) - Manages session metadata including custom names using lowdb for fast local storage
 
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
 
@@ -148,6 +149,13 @@ Key types include:
 - Use test:debug for trouble shooting
 - The cc-worktrees/ is used for isolated working tree with git worktree. Create worktree there and cd into it when instructed to use worktree to implement feature
 - If mcp are missing in real claude test/usage, it might be that we need to build and build:mcp to chmod mcp endpoiints
+- Added details about the `config.json` in `~/.ccui`:
+  - Location: `~/.ccui/config.json`
+  - Automatically created on first server startup
+  - Contains machine-specific configuration with auto-generated machine ID
+  - Includes server, logging, and machine identification settings
+  - Replaces previous environment variable-based configuration
+  - Provides a centralized, file-based approach to configuration management
 
 ## Testing Architecture
 
@@ -301,6 +309,43 @@ CLAUDE_HOME_PATH=~/.claude                  # Claude CLI home directory (not con
 
 Note: All server and logging configuration has been moved to the config file. Environment variables like `PORT` and `LOG_LEVEL` are no longer supported.
 
+## Database Cache System
+
+CCUI uses a lowdb-based database cache system stored in `~/.ccui/session-info.json` for managing session metadata. This provides fast access to session information without parsing JSONL files.
+
+### Session Info Database
+- **Location**: `~/.ccui/session-info.json`
+- **Technology**: lowdb v7.0.1 with TypeScript support
+- **Purpose**: Cache session metadata including custom names for fast retrieval
+
+### Database Schema
+```typescript
+interface SessionInfoDatabase {
+  sessions: Record<string, SessionInfo>;     // session-id -> SessionInfo mapping
+  metadata: DatabaseMetadata;               // Database schema information
+}
+
+interface SessionInfo {
+  custom_name: string;          // Custom name set by user, default: ""
+  created_at: string;           // ISO 8601 timestamp when session info created
+  updated_at: string;           // ISO 8601 timestamp when session info updated
+  version: number;              // Schema version for future migrations
+}
+```
+
+### Key Features
+- **Automatic Creation**: Database file created on first server startup
+- **Default Values**: Sessions without entries return default empty custom_name
+- **Type Safety**: Full TypeScript integration with lowdb
+- **Performance**: Fast lookups without parsing Claude's JSONL files
+- **Graceful Degradation**: Falls back to defaults if database is inaccessible
+- **Schema Versioning**: Built-in migration support for future updates
+
+### API Integration
+- All conversation list endpoints include `custom_name` field
+- New `/api/conversations/:sessionId/rename` endpoint for updating custom names
+- Integration with ClaudeHistoryReader for enhanced conversation summaries
+
 ## Development Status
 
 This is a **fully functional implementation** with:
@@ -317,6 +362,8 @@ This is a **fully functional implementation** with:
 - ✅ MCP permission system integration
 - ✅ Real-time permission tracking and broadcasting
 - ✅ Real-time log streaming and console integration
+- ✅ Database cache system with lowdb for session metadata
+- ✅ Custom session naming with persistent storage
 
 The project provides a production-ready foundation for web-based Claude CLI interaction with a modern, responsive UI.
 
@@ -343,4 +390,3 @@ CCUI maintains **two separate session ID systems**:
 - **Process Independence**: Each conversation runs as a separate Claude CLI child process
 - **Vite Integration**: Server conditionally loads ViteExpress in non-test environments to avoid Jest compatibility issues
 - **Web UI Architecture**: See `src/web/chat/README.md` for detailed chat interface documentation
-```

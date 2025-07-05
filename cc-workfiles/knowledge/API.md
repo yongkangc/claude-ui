@@ -219,6 +219,7 @@ interface ConversationSummary {
   sessionId: string;        // Claude CLI's actual session ID (used for history files)
   projectPath: string;      // Original working directory
   summary: string;          // Brief description of the conversation
+  custom_name: string;      // Custom name set by user, default: ""
   createdAt: string;        // ISO 8601 timestamp when conversation started
   updatedAt: string;        // ISO 8601 timestamp of last modification
   messageCount: number;     // Total number of messages in the conversation
@@ -267,6 +268,53 @@ interface StopConversationResponse {
   success: boolean;            // Whether process was successfully terminated
 }
 ```
+
+#### `PUT /api/conversations/:sessionId/rename`
+
+Update the custom name for a conversation session.
+
+**Request Body:**
+```typescript
+interface SessionRenameRequest {
+  customName: string;          // New custom name for the session (up to 200 characters)
+}
+```
+
+**Example Request:**
+```javascript
+const response = await fetch('/api/conversations/claude-session-12345/rename', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    customName: 'My Important Project Discussion'
+  })
+});
+```
+
+**Response:**
+```typescript
+interface SessionRenameResponse {
+  success: boolean;            // Whether the rename was successful
+  sessionId: string;           // The session ID that was renamed
+  customName: string;          // The new custom name (trimmed)
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "sessionId": "claude-session-12345",
+  "customName": "My Important Project Discussion"
+}
+```
+
+**Notes:**
+- Custom names are trimmed of whitespace
+- Maximum length is 200 characters
+- Empty string is allowed to clear the custom name
+- Returns 404 if the session doesn't exist
+- Custom names are stored in `~/.ccui/session-info.json` using lowdb
 
 ### Permission Management
 

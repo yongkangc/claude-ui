@@ -9,6 +9,7 @@ import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
 import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
+import { SessionInfoService } from './services/session-info-service';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -23,7 +24,9 @@ import {
   FileSystemListQuery,
   FileSystemListResponse,
   FileSystemReadQuery,
-  FileSystemReadResponse
+  FileSystemReadResponse,
+  SessionRenameRequest,
+  SessionRenameResponse
 } from './types';
 import { createLogger, logger as globalLogger } from './services/logger';
 import type { Logger } from 'pino';
@@ -49,6 +52,7 @@ export class CCUIServer {
   private mcpConfigGenerator: MCPConfigGenerator;
   private fileSystemService: FileSystemService;
   private configService: ConfigService;
+  private sessionInfoService: SessionInfoService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -89,6 +93,7 @@ export class CCUIServer {
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
     this.fileSystemService = new FileSystemService();
+    this.sessionInfoService = SessionInfoService.getInstance();
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
@@ -107,6 +112,11 @@ export class CCUIServer {
       this.logger.debug('Initializing configuration');
       await this.configService.initialize();
       const config = this.configService.getConfig();
+      
+      // Initialize session info service
+      this.logger.debug('Initializing session info service');
+      await this.sessionInfoService.initialize();
+      this.logger.debug('Session info service initialized successfully');
       
       // Apply overrides if provided (for tests and CLI options)
       this.port = this.configOverrides?.port ?? config.server.port;
@@ -628,6 +638,63 @@ export class CCUIServer {
         this.logger.debug('Stop conversation failed', {
           requestId,
           streamingId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        next(error);
+      }
+    });
+
+    // Rename session (update custom name)
+    this.app.put('/api/conversations/:sessionId/rename', async (req: Request<{ sessionId: string }, SessionRenameResponse, SessionRenameRequest>, res, next) => {
+      const requestId = (req as any).requestId;
+      const { sessionId } = req.params;
+      const { customName } = req.body;
+      
+      this.logger.debug('Rename session request', {
+        requestId,
+        sessionId,
+        customName
+      });
+      
+      try {
+        // Validate required fields
+        if (!sessionId || !sessionId.trim()) {
+          throw new CCUIError('MISSING_SESSION_ID', 'sessionId is required', 400);
+        }
+        if (customName === undefined || customName === null) {
+          throw new CCUIError('MISSING_CUSTOM_NAME', 'customName is required', 400);
+        }
+        
+        // Validate custom name length (reasonable limit)
+        if (customName.length > 200) {
+          throw new CCUIError('CUSTOM_NAME_TOO_LONG', 'customName must be 200 characters or less', 400);
+        }
+        
+        // Check if session exists by trying to get its metadata
+        const metadata = await this.historyReader.getConversationMetadata(sessionId);
+        if (!metadata) {
+          throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
+        }
+        
+        // Update custom name
+        await this.sessionInfoService.updateCustomName(sessionId, customName.trim());
+        
+        this.logger.info('Session renamed successfully', {
+          requestId,
+          sessionId,
+          customName: customName.trim()
+        });
+        
+        res.json({
+          success: true,
+          sessionId,
+          customName: customName.trim()
+        });
+      } catch (error) {
+        this.logger.debug('Rename session failed', {
+          requestId,
+          sessionId,
+          customName,
           error: error instanceof Error ? error.message : String(error)
         });
         next(error);

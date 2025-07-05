@@ -1,0 +1,431 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { SessionInfoService } from '@/services/session-info-service';
+import type { SessionInfo, SessionInfoDatabase } from '@/types';
+
+describe('SessionInfoService', () => {
+  let testConfigDir: string;
+  let originalHome: string;
+
+  beforeAll(() => {
+    // Create temporary config directory for tests
+    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccui-session-test-'));
+    
+    // Mock the home directory to use our test directory
+    originalHome = os.homedir();
+    jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+  });
+
+  afterAll(() => {
+    // Restore original home directory
+    (os.homedir as jest.MockedFunction<typeof os.homedir>).mockRestore();
+    
+    // Clean up test config directory
+    if (fs.existsSync(testConfigDir)) {
+      fs.rmSync(testConfigDir, { recursive: true, force: true });
+    }
+  });
+
+  beforeEach(() => {
+    // Clear any existing config directory
+    const ccuiDir = path.join(testConfigDir, '.ccui');
+    if (fs.existsSync(ccuiDir)) {
+      fs.rmSync(ccuiDir, { recursive: true, force: true });
+    }
+    
+    // Reset SessionInfoService singleton
+    SessionInfoService.resetInstance();
+  });
+
+  describe('initialization', () => {
+    it('should create database file on first write operation', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Config directory should not exist initially
+      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(false);
+      
+      await service.initialize();
+      
+      // Config directory should be created
+      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(true);
+      
+      // File should be created when there's a write operation
+      await service.updateCustomName('test-session', 'Test Name');
+      
+      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      expect(fs.existsSync(dbPath)).toBe(true);
+    });
+
+    it('should create config directory if it does not exist', async () => {
+      const service = SessionInfoService.getInstance();
+      const ccuiDir = path.join(testConfigDir, '.ccui');
+      
+      expect(fs.existsSync(ccuiDir)).toBe(false);
+      
+      await service.initialize();
+      
+      expect(fs.existsSync(ccuiDir)).toBe(true);
+    });
+
+    it('should initialize with default database structure', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      await service.initialize();
+      
+      // Trigger a write to create the file
+      await service.updateCustomName('test-session', 'Test Name');
+      
+      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      const dbContent = fs.readFileSync(dbPath, 'utf-8');
+      const dbData: SessionInfoDatabase = JSON.parse(dbContent);
+      
+      expect(dbData.sessions).toHaveProperty('test-session');
+      expect(dbData.metadata).toMatchObject({
+        schema_version: 1,
+        created_at: expect.any(String),
+        last_updated: expect.any(String)
+      });
+    });
+
+    it('should not overwrite existing database', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Create initial database
+      await service.initialize();
+      await service.updateCustomName('test-session-1', 'Test Name');
+      
+      // Reset and reinitialize
+      SessionInfoService.resetInstance();
+      const newService = SessionInfoService.getInstance();
+      await newService.initialize();
+      
+      const sessionInfo = await newService.getSessionInfo('test-session-1');
+      expect(sessionInfo.custom_name).toBe('Test Name');
+    });
+
+    it('should throw error if initialization fails', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Mock fs to throw error
+      jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      await expect(service.initialize()).rejects.toThrow('Session info database initialization failed');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+
+    it('should prevent multiple initializations', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      await service.initialize();
+      
+      // Second initialization should not throw
+      await expect(service.initialize()).resolves.not.toThrow();
+    });
+  });
+
+  describe('getSessionInfo', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should return session info for existing session', async () => {
+      const testSessionId = 'test-session-1';
+      const testCustomName = 'My Test Session';
+      
+      await service.updateCustomName(testSessionId, testCustomName);
+      
+      const sessionInfo = await service.getSessionInfo(testSessionId);
+      
+      expect(sessionInfo.custom_name).toBe(testCustomName);
+      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.created_at).toBeDefined();
+      expect(sessionInfo.updated_at).toBeDefined();
+    });
+
+    it('should return default values for non-existent session', async () => {
+      const sessionInfo = await service.getSessionInfo('non-existent-session');
+      
+      expect(sessionInfo.custom_name).toBe('');
+      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.created_at).toBeDefined();
+      expect(sessionInfo.updated_at).toBeDefined();
+    });
+
+    it('should return default values on error', async () => {
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Database error');
+      jest.spyOn(service['jsonManager'], 'read').mockRejectedValue(mockError);
+      
+      const sessionInfo = await service.getSessionInfo('test-session');
+      
+      expect(sessionInfo.custom_name).toBe('');
+      expect(sessionInfo.version).toBe(1);
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('updateCustomName', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should create new session entry', async () => {
+      const testSessionId = 'new-session';
+      const testCustomName = 'New Session Name';
+      
+      await service.updateCustomName(testSessionId, testCustomName);
+      
+      const sessionInfo = await service.getSessionInfo(testSessionId);
+      expect(sessionInfo.custom_name).toBe(testCustomName);
+      expect(sessionInfo.version).toBe(1);
+    });
+
+    it('should update existing session entry', async () => {
+      const testSessionId = 'test-session';
+      const originalName = 'Original Name';
+      const updatedName = 'Updated Name';
+      
+      await service.updateCustomName(testSessionId, originalName);
+      const originalInfo = await service.getSessionInfo(testSessionId);
+      
+      // Wait a bit to ensure timestamps are different
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      await service.updateCustomName(testSessionId, updatedName);
+      const updatedInfo = await service.getSessionInfo(testSessionId);
+      
+      expect(updatedInfo.custom_name).toBe(updatedName);
+      expect(updatedInfo.created_at).toBe(originalInfo.created_at);
+      expect(new Date(updatedInfo.updated_at).getTime()).toBeGreaterThan(new Date(originalInfo.updated_at).getTime());
+    });
+
+    it('should handle empty custom name', async () => {
+      const testSessionId = 'test-session';
+      
+      await service.updateCustomName(testSessionId, '');
+      
+      const sessionInfo = await service.getSessionInfo(testSessionId);
+      expect(sessionInfo.custom_name).toBe('');
+    });
+
+    it('should handle special characters in custom name', async () => {
+      const testSessionId = 'test-session';
+      const specialName = 'Test "Session" with [brackets] & symbols!';
+      
+      await service.updateCustomName(testSessionId, specialName);
+      
+      const sessionInfo = await service.getSessionInfo(testSessionId);
+      expect(sessionInfo.custom_name).toBe(specialName);
+    });
+
+    it('should update metadata timestamp', async () => {
+      const testSessionId = 'test-session';
+      const testCustomName = 'Test Session';
+      const beforeTime = new Date().toISOString();
+      
+      await service.updateCustomName(testSessionId, testCustomName);
+      
+      // Read database directly to check metadata
+      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      const dbContent = fs.readFileSync(dbPath, 'utf-8');
+      const dbData: SessionInfoDatabase = JSON.parse(dbContent);
+      
+      expect(new Date(dbData.metadata.last_updated).getTime()).toBeGreaterThanOrEqual(new Date(beforeTime).getTime());
+    });
+
+    it('should throw error on update failure', async () => {
+      const testSessionId = 'test-session';
+      const testCustomName = 'Test Session';
+      
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Write error');
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
+      
+      await expect(service.updateCustomName(testSessionId, testCustomName)).rejects.toThrow('Failed to update custom name');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('deleteSession', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should delete existing session', async () => {
+      const testSessionId = 'test-session';
+      
+      // Create session first
+      await service.updateCustomName(testSessionId, 'Test Session');
+      let sessionInfo = await service.getSessionInfo(testSessionId);
+      expect(sessionInfo.custom_name).toBe('Test Session');
+      
+      // Delete session
+      await service.deleteSession(testSessionId);
+      
+      // Verify deletion
+      sessionInfo = await service.getSessionInfo(testSessionId);
+      expect(sessionInfo.custom_name).toBe(''); // Should return default
+    });
+
+    it('should handle deletion of non-existent session', async () => {
+      // Should not throw error
+      await expect(service.deleteSession('non-existent-session')).resolves.not.toThrow();
+    });
+
+    it('should throw error on deletion failure', async () => {
+      const testSessionId = 'test-session';
+      
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Delete error');
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
+      
+      await expect(service.deleteSession(testSessionId)).rejects.toThrow('Failed to delete session info');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('getAllSessionInfo', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should return all session information', async () => {
+      const sessions = {
+        'session-1': 'First Session',
+        'session-2': 'Second Session',
+        'session-3': 'Third Session'
+      };
+      
+      // Create multiple sessions
+      for (const [sessionId, customName] of Object.entries(sessions)) {
+        await service.updateCustomName(sessionId, customName);
+      }
+      
+      const allSessionInfo = await service.getAllSessionInfo();
+      
+      expect(Object.keys(allSessionInfo)).toHaveLength(3);
+      for (const [sessionId, customName] of Object.entries(sessions)) {
+        expect(allSessionInfo[sessionId]).toBeDefined();
+        expect(allSessionInfo[sessionId].custom_name).toBe(customName);
+      }
+    });
+
+    it('should return empty object for no sessions', async () => {
+      const allSessionInfo = await service.getAllSessionInfo();
+      
+      expect(allSessionInfo).toEqual({});
+    });
+
+    it('should return empty object on error', async () => {
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Read error');
+      jest.spyOn(service['jsonManager'], 'read').mockRejectedValue(mockError);
+      
+      const allSessionInfo = await service.getAllSessionInfo();
+      
+      expect(allSessionInfo).toEqual({});
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('getStats', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should return correct statistics', async () => {
+      // Create some sessions
+      await service.updateCustomName('session-1', 'Session 1');
+      await service.updateCustomName('session-2', 'Session 2');
+      
+      const stats = await service.getStats();
+      
+      expect(stats.sessionCount).toBe(2);
+      expect(stats.dbSize).toBeGreaterThan(0);
+      expect(stats.lastUpdated).toBeDefined();
+    });
+
+    it('should handle non-existent database file', async () => {
+      // Don't initialize or create any sessions
+      const freshService = SessionInfoService.getInstance();
+      const stats = await freshService.getStats();
+      
+      expect(stats.sessionCount).toBe(0);
+      // Note: dbSize might be > 0 if file exists from ensureMetadata
+      expect(stats.dbSize).toBeGreaterThanOrEqual(0);
+      expect(stats.lastUpdated).toBeDefined();
+    });
+
+    it('should return default stats on error', async () => {
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Stats error');
+      jest.spyOn(service['jsonManager'], 'read').mockRejectedValue(mockError);
+      
+      const stats = await service.getStats();
+      
+      expect(stats.sessionCount).toBe(0);
+      expect(stats.dbSize).toBe(0);
+      expect(stats.lastUpdated).toBeDefined();
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('singleton behavior', () => {
+    it('should return the same instance across multiple calls', () => {
+      const instance1 = SessionInfoService.getInstance();
+      const instance2 = SessionInfoService.getInstance();
+      
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should use the same database path across instances', async () => {
+      const service1 = SessionInfoService.getInstance();
+      await service1.initialize();
+      await service1.updateCustomName('test-session', 'Test Name');
+      
+      // Reset and get new instance
+      SessionInfoService.resetInstance();
+      const service2 = SessionInfoService.getInstance();
+      await service2.initialize();
+      
+      const sessionInfo = await service2.getSessionInfo('test-session');
+      expect(sessionInfo.custom_name).toBe('Test Name');
+    });
+  });
+});

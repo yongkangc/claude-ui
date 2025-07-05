@@ -19,6 +19,7 @@ function ConsoleApp() {
     resume: true,
     stop: true,
     list: true,
+    rename: true,
     permissions: true,
     listDir: true,
     readFile: true,
@@ -45,6 +46,10 @@ function ConsoleApp() {
   const [listRespectGitignore, setListRespectGitignore] = useState(false);
   const [readPath, setReadPath] = useState('');
   const [logWindowVisible, setLogWindowVisible] = useState(false);
+  
+  // Rename session states
+  const [renameSessionId, setRenameSessionId] = useState('');
+  const [renameCustomName, setRenameCustomName] = useState('');
 
   // Result states
   const [results, setResults] = useState<Record<string, any>>({});
@@ -326,6 +331,32 @@ function ConsoleApp() {
     }
   };
 
+  const renameSession = async () => {
+    try {
+      if (!renameSessionId) {
+        showJson('renameResult', { error: 'Session ID is required' });
+        return;
+      }
+
+      const response = await fetch(`/api/conversations/${renameSessionId}/rename`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customName: renameCustomName
+        })
+      });
+      const data = await response.json();
+      showJson('renameResult', data);
+      
+      // Refresh available sessions to show updated names
+      if (data.success) {
+        loadAvailableSessions();
+      }
+    } catch (e: any) {
+      showJson('renameResult', { error: e.message });
+    }
+  };
+
   const copyJsonToClipboard = async (data: any, buttonRef: HTMLButtonElement) => {
     try {
       const jsonString = JSON.stringify(data, null, 2);
@@ -445,10 +476,12 @@ function ConsoleApp() {
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
                   const summary = session.summary || 'No summary';
+                  const customName = session.custom_name || '';
+                  const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
-                      {session.sessionId.substring(0, 8)}... - {summary.substring(0, 50)}... ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
                     </option>
                   );
                 })}
@@ -508,6 +541,44 @@ function ConsoleApp() {
             <button onClick={listConversationsSidebar}>List Conversations</button>
             <div id="sidebarConversationsResult" className="json-viewer-container">
               {results.sidebarConversationsResult && <JsonViewer data={results.sidebarConversationsResult} resultId="sidebarConversationsResult" />}
+            </div>
+          </div>
+        </div>
+        
+        {/* Rename Session */}
+        <div className="section">
+          <div className={`endpoint collapsible ${collapsed.rename ? 'collapsed' : ''}`} onClick={() => toggleCollapse('rename')}>
+            PUT /api/conversations/:sessionId/rename
+          </div>
+          <div className="collapsible-content">
+            <div className="field-group">
+              <div className="field-label">Session ID <span style={{ color: 'red' }}>*</span></div>
+              <select value={renameSessionId} onChange={(e) => setRenameSessionId(e.target.value)} style={{ marginBottom: 5 }}>
+                <option value="">Select a session...</option>
+                {availableSessions.map(session => {
+                  const summary = session.summary || 'No summary';
+                  const customName = session.custom_name || '';
+                  const displayName = customName ? `[${customName}] ${summary}` : summary;
+                  const date = new Date(session.updatedAt).toLocaleString();
+                  return (
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
+                    </option>
+                  );
+                })}
+              </select>
+              <input type="text" value={renameSessionId} onChange={(e) => setRenameSessionId(e.target.value)} placeholder="claude-session-id or select from dropdown" />
+            </div>
+            <div className="field-group">
+              <div className="field-label">Custom Name <span className="optional">(empty to clear)</span></div>
+              <input type="text" value={renameCustomName} onChange={(e) => setRenameCustomName(e.target.value)} placeholder="My Project Discussion" maxLength={200} />
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                {renameCustomName.length}/200 characters
+              </div>
+            </div>
+            <button onClick={renameSession}>Rename Session</button>
+            <div id="renameResult" className="json-viewer-container">
+              {results.renameResult && <JsonViewer data={results.renameResult} resultId="renameResult" />}
             </div>
           </div>
         </div>
@@ -601,10 +672,12 @@ function ConsoleApp() {
               <option value="">Select a session...</option>
               {availableSessions.map(session => {
                 const summary = session.summary || 'No summary';
+                const customName = session.custom_name || '';
+                const displayName = customName ? `[${customName}] ${summary}` : summary;
                 const date = new Date(session.updatedAt).toLocaleString();
                 return (
-                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
-                    {session.sessionId.substring(0, 8)}... - {summary.substring(0, 50)}... ({date})
+                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
+                    {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
                   </option>
                 );
               })}
