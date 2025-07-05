@@ -134,6 +134,23 @@ describe('CCUIServer', () => {
   // Helper function to create server instances for tests
   const createTestServer = (config?: { port?: number }) => {
     const testPort = config?.port || generateTestPort();
+    
+    // Mock ConfigService for this test
+    const { ConfigService } = require('@/services/config-service');
+    jest.spyOn(ConfigService, 'getInstance').mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getConfig: jest.fn().mockReturnValue({
+        machine_id: 'test-machine-12345678',
+        server: {
+          host: 'localhost',
+          port: 3001 // Default config port
+        },
+        logging: {
+          level: 'silent'
+        }
+      })
+    });
+    
     const server = new CCUIServer({
       port: testPort,
       ...config

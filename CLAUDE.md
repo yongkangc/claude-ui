@@ -261,15 +261,45 @@ The backend automatically tracks conversation status based on active streaming c
 
 Ongoing conversations include an optional `streamingId` field in API responses for connecting to active streams or stopping conversations.
 
-## Configuration
+## Configuration System
+
+CCUI uses a JSON configuration file located at `~/.ccui/config.json`. The config file is created automatically on first startup.
+
+### Configuration Structure
+```json
+{
+  "machine_id": "wenbomacbook-a1b2c3d4",  // Auto-generated unique identifier
+  "server": {
+    "host": "localhost",                  // Server bind address
+    "port": 3001                          // Server port
+  },
+  "logging": {
+    "level": "info"                       // Log level (silent, debug, info, warn, error)
+  }
+}
+```
+
+### Machine ID Generation
+The `machine_id` is automatically generated on first startup:
+- Format: `{hostname}-{8char_hash}`
+- Hostname: System hostname (lowercase)
+- Hash: First 8 characters of SHA256(primary_mac_address)
+- Example: `wenbomacbook-a1b2c3d4`
+
+### Configuration Loading
+1. On server startup, ConfigService checks for `~/.ccui/config.json`
+2. If not found, creates the directory and generates default config
+3. Loads and validates the configuration
+4. If any step fails, the server will not start
 
 ### Environment Variables
+Only the following environment variables are still used:
 ```bash
-PORT=3001                                    # Server port
-LOG_LEVEL=info                              # Logging level (silent, debug, info, warn, error)
-CLAUDE_HOME_PATH=~/.claude                  # Claude CLI home directory
-CCUI_SERVER_PORT=3001                       # Port used by MCP server to connect back (defaults to PORT)
+NODE_ENV=test|development|production         # Build/runtime environment
+CLAUDE_HOME_PATH=~/.claude                  # Claude CLI home directory (not configurable)
 ```
+
+Note: All server and logging configuration has been moved to the config file. Environment variables like `PORT` and `LOG_LEVEL` are no longer supported.
 
 ## Development Status
 

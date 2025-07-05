@@ -70,8 +70,8 @@ describe('CLI Serve Command', () => {
       });
 
       expect(mockServer.start).toHaveBeenCalled();
-      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server on port 3001');
-      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running at http://localhost:3001');
+      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server...');
+      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running (port: 3001)');
     });
 
     it('should start server with custom port', async () => {
@@ -86,8 +86,8 @@ describe('CLI Serve Command', () => {
       });
 
       expect(mockServer.start).toHaveBeenCalled();
-      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server on port 8080');
-      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running at http://localhost:8080');
+      expect(mockLogger.info).toHaveBeenCalledWith('Starting CCUI server...');
+      expect(mockLogger.info).toHaveBeenCalledWith('CCUI server is running (port: 8080)');
     });
 
     it('should register SIGTERM handler for graceful shutdown', async () => {

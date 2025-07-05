@@ -13,10 +13,8 @@ interface ResumeResponse {
 }
 
 export async function resumeCommand(sessionId: string, message: string, options: ResumeOptions): Promise<void> {
-  // Set log level to debug if debug option is enabled
-  if (options.debug) {
-    process.env.LOG_LEVEL = 'debug';
-  }
+  // Note: Debug mode for logger should be configured in config.json
+  // The debug option here is for verbose output only
   
   const logger = createLogger('ResumeCommand');
   const serverPort = options.serverPort || '3001';

@@ -133,7 +133,7 @@ export function NewConversation() {
     }
   }, [navigate]);
 
-  const { isConnected } = useStreaming(streamingId, {
+  const { isConnected, disconnect } = useStreaming(streamingId, {
     onMessage: handleStreamMessage,
     onError: (err) => {
       setError(err.message);
@@ -170,6 +170,27 @@ export function NewConversation() {
       setShowWorkingDirInput(false);
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
+    }
+  };
+
+  const handleStop = async () => {
+    if (!streamingId) return;
+
+    try {
+      // Call the API to stop the conversation
+      await api.stopConversation(streamingId);
+      
+      // Disconnect the streaming connection
+      disconnect();
+      
+      // Clear the streaming ID
+      setStreamingId(null);
+      
+      // Mark all messages as not streaming
+      setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+    } catch (err: any) {
+      console.error('Failed to stop conversation:', err);
+      setError(err.message || 'Failed to stop conversation');
     }
   };
 
@@ -225,6 +246,7 @@ export function NewConversation() {
 
       <InputArea
         onSubmit={handleSendMessage}
+        onStop={handleStop}
         isLoading={isConnected}
         placeholder="What would you like Claude to help you with?"
       />

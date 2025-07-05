@@ -4,11 +4,12 @@ import styles from './InputArea.module.css';
 
 interface InputAreaProps {
   onSubmit: (message: string) => void;
+  onStop?: () => void;
   isLoading?: boolean;
   placeholder?: string;
 }
 
-export function InputArea({ onSubmit, isLoading = false, placeholder = "Type a message..." }: InputAreaProps) {
+export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "Type a message..." }: InputAreaProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,7 +62,7 @@ export function InputArea({ onSubmit, isLoading = false, placeholder = "Type a m
             <button
               type="button"
               className={styles.stopButton}
-              onClick={() => {/* Stop functionality would go here */}}
+              onClick={() => onStop?.()}
               title="Stop generation"
             >
               <Square size={18} />

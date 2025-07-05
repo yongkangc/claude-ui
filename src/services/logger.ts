@@ -1,5 +1,6 @@
 import pino, { Logger } from 'pino';
 import { PassThrough } from 'stream';
+import type { LogLevel } from '@/types/config';
 
 export interface LogContext {
   component?: string;
@@ -16,13 +17,15 @@ export interface LogContext {
 class LoggerService {
   private static instance: LoggerService;
   private baseLogger: Logger;
+  private logInterceptStream: PassThrough;
+  private streams: { stream: NodeJS.WritableStream }[];
 
   private constructor() {
     // Create a pass-through stream to intercept logs
-    const logInterceptStream = new PassThrough();
+    this.logInterceptStream = new PassThrough();
     
     // Forward logs to the log buffer (lazy loaded to avoid circular dependency)
-    logInterceptStream.on('data', (chunk) => {
+    this.logInterceptStream.on('data', (chunk) => {
       const logLine = chunk.toString().trim();
       if (logLine) {
         // Lazy load to avoid circular dependency
@@ -35,22 +38,44 @@ class LoggerService {
     });
     
     // Create multi-stream configuration
-    const streams = [
+    this.streams = [
       { stream: process.stdout },  // Original stdout
-      { stream: logInterceptStream }  // Log buffer stream
+      { stream: this.logInterceptStream }  // Log buffer stream
     ];
     
+    // Initialize with default level 'info' - will be updated after config loads
     this.baseLogger = pino({
-      level: process.env.LOG_LEVEL || 'info',
+      level: 'info',
       formatters: {
         level: (label) => {
           return { level: label };
         }
       },
       timestamp: pino.stdTimeFunctions.isoTime,
-      // Suppress logs in test environment unless explicitly set to debug
-      enabled: process.env.NODE_ENV !== 'test' || process.env.LOG_LEVEL === 'debug'
-    }, pino.multistream(streams));
+      // Suppress logs in test environment
+      enabled: process.env.NODE_ENV !== 'test'
+    }, pino.multistream(this.streams));
+  }
+
+  /**
+   * Update the log level dynamically
+   * Called after ConfigService is initialized
+   */
+  updateLogLevel(level: LogLevel): void {
+    this.baseLogger.level = level;
+    
+    // Recreate logger with new level to ensure all streams are updated
+    this.baseLogger = pino({
+      level: level,
+      formatters: {
+        level: (label) => {
+          return { level: label };
+        }
+      },
+      timestamp: pino.stdTimeFunctions.isoTime,
+      // Enable in test environment if debug level
+      enabled: process.env.NODE_ENV !== 'test' || level === 'debug'
+    }, pino.multistream(this.streams));
   }
 
   /**

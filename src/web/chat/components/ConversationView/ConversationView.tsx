@@ -194,7 +194,7 @@ export function ConversationView() {
     }
   }, [navigate, sessionId]);
 
-  const { isConnected } = useStreaming(streamingId, {
+  const { isConnected, disconnect } = useStreaming(streamingId, {
     onMessage: handleStreamMessage,
     onError: (err) => {
       setError(err.message);
@@ -228,6 +228,27 @@ export function ConversationView() {
     }
   };
 
+  const handleStop = async () => {
+    if (!streamingId) return;
+
+    try {
+      // Call the API to stop the conversation
+      await api.stopConversation(streamingId);
+      
+      // Disconnect the streaming connection
+      disconnect();
+      
+      // Clear the streaming ID
+      setStreamingId(null);
+      
+      // Mark all messages as not streaming
+      setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+    } catch (err: any) {
+      console.error('Failed to stop conversation:', err);
+      setError(err.message || 'Failed to stop conversation');
+    }
+  };
+
   return (
     <div className={styles.container}>
       {error && (
@@ -248,6 +269,7 @@ export function ConversationView() {
 
       <InputArea
         onSubmit={handleSendMessage}
+        onStop={handleStop}
         isLoading={isConnected}
         placeholder="Continue the conversation..."
       />

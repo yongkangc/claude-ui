@@ -176,9 +176,23 @@ export class TestHelpers {
   static createTestServer(config?: {
     port?: number;
   }): CCUIServer {
-    return new CCUIServer({
-      port: config?.port || 0
+    // Mock ConfigService for tests
+    const { ConfigService } = require('@/services/config-service');
+    jest.spyOn(ConfigService, 'getInstance').mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getConfig: jest.fn().mockReturnValue({
+        machine_id: 'test-machine-12345678',
+        server: {
+          host: 'localhost',
+          port: config?.port || 3001
+        },
+        logging: {
+          level: 'silent'
+        }
+      })
     });
+    
+    return new CCUIServer();
   }
 
   /**
@@ -200,14 +214,10 @@ export class TestHelpers {
    * Setup test logging
    */
   static setupTestLogging(enabled: boolean = true): void {
-    if (enabled) {
-      // Enable debug logging by setting environment variables
-      process.env.LOG_LEVEL = 'debug';
-      process.env.DEBUG = 'ccui:*';
-    } else {
-      delete process.env.LOG_LEVEL;
-      delete process.env.DEBUG;
-    }
+    // Note: Logging is now controlled by ConfigService
+    // Tests run with silent logging by default
+    // To enable debug logging for tests, modify the mocked ConfigService
+    // or create a test config file
   }
 
   /**
@@ -237,11 +247,25 @@ export class TestHelpers {
   static createIntegrationTestServer(config?: {
     port?: number;
   }): CCUIServer {
-    const randomPort = 3000 + Math.floor(Math.random() * 1000);
-    return new CCUIServer({
-      port: randomPort,
-      ...config
+    const randomPort = config?.port || (3000 + Math.floor(Math.random() * 1000));
+    
+    // Mock ConfigService for integration tests
+    const { ConfigService } = require('@/services/config-service');
+    jest.spyOn(ConfigService, 'getInstance').mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getConfig: jest.fn().mockReturnValue({
+        machine_id: 'test-machine-12345678',
+        server: {
+          host: 'localhost',
+          port: randomPort
+        },
+        logging: {
+          level: 'silent'
+        }
+      })
     });
+    
+    return new CCUIServer();
   }
 
   /**

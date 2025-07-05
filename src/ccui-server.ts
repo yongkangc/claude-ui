@@ -8,6 +8,7 @@ import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
 import { logStreamBuffer } from './services/log-stream-buffer';
+import { ConfigService } from './services/config-service';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -46,20 +47,27 @@ export class CCUIServer {
   private permissionTracker: PermissionTracker;
   private mcpConfigGenerator: MCPConfigGenerator;
   private fileSystemService: FileSystemService;
+  private configService: ConfigService;
   private logger: Logger;
   private port: number;
+  private host: string;
+  private configOverrides?: { port?: number; host?: string };
 
-  constructor(config?: {
-    port?: number;
-  }) {
-    this.port = config?.port || parseInt(process.env.PORT || '3001');
+  constructor(configOverrides?: { port?: number; host?: string }) {
     this.app = express();
     this.logger = createLogger('CCUIServer');
+    this.configOverrides = configOverrides;
+    
+    // Initialize config service first
+    this.configService = ConfigService.getInstance();
+    
+    // Will be set after config is loaded
+    this.port = 0;
+    this.host = '';
     
     this.logger.debug('Initializing CCUIServer', {
-      port: this.port,
-      configProvided: !!config,
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
+      configOverrides
     });
     
     // Initialize services
@@ -85,6 +93,23 @@ export class CCUIServer {
   async start(): Promise<void> {
     this.logger.debug('Start method called');
     try {
+      // Initialize configuration first
+      this.logger.debug('Initializing configuration');
+      await this.configService.initialize();
+      const config = this.configService.getConfig();
+      
+      // Apply overrides if provided (for tests and CLI options)
+      this.port = this.configOverrides?.port ?? config.server.port;
+      this.host = this.configOverrides?.host ?? config.server.host;
+      
+      this.logger.info('Configuration loaded', {
+        machineId: config.machine_id,
+        port: this.port,
+        host: this.host,
+        logLevel: config.logging.level,
+        overrides: this.configOverrides ? Object.keys(this.configOverrides) : []
+      });
+
       // Generate MCP config before starting server
       this.logger.debug('Generating MCP config');
       const mcpConfigPath = this.mcpConfigGenerator.generateConfig(this.port);
@@ -93,7 +118,7 @@ export class CCUIServer {
 
       // Start Express server
       const isTestEnv = process.env.NODE_ENV === 'test';
-      this.logger.info(`Starting HTTP server${!isTestEnv ? ' with Vite' : ''} on port ${this.port}...`);
+      this.logger.info(`Starting HTTP server${!isTestEnv ? ' with Vite' : ''} on ${this.host}:${this.port}...`);
       this.logger.debug('Creating HTTP server listener', { 
         useViteExpress: !isTestEnv,
         environment: process.env.NODE_ENV 
@@ -102,19 +127,35 @@ export class CCUIServer {
       await new Promise<void>((resolve, reject) => {
         // Use ViteExpress in non-test environments, regular Express in tests
         if (!isTestEnv && ViteExpress) {
-          this.server = ViteExpress.listen(this.app, this.port, () => {
-            this.logger.info(`CCUI server with Vite running on port ${this.port}`);
-            this.logger.debug('Server successfully bound to port', {
-              port: this.port,
-              address: this.server?.address()
+          try {
+            // ViteExpress.listen returns a promise in newer versions
+            this.server = this.app.listen(this.port, this.host, () => {
+              this.logger.info(`CCUI server with Vite running on ${this.host}:${this.port}`);
+              this.logger.debug('Server successfully bound to port', {
+                port: this.port,
+                host: this.host,
+                address: this.server?.address()
+              });
+              resolve();
             });
-            resolve();
-          });
+            
+            // Configure ViteExpress to use existing server
+            ViteExpress.config({
+              mode: 'development',
+              viteConfigFile: 'vite.config.ts'
+            });
+            
+            ViteExpress.bind(this.app, this.server);
+          } catch (error) {
+            this.logger.error('Failed to start ViteExpress server', error);
+            reject(error);
+          }
         } else {
-          this.server = this.app.listen(this.port, () => {
-            this.logger.info(`CCUI server running on port ${this.port}`);
+          this.server = this.app.listen(this.port, this.host, () => {
+            this.logger.info(`CCUI server running on ${this.host}:${this.port}`);
             this.logger.debug('Server successfully bound to port', {
               port: this.port,
+              host: this.host,
               address: this.server?.address()
             });
             resolve();
@@ -126,7 +167,8 @@ export class CCUIServer {
             this.logger.error('Failed to start HTTP server:', error, {
               errorCode: (error as any).code,
               errorSyscall: (error as any).syscall,
-              port: this.port
+              port: this.port,
+              host: this.host
             });
             reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
           });

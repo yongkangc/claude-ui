@@ -19,8 +19,7 @@ program
 program
   .command('serve')
   .description('Start the CCUI backend server')
-  .option('-p, --port <port>', 'Port to run the server on', '3001')
-  .option('--mcp-config <path>', 'Path to MCP configuration file', './config/mcp-config.json')
+  .option('-p, --port <port>', 'Override configured port')
   .action(serveCommand);
 
 program

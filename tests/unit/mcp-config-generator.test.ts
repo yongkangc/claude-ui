@@ -5,6 +5,22 @@ describe('MCPConfigGenerator', () => {
   let generator: MCPConfigGenerator;
 
   beforeEach(() => {
+    // Mock ConfigService for tests
+    const { ConfigService } = require('@/services/config-service');
+    jest.spyOn(ConfigService, 'getInstance').mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getConfig: jest.fn().mockReturnValue({
+        machine_id: 'test-machine-12345678',
+        server: {
+          host: 'localhost',
+          port: 3001
+        },
+        logging: {
+          level: 'info'
+        }
+      })
+    });
+    
     generator = new MCPConfigGenerator();
   });
 

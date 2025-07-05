@@ -2,20 +2,22 @@ import { CCUIServer } from '../../ccui-server';
 import { createLogger } from '../../services/logger';
 
 interface ServeOptions {
-  port: string;
+  port?: string;
 }
 
 export async function serveCommand(options: ServeOptions): Promise<void> {
   const logger = createLogger('ServeCommand');
   
   try {
-    const server = new CCUIServer({
-      port: parseInt(options.port)
-    });
+    // Allow CLI to override config port
+    const configOverrides = options.port ? { port: parseInt(options.port) } : undefined;
+    const server = new CCUIServer(configOverrides);
 
-    logger.info(`Starting CCUI server on port ${options.port}`);
+    logger.info('Starting CCUI server...');
     await server.start();
-    logger.info(`CCUI server is running at http://localhost:${options.port}`);
+    
+    const displayPort = options.port || 'configured';
+    logger.info(`CCUI server is running (port: ${displayPort})`);
     
     // Handle graceful shutdown
     process.on('SIGTERM', async () => {

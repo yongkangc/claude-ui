@@ -1,0 +1,224 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { ConfigService } from '@/services/config-service';
+import { generateMachineId } from '@/utils/machine-id';
+import { CCUIConfig } from '@/types/config';
+
+describe('Configuration System Basic Integration', () => {
+  let testConfigDir: string;
+  let originalHome: string;
+
+  beforeAll(() => {
+    // Create temporary config directory for tests
+    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccui-config-basic-test-'));
+    
+    // Mock the home directory to use our test directory
+    originalHome = os.homedir();
+    jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+  });
+
+  afterAll(() => {
+    // Restore original home directory
+    (os.homedir as jest.MockedFunction<typeof os.homedir>).mockRestore();
+    
+    // Clean up test config directory
+    if (fs.existsSync(testConfigDir)) {
+      fs.rmSync(testConfigDir, { recursive: true, force: true });
+    }
+  });
+
+  beforeEach(() => {
+    // Clear any existing config directory
+    const ccuiDir = path.join(testConfigDir, '.ccui');
+    if (fs.existsSync(ccuiDir)) {
+      fs.rmSync(ccuiDir, { recursive: true, force: true });
+    }
+    
+    // Reset ConfigService singleton
+    const configService = ConfigService.getInstance();
+    (configService as any).isInitialized = false;
+    (configService as any).config = null;
+  });
+
+  describe('Configuration File Creation', () => {
+    it('should create config directory and file on first initialization', async () => {
+      const configService = ConfigService.getInstance();
+      
+      // Config directory should not exist initially
+      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(false);
+      
+      await configService.initialize();
+      
+      // Config directory and file should now exist
+      const ccuiDir = path.join(testConfigDir, '.ccui');
+      const configPath = path.join(ccuiDir, 'config.json');
+      
+      expect(fs.existsSync(ccuiDir)).toBe(true);
+      expect(fs.existsSync(configPath)).toBe(true);
+      
+      // Verify config file structure
+      const configContent = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(configContent);
+      
+      expect(config).toHaveProperty('machine_id');
+      expect(config).toHaveProperty('server');
+      expect(config).toHaveProperty('logging');
+      expect(config.server).toHaveProperty('host', 'localhost');
+      expect(config.server).toHaveProperty('port', 3001);
+      expect(config.logging).toHaveProperty('level', 'info');
+    });
+
+    it('should load existing config file if it exists', async () => {
+      // Create a pre-existing config file
+      const ccuiDir = path.join(testConfigDir, '.ccui');
+      fs.mkdirSync(ccuiDir, { recursive: true });
+      
+      const existingConfig: CCUIConfig = {
+        machine_id: 'test-machine-12345678',
+        server: {
+          host: '127.0.0.1',
+          port: 4000
+        },
+        logging: {
+          level: 'debug'
+        }
+      };
+      
+      fs.writeFileSync(
+        path.join(ccuiDir, 'config.json'), 
+        JSON.stringify(existingConfig, null, 2)
+      );
+      
+      const configService = ConfigService.getInstance();
+      await configService.initialize();
+      
+      const loadedConfig = configService.getConfig();
+      
+      expect(loadedConfig.machine_id).toBe('test-machine-12345678');
+      expect(loadedConfig.server.host).toBe('127.0.0.1');
+      expect(loadedConfig.server.port).toBe(4000);
+      expect(loadedConfig.logging.level).toBe('debug');
+    });
+  });
+
+  describe('Machine ID Generation', () => {
+    it('should generate consistent machine ID format', async () => {
+      const machineId = await generateMachineId();
+      
+      // Should match format: {hostname}-{8char_hash}
+      const pattern = /^[a-z0-9\-]+\-[a-f0-9]{8}$/;
+      expect(machineId).toMatch(pattern);
+      
+      // Should start with lowercase hostname
+      const hostname = os.hostname().toLowerCase();
+      expect(machineId).toMatch(new RegExp(`^${hostname.replace(/[^a-z0-9]/g, '')}`));
+    });
+
+    it('should generate the same machine ID on multiple calls', async () => {
+      const machineId1 = await generateMachineId();
+      const machineId2 = await generateMachineId();
+      
+      expect(machineId1).toBe(machineId2);
+    });
+
+    it('should persist machine ID across config service restarts', async () => {
+      const configService1 = ConfigService.getInstance();
+      await configService1.initialize();
+      const config1 = configService1.getConfig();
+      
+      // Reset and reinitialize
+      (configService1 as any).isInitialized = false;
+      (configService1 as any).config = null;
+      
+      const configService2 = ConfigService.getInstance();
+      await configService2.initialize();
+      const config2 = configService2.getConfig();
+      
+      expect(config1.machine_id).toBe(config2.machine_id);
+    });
+  });
+
+  describe('ConfigService Singleton Behavior', () => {
+    it('should return the same instance across multiple calls', () => {
+      const instance1 = ConfigService.getInstance();
+      const instance2 = ConfigService.getInstance();
+      
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should throw error when accessing config before initialization', () => {
+      const configService = ConfigService.getInstance();
+      
+      expect(() => configService.getConfig()).toThrow('Configuration not initialized');
+    });
+
+    it('should prevent multiple initializations', async () => {
+      const configService = ConfigService.getInstance();
+      
+      await configService.initialize();
+      
+      // Second initialization should not throw
+      await expect(configService.initialize()).resolves.not.toThrow();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle malformed config file gracefully', async () => {
+      // Create malformed config file
+      const ccuiDir = path.join(testConfigDir, '.ccui');
+      fs.mkdirSync(ccuiDir, { recursive: true });
+      
+      fs.writeFileSync(
+        path.join(ccuiDir, 'config.json'), 
+        '{ invalid json content'
+      );
+      
+      const configService = ConfigService.getInstance();
+      
+      await expect(configService.initialize()).rejects.toThrow();
+    });
+
+    it('should handle missing config file fields', async () => {
+      // Create incomplete config file
+      const ccuiDir = path.join(testConfigDir, '.ccui');
+      fs.mkdirSync(ccuiDir, { recursive: true });
+      
+      fs.writeFileSync(
+        path.join(ccuiDir, 'config.json'), 
+        JSON.stringify({ machine_id: 'test' }) // Missing server and logging
+      );
+      
+      const configService = ConfigService.getInstance();
+      
+      await expect(configService.initialize()).rejects.toThrow();
+    });
+  });
+
+  describe('Default Configuration Values', () => {
+    it('should create config with correct default values', async () => {
+      const configService = ConfigService.getInstance();
+      await configService.initialize();
+      
+      const config = configService.getConfig();
+      
+      expect(config.server.host).toBe('localhost');
+      expect(config.server.port).toBe(3001);
+      expect(config.logging.level).toBe('info');
+      expect(config.machine_id).toBeDefined();
+      expect(config.machine_id).toMatch(/^[a-z0-9\-]+\-[a-f0-9]{8}$/);
+    });
+
+    it('should generate machine ID with correct hostname prefix', async () => {
+      const configService = ConfigService.getInstance();
+      await configService.initialize();
+      
+      const config = configService.getConfig();
+      const hostname = os.hostname().toLowerCase();
+      
+      // Machine ID should start with hostname (with invalid chars removed)
+      const cleanHostname = hostname.replace(/[^a-z0-9]/gi, '').toLowerCase();
+      expect(config.machine_id).toMatch(new RegExp(`^${cleanHostname}`));
+    });
+  });
+});

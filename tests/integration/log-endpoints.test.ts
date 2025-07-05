@@ -11,6 +11,9 @@ describe('Log Endpoints Integration', () => {
     // Create server instance for testing
     server = new CCUIServer({ port: 0 }); // Use port 0 for random available port
     app = (server as any).app; // Access the Express app for testing
+    
+    // Start the server for integration tests
+    await server.start();
   });
 
   afterAll(async () => {
@@ -116,8 +119,9 @@ describe('Log Endpoints Integration', () => {
 
   describe('GET /api/logs/stream', () => {
     it('should establish SSE connection with correct headers', async () => {
-      // Get the server port from the test setup
-      const serverPort = (server as any).port || 3001;
+      // Get the actual server port from the running server
+      const serverAddress = (server as any).server?.address();
+      const serverPort = serverAddress?.port || 3001;
       const baseUrl = `http://localhost:${serverPort}`;
       
       // Create AbortController for cleanup
@@ -163,8 +167,9 @@ describe('Log Endpoints Integration', () => {
     });
 
     it('should handle basic streaming functionality', async () => {
-      // Get the server port from the test setup
-      const serverPort = (server as any).port || 3001;
+      // Get the actual server port from the running server
+      const serverAddress = (server as any).server?.address();
+      const serverPort = serverAddress?.port || 3001;
       const baseUrl = `http://localhost:${serverPort}`;
       
       // Create AbortController for cleanup
@@ -267,8 +272,9 @@ describe('Log Endpoints Integration', () => {
     });
 
     it('should set proper content type for log streaming', async () => {
-      // Get the server port from the test setup
-      const serverPort = (server as any).port || 3001;
+      // Get the actual server port from the running server
+      const serverAddress = (server as any).server?.address();
+      const serverPort = serverAddress?.port || 3001;
       const baseUrl = `http://localhost:${serverPort}`;
       
       // Create AbortController for cleanup
