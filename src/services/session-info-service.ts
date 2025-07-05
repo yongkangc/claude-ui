@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import type { SessionInfo, SessionInfoDatabase, DatabaseMetadata } from '@/types';
+import type { SessionInfo, SessionInfoDatabase } from '@/types';
 import { createLogger } from './logger';
 import type { Logger } from 'pino';
 import { JsonFileManager } from './json-file-manager';
@@ -257,15 +257,12 @@ export class SessionInfoService {
   private async ensureMetadata(): Promise<void> {
     try {
       await this.jsonManager.update((data) => {
-        let changed = false;
-
         if (!data.metadata) {
           data.metadata = {
             schema_version: 1,
             created_at: new Date().toISOString(),
             last_updated: new Date().toISOString()
           };
-          changed = true;
           this.logger.info('Created missing metadata');
         }
 
@@ -274,7 +271,6 @@ export class SessionInfoService {
           // Migrate to version 1
           data.metadata.schema_version = 1;
           data.metadata.last_updated = new Date().toISOString();
-          changed = true;
           this.logger.info('Migrated database to schema version 1');
         }
 
@@ -293,7 +289,7 @@ export class SessionInfoService {
     if (SessionInfoService.instance) {
       SessionInfoService.instance.isInitialized = false;
     }
-    SessionInfoService.instance = null as any;
+    SessionInfoService.instance = null as unknown as SessionInfoService;
   }
 
   /**

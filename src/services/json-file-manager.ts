@@ -83,7 +83,6 @@ export class JsonFileManager<T> {
    */
   private async performWrite(data: T): Promise<void> {
     const tempPath = `${this.filePath}.tmp`;
-    const lockPath = this.lockPath;
 
     try {
       // Create lock file to prevent concurrent writes
@@ -165,8 +164,8 @@ export class JsonFileManager<T> {
         await fs.promises.writeFile(this.lockPath, process.pid.toString(), { flag: 'wx' });
         this.logger.debug('Acquired lock', { lockPath: this.lockPath });
         return;
-      } catch (error: any) {
-        if (error.code === 'EEXIST') {
+      } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'EEXIST') {
           // Lock file exists, check if process is still running
           try {
             const lockContent = await fs.promises.readFile(this.lockPath, 'utf-8');
