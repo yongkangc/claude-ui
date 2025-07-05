@@ -15,7 +15,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+      bottomRef.current.scrollIntoView({ behavior: 'instant' });
     }
   }, [messages]);
 
