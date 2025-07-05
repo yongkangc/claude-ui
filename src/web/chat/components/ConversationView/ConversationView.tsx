@@ -133,10 +133,17 @@ export function ConversationView() {
         setMessages(prev => {
           const existing = prev.find(m => m.id === assistantId);
           if (existing) {
-            // Update existing message
+            // Update existing message - accumulate content blocks instead of replacing
             return prev.map(m => 
               m.id === assistantId 
-                ? { ...m, content: event.message.content, isStreaming: event.message.stop_reason === null }
+                ? { 
+                    ...m, 
+                    content: [
+                      ...(Array.isArray(existing.content) ? existing.content : []),
+                      ...(Array.isArray(event.message.content) ? event.message.content : [event.message.content])
+                    ],
+                    isStreaming: event.message.stop_reason === null 
+                  }
                 : m
             );
           } else {
@@ -144,7 +151,7 @@ export function ConversationView() {
             const assistantMessage: ChatMessage = {
               id: assistantId,
               type: 'assistant',
-              content: event.message.content,
+              content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
               timestamp: new Date().toISOString(),
               isStreaming: event.message.stop_reason === null,
             };
