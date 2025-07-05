@@ -250,20 +250,22 @@ export function ConversationView() {
 
 // Helper function to convert API response to chat messages
 function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessage[] {
-  return details.messages.map(msg => {
-    // Extract content from the message structure
-    let content = msg.message;
-    
-    // Handle Anthropic message format
-    if (typeof msg.message === 'object' && 'content' in msg.message) {
-      content = msg.message.content;
-    }
-    
-    return {
-      id: msg.uuid,
-      type: msg.type as 'user' | 'assistant' | 'system',
-      content: content,
-      timestamp: msg.timestamp,
-    };
-  });
+  return details.messages
+    .filter(msg => !msg.isSidechain) // Filter out sidechain messages
+    .map(msg => {
+      // Extract content from the message structure
+      let content = msg.message;
+      
+      // Handle Anthropic message format
+      if (typeof msg.message === 'object' && 'content' in msg.message) {
+        content = msg.message.content;
+      }
+      
+      return {
+        id: msg.uuid,
+        type: msg.type as 'user' | 'assistant' | 'system',
+        content: content,
+        timestamp: msg.timestamp,
+      };
+    });
 }
