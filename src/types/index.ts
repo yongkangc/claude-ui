@@ -200,6 +200,12 @@ export class CCUIError extends Error {
   }
 }
 
+// Config types
+export interface CCUIConfig {
+  machine_id: string;
+  // Additional fields can be added here in the future
+}
+
 // File system types
 export interface FileSystemEntry {
   name: string;
