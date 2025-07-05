@@ -5,6 +5,7 @@ import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
 import { useStreaming } from '../../hooks/useStreaming';
+import { useConversations } from '../../contexts/ConversationsContext';
 import type { ChatMessage, StreamEvent, StartConversationRequest } from '../../types';
 import styles from './NewConversation.module.css';
 
@@ -12,9 +13,15 @@ export function NewConversation() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [workingDirectory, setWorkingDirectory] = useState(
-    process.env.NODE_ENV === 'development' ? '/tmp' : ''
-  );
+  const { getMostRecentWorkingDirectory } = useConversations();
+  
+  // Initialize working directory with the most recent project path
+  const [workingDirectory, setWorkingDirectory] = useState(() => {
+    const recentPath = getMostRecentWorkingDirectory();
+    if (recentPath) return recentPath;
+    return process.env.NODE_ENV === 'development' ? '/tmp' : '';
+  });
+  
   const [showWorkingDirInput, setShowWorkingDirInput] = useState(true);
   const navigate = useNavigate();
 
@@ -25,6 +32,16 @@ export function NewConversation() {
       setMessages([]);
     };
   }, []);
+  
+  // Update working directory when returning to new conversation page if it's still empty
+  useEffect(() => {
+    if (!workingDirectory) {
+      const recentPath = getMostRecentWorkingDirectory();
+      if (recentPath) {
+        setWorkingDirectory(recentPath);
+      }
+    }
+  }, [getMostRecentWorkingDirectory]);
 
   // Handle streaming messages
   const handleStreamMessage = useCallback((event: StreamEvent) => {
@@ -56,10 +73,17 @@ export function NewConversation() {
         setMessages(prev => {
           const existing = prev.find(m => m.id === assistantId);
           if (existing) {
-            // Update existing message
+            // Update existing message - accumulate content blocks instead of replacing
             return prev.map(m => 
               m.id === assistantId 
-                ? { ...m, content: event.message.content, isStreaming: event.message.stop_reason === null }
+                ? { 
+                    ...m, 
+                    content: [
+                      ...(Array.isArray(existing.content) ? existing.content : []),
+                      ...(Array.isArray(event.message.content) ? event.message.content : [event.message.content])
+                    ],
+                    isStreaming: event.message.stop_reason === null 
+                  }
                 : m
             );
           } else {
@@ -67,7 +91,7 @@ export function NewConversation() {
             const assistantMessage: ChatMessage = {
               id: assistantId,
               type: 'assistant',
-              content: event.message.content,
+              content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
               timestamp: new Date().toISOString(),
               isStreaming: event.message.stop_reason === null,
             };

@@ -1,30 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, MessageSquare, Clock, Zap } from 'lucide-react';
-import { api } from '../../services/api';
-import type { ConversationSummary } from '../../types';
+import { useConversations } from '../../contexts/ConversationsContext';
 import styles from './Sidebar.module.css';
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadConversations = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.getConversations({ limit: 50 });
-      setConversations(data.conversations);
-    } catch (err) {
-      setError('Failed to load conversations');
-      console.error('Error loading conversations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { conversations, loading, error, loadConversations } = useConversations();
 
   useEffect(() => {
     loadConversations();
