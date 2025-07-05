@@ -1,16 +1,22 @@
 import { CCUIServer } from '../../ccui-server';
 import { createLogger } from '../../services/logger';
+import type { LogLevel } from '../../types/config';
 
 interface ServeOptions {
   port?: string;
+  logLevel?: LogLevel;
 }
 
 export async function serveCommand(options: ServeOptions): Promise<void> {
   const logger = createLogger('ServeCommand');
   
+  
   try {
-    // Allow CLI to override config port
-    const configOverrides = options.port ? { port: parseInt(options.port) } : undefined;
+    // Allow CLI to override config port and log level
+    const configOverrides = {
+      ...(options.port ? { port: parseInt(options.port) } : {}),
+      ...(options.logLevel ? { logLevel: options.logLevel } : {})
+    };
     const server = new CCUIServer(configOverrides);
 
     logger.info('Starting CCUI server...');

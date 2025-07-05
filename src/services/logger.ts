@@ -18,7 +18,8 @@ class LoggerService {
   private static instance: LoggerService;
   private baseLogger: Logger;
   private logInterceptStream: PassThrough;
-  private streams: { stream: NodeJS.WritableStream }[];
+  private streams: pino.StreamEntry[];
+  private childLoggers: Map<string, Logger> = new Map();
 
   private constructor() {
     // Create a pass-through stream to intercept logs
@@ -64,6 +65,12 @@ class LoggerService {
   updateLogLevel(level: LogLevel): void {
     this.baseLogger.level = level;
     
+    // Recreate streams with the new level (this is the fix!)
+    this.streams = [
+      { level: level as pino.Level, stream: process.stdout },
+      { level: level as pino.Level, stream: this.logInterceptStream }
+    ];
+    
     // Recreate logger with new level to ensure all streams are updated
     this.baseLogger = pino({
       level: level,
@@ -76,6 +83,14 @@ class LoggerService {
       // Enable in test environment if debug level
       enabled: process.env.NODE_ENV !== 'test' || level === 'debug'
     }, pino.multistream(this.streams));
+    
+    // Recreate all child loggers to use the new base logger
+    const childContexts = Array.from(this.childLoggers.keys());
+    this.childLoggers.clear();
+    for (const contextKey of childContexts) {
+      const context = JSON.parse(contextKey);
+      this.childLoggers.set(contextKey, this.baseLogger.child(context));
+    }
   }
 
   /**
@@ -92,7 +107,11 @@ class LoggerService {
    * Create a child logger with context
    */
   child(context: LogContext): Logger {
-    return this.baseLogger.child(context);
+    const contextKey = JSON.stringify(context);
+    if (!this.childLoggers.has(contextKey)) {
+      this.childLoggers.set(contextKey, this.baseLogger.child(context));
+    }
+    return this.childLoggers.get(contextKey)!;
   }
 
   /**

@@ -25,8 +25,9 @@ import {
   FileSystemReadQuery,
   FileSystemReadResponse
 } from './types';
-import { createLogger } from './services/logger';
+import { createLogger, logger as globalLogger } from './services/logger';
 import type { Logger } from 'pino';
+import type { LogLevel } from './types/config';
 
 // Conditionally import ViteExpress only in non-test environments
 let ViteExpress: any;
@@ -51,12 +52,21 @@ export class CCUIServer {
   private logger: Logger;
   private port: number;
   private host: string;
-  private configOverrides?: { port?: number; host?: string };
+  private configOverrides?: { port?: number; host?: string; logLevel?: LogLevel };
 
-  constructor(configOverrides?: { port?: number; host?: string }) {
+  constructor(configOverrides?: { port?: number; host?: string; logLevel?: LogLevel }) {
     this.app = express();
-    this.logger = createLogger('CCUIServer');
     this.configOverrides = configOverrides;
+    
+    // Update log level immediately if provided via CLI, before creating any child loggers
+    if (configOverrides?.logLevel) {
+      globalLogger.updateLogLevel(configOverrides.logLevel);
+    }
+    
+    this.logger = createLogger('CCUIServer');
+    
+    // TEST: Add debug log right at the start
+    this.logger.debug('🔍 TEST: CCUIServer constructor started - this should be visible if debug logging works');
     
     // Initialize config service first
     this.configService = ConfigService.getInstance();

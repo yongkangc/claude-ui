@@ -20,6 +20,7 @@ program
   .command('serve')
   .description('Start the CCUI backend server')
   .option('-p, --port <port>', 'Override configured port')
+  .option('--log-level <level>', 'Override log level (debug, info, warn, error, silent)')
   .action(serveCommand);
 
 program
