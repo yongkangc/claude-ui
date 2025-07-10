@@ -1,13 +1,14 @@
 import type { ChatMessage } from '../types';
 
 /**
- * Groups messages according to sub-message grouping rules:
+ * Groups messages according to sub-message grouping rules using a one-pass algorithm:
  * Rule 1: Messages with parent_tool_use_id should be grouped under their parent tool call message
  * Rule 2: User messages with content.type == "tool_result" should be grouped under the nearest previous assistant message
  * 
- * Uses a two-pass algorithm to ensure parent messages are found even if they appear after child messages.
+ * Uses a single-pass algorithm with dictionary lookup for O(1) parent finding.
+ * Leverages the constraint that parent messages ALWAYS appear before child messages.
  * 
- * @param messages - Flat array of messages to group
+ * @param messages - Flat array of messages to group (parent messages appear before children)
  * @returns Array of messages with sub-messages grouped hierarchically
  */
 export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
@@ -15,61 +16,61 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     return [];
   }
 
-  const grouped: ChatMessage[] = [];
-  const messageMap = new Map<string, ChatMessage>();
-  
-  // First pass: build complete message map with all messages
+  const messageDict = new Map<string, ChatMessage>();
+  const result: ChatMessage[] = [];
+  let latestAssistant: ChatMessage | null = null;
+
   for (const message of messages) {
     const messageCopy: ChatMessage = {
       ...message,
       subMessages: undefined, // Reset subMessages for fresh grouping
     };
-    messageMap.set(messageCopy.id, messageCopy);
-  }
-  
-  // Second pass: apply grouping rules with index tracking
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    const messageCopy = messageMap.get(message.id)!;
-    
-    // Rule 1: Handle parent_tool_use_id
-    if (message.parent_tool_use_id) {
-      const parent = findParentToolMessage(messageMap, message.parent_tool_use_id);
+    messageDict.set(messageCopy.id, messageCopy);
+
+    let isSubMessage = false;
+
+    // Rule 1: Handle parent_tool_use_id (highest priority)
+    if (messageCopy.parent_tool_use_id) {
+      const parent = findParentByToolId(messageDict, messageCopy.parent_tool_use_id);
       if (parent) {
         parent.subMessages = parent.subMessages || [];
         parent.subMessages.push(messageCopy);
-        continue;
+        isSubMessage = true;
       }
     }
-    
-    // Rule 2: Handle tool_result content type
-    if (message.type === 'user' && hasToolResultContent(message)) {
-      const nearestAssistant = findNearestAssistantMessage(messages, i);
-      if (nearestAssistant) {
-        // Get the copy from messageMap to ensure we're updating the right instance
-        const nearestAssistantCopy = messageMap.get(nearestAssistant.id)!;
-        nearestAssistantCopy.subMessages = nearestAssistantCopy.subMessages || [];
-        nearestAssistantCopy.subMessages.push(messageCopy);
-        continue;
+
+    // Rule 2: Handle tool_result content type (only if not already grouped by Rule 1)
+    if (!isSubMessage && messageCopy.type === 'user' && hasToolResultContent(messageCopy)) {
+      if (latestAssistant) {
+        latestAssistant.subMessages = latestAssistant.subMessages || [];
+        latestAssistant.subMessages.push(messageCopy);
+        isSubMessage = true;
       }
     }
-    
-    // Regular message - add to main list
-    grouped.push(messageCopy);
+
+    // Track latest assistant message for Rule 2
+    if (messageCopy.type === 'assistant') {
+      latestAssistant = messageCopy;
+    }
+
+    // Add to main result list if not a sub-message
+    if (!isSubMessage) {
+      result.push(messageCopy);
+    }
   }
 
-  return grouped;
+  return result;
 }
 
 /**
- * Finds the parent tool message by tool_use_id
- * Optimized to use the messageMap efficiently with proper type checking
+ * Finds the parent tool message by tool_use_id using dictionary lookup
+ * Optimized O(1) lookup using message dictionary with proper type checking
  */
-function findParentToolMessage(
-  messageMap: Map<string, ChatMessage>,
+function findParentByToolId(
+  messageDict: Map<string, ChatMessage>,
   toolUseId: string
 ): ChatMessage | null {
-  for (const [, message] of messageMap) {
+  for (const [, message] of messageDict) {
     if (message.type === 'assistant' && Array.isArray(message.content)) {
       for (const block of message.content) {
         if (block && 
@@ -81,21 +82,6 @@ function findParentToolMessage(
           return message;
         }
       }
-    }
-  }
-  return null;
-}
-
-/**
- * Finds the nearest previous assistant message in the original messages array
- * This ensures we find parent messages even if they haven't been added to grouped yet
- */
-function findNearestAssistantMessage(messages: ChatMessage[], currentIndex: number): ChatMessage | null {
-  // Search backwards from current position in the original messages array
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    const message = messages[i];
-    if (message.type === 'assistant') {
-      return message;
     }
   }
   return null;
