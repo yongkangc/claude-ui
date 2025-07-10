@@ -21,6 +21,7 @@ export const MessageList = forwardRef<MessageListRef, MessageListProps>(
   const [isFollowing, setIsFollowing] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const scrollThreshold = 100; // pixels from bottom to consider "near bottom"
+  const messageCountRef = useRef(0); // Track message count for auto-scroll logic
 
   // Check if user is near bottom of scroll
   const checkIsNearBottom = useCallback(() => {
@@ -71,25 +72,45 @@ export const MessageList = forwardRef<MessageListRef, MessageListProps>(
     };
   }, [handleScroll]);
 
-  // Auto-scroll logic
+  // Auto-scroll on navigation (when streaming state changes)
   useEffect(() => {
     if (!bottomRef.current) return;
 
-    // Always scroll instantly when not streaming (navigation)
+    // Always scroll instantly when not streaming (navigation between conversations)
     if (!isStreaming) {
       bottomRef.current.scrollIntoView({ behavior: 'instant' });
       setIsFollowing(true);
       setHasNewMessages(false);
-    } 
-    // During streaming, only scroll if following
-    else if (isFollowing) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      // User is reading above, mark that we have new messages
-      setHasNewMessages(true);
-      onFollowingChange?.(false, true);
     }
-  }, [messages, isStreaming, isFollowing, onFollowingChange]);
+  }, [isStreaming]);
+
+  // Auto-scroll on new messages (when message count increases)
+  useEffect(() => {
+    const currentMessageCount = messages.length;
+    const previousMessageCount = messageCountRef.current;
+    
+    // Update the ref with current count
+    messageCountRef.current = currentMessageCount;
+    
+    // Skip if no messages or first render
+    if (currentMessageCount === 0 || previousMessageCount === 0) {
+      return;
+    }
+    
+    // Only auto-scroll if new messages were added (not just updated)
+    if (currentMessageCount > previousMessageCount) {
+      if (!bottomRef.current) return;
+      
+      // During streaming, only scroll if following
+      if (isStreaming && isFollowing) {
+        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+      } else if (isStreaming && !isFollowing) {
+        // User is reading above, mark that we have new messages
+        setHasNewMessages(true);
+        onFollowingChange?.(false, true);
+      }
+    }
+  }, [messages.length, isStreaming, isFollowing, onFollowingChange]);
 
   // Scroll to bottom and re-enable following
   const scrollToBottom = useCallback(() => {
