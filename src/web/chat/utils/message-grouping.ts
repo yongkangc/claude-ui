@@ -27,8 +27,9 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     messageMap.set(messageCopy.id, messageCopy);
   }
   
-  // Second pass: apply grouping rules
-  for (const message of messages) {
+  // Second pass: apply grouping rules with index tracking
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
     const messageCopy = messageMap.get(message.id)!;
     
     // Rule 1: Handle parent_tool_use_id
@@ -43,10 +44,12 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     
     // Rule 2: Handle tool_result content type
     if (message.type === 'user' && hasToolResultContent(message)) {
-      const nearestAssistant = findNearestAssistantMessage(grouped);
+      const nearestAssistant = findNearestAssistantMessage(messages, i);
       if (nearestAssistant) {
-        nearestAssistant.subMessages = nearestAssistant.subMessages || [];
-        nearestAssistant.subMessages.push(messageCopy);
+        // Get the copy from messageMap to ensure we're updating the right instance
+        const nearestAssistantCopy = messageMap.get(nearestAssistant.id)!;
+        nearestAssistantCopy.subMessages = nearestAssistantCopy.subMessages || [];
+        nearestAssistantCopy.subMessages.push(messageCopy);
         continue;
       }
     }
@@ -84,12 +87,13 @@ function findParentToolMessage(
 }
 
 /**
- * Finds the nearest previous assistant message in the grouped messages
+ * Finds the nearest previous assistant message in the original messages array
+ * This ensures we find parent messages even if they haven't been added to grouped yet
  */
-function findNearestAssistantMessage(groupedMessages: ChatMessage[]): ChatMessage | null {
-  // Search backwards through the grouped messages
-  for (let i = groupedMessages.length - 1; i >= 0; i--) {
-    const message = groupedMessages[i];
+function findNearestAssistantMessage(messages: ChatMessage[], currentIndex: number): ChatMessage | null {
+  // Search backwards from current position in the original messages array
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const message = messages[i];
     if (message.type === 'assistant') {
       return message;
     }
