@@ -4,6 +4,7 @@ import { MessageList, MessageListRef } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
 import { useStreaming } from '../../hooks/useStreaming';
+import { groupMessages } from '../../utils/message-grouping';
 import type { ChatMessage, StreamEvent, ConversationDetailsResponse } from '../../types';
 import styles from './ConversationView.module.css';
 
@@ -13,6 +14,7 @@ export function ConversationView() {
   const navigate = useNavigate();
   const messageListRef = useRef<MessageListRef>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [groupedMessages, setGroupedMessages] = useState<ChatMessage[]>([]);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,9 +41,16 @@ export function ConversationView() {
     return () => {
       // Clear messages and streaming on cleanup
       setMessages([]);
+      setGroupedMessages([]);
       setStreamingId(null);
     };
   }, [sessionId]);
+
+  // Apply message grouping whenever messages change
+  useEffect(() => {
+    const grouped = groupMessages(messages);
+    setGroupedMessages(grouped);
+  }, [messages]);
 
   // Load conversation history
   useEffect(() => {
@@ -92,6 +101,7 @@ export function ConversationView() {
           type: 'user',
           content: event.message.content,
           timestamp: new Date().toISOString(),
+          parent_tool_use_id: event.parent_tool_use_id || null,
         };
         setMessages(prev => {
           // Replace pending message or add new one
@@ -129,6 +139,7 @@ export function ConversationView() {
               content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
               timestamp: new Date().toISOString(),
               isStreaming: event.message.stop_reason === null,
+              parent_tool_use_id: event.parent_tool_use_id || null,
             };
             return [...prev, assistantMessage];
           }
@@ -228,7 +239,7 @@ export function ConversationView() {
 
       <MessageList 
         ref={messageListRef}
-        messages={messages} 
+        messages={groupedMessages} 
         isLoading={isLoading}
         isStreaming={!!streamingId}
         onFollowingChange={(isFollowing, hasNewMessages) => {
@@ -273,11 +284,50 @@ function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessa
         content = msg.message.content;
       }
       
+      // Extract parent_tool_use_id from multiple possible sources
+      let parentToolUseId: string | null = null;
+      
+      // Check if it's in the ConversationMessage structure
+      if (msg.parentUuid) {
+        // Note: parentUuid might be the parent message UUID, not the tool_use_id
+        // This would require additional logic to resolve the actual tool_use_id
+        // For now, we'll use it as-is and let the grouping algorithm handle it
+        parentToolUseId = msg.parentUuid;
+      }
+      
+      // Check if it's in the message content (Anthropic format)
+      if (typeof msg.message === 'object' && 'parent_tool_use_id' in msg.message) {
+        parentToolUseId = msg.message.parent_tool_use_id as string;
+      }
+      
+      // For tool_result content, extract the tool_use_id as parent reference
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block && 
+              typeof block === 'object' && 
+              'type' in block && 
+              block.type === 'tool_result' && 
+              'tool_use_id' in block && 
+              !parentToolUseId) {
+            parentToolUseId = block.tool_use_id as string;
+            break;
+          }
+        }
+      } else if (content && 
+                 typeof content === 'object' && 
+                 'type' in content && 
+                 content.type === 'tool_result' && 
+                 'tool_use_id' in content && 
+                 !parentToolUseId) {
+        parentToolUseId = content.tool_use_id as string;
+      }
+      
       return {
         id: msg.uuid,
         type: msg.type as 'user' | 'assistant' | 'system',
         content: content,
         timestamp: msg.timestamp,
+        parent_tool_use_id: parentToolUseId,
       };
     });
 }

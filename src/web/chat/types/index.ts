@@ -34,6 +34,8 @@ export interface ChatMessage {
   content: any;
   timestamp: string;
   isStreaming?: boolean;
+  subMessages?: ChatMessage[];
+  parent_tool_use_id?: string | null;
 }
 
 export interface ConversationState {
