@@ -18,25 +18,12 @@ export function ConversationView() {
   const [error, setError] = useState<string | null>(null);
   const [showNewMessagesButton, setShowNewMessagesButton] = useState(false);
 
-  // Check if we have a streamingId or messages from navigation state
+  // Clear navigation state to prevent issues on refresh
   useEffect(() => {
     const state = location.state as { 
-      streamingId?: string;
-      messages?: ChatMessage[];
       fromNewConversation?: boolean;
       fromConversation?: boolean;
     } | null;
-    
-    // Only use streamingId from navigation state if it's a new conversation
-    // For resumed conversations, we'll get the streamingId from the API
-    if (state?.streamingId && state.fromNewConversation) {
-      setStreamingId(state.streamingId);
-    }
-    
-    if (state?.messages && (state.fromNewConversation || state.fromConversation)) {
-      // Set the messages from the previous screen
-      setMessages(state.messages);
-    }
     
     if (state) {
       // Clear the state to prevent issues on refresh
@@ -60,9 +47,6 @@ export function ConversationView() {
   useEffect(() => {
     const loadConversation = async () => {
       if (!sessionId) return;
-
-      // Skip loading if we already have messages from navigation
-      const hasNavigationMessages = messages.length > 0;
       
       setIsLoading(true);
       setError(null);
@@ -71,21 +55,10 @@ export function ConversationView() {
         const details = await api.getConversationDetails(sessionId);
         const chatMessages = convertToChatlMessages(details);
         
-        // Only set messages if we don't have any locally
-        // This preserves messages that were added during streaming
-        setMessages(prev => {
-          if (prev.length === 0) {
-            return chatMessages;
-          }
-          // If we already have messages, merge them intelligently
-          // Keep existing messages that might not be in the backend yet
-          const existingIds = new Set(prev.map(m => m.id));
-          const newMessages = chatMessages.filter(m => !existingIds.has(m.id));
-          return [...prev, ...newMessages];
-        });
+        // Always load fresh messages from backend
+        setMessages(chatMessages);
         
         // Check if this conversation has an active stream
-        // First, get the conversation summary to check status
         const conversationsResponse = await api.getConversations({ limit: 100 });
         const currentConversation = conversationsResponse.conversations.find(
           conv => conv.sessionId === sessionId
@@ -163,22 +136,18 @@ export function ConversationView() {
         break;
 
       case 'result':
-        // Mark streaming as complete and navigate with current messages
-        setMessages(prev => {
-          const updatedMessages = prev.map(m => ({ ...m, isStreaming: false }));
-          
-          // Navigate to the new session page with current messages
-          if (event.session_id && event.session_id !== sessionId) {
-            navigate(`/c/${event.session_id}`, { 
-              state: { 
-                messages: updatedMessages,
-                fromConversation: true 
-              } 
-            });
-          }
-          
-          return updatedMessages;
-        });
+        // Mark streaming as complete and navigate to new session if needed
+        setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+        
+        // Navigate to the new session page if session changed
+        if (event.session_id && event.session_id !== sessionId) {
+          navigate(`/c/${event.session_id}`, { 
+            state: { 
+              fromConversation: true 
+            } 
+          });
+        }
+        
         setStreamingId(null);
         break;
 

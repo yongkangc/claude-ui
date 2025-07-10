@@ -101,23 +101,18 @@ export function NewConversation() {
         break;
 
       case 'result':
-        // Mark streaming as complete and navigate with current messages
-        setMessages(prev => {
-          const updatedMessages = prev.map(m => ({ ...m, isStreaming: false }));
-          
-          // Navigate to the session page with current messages and streamingId
-          if (event.session_id) {
-            navigate(`/c/${event.session_id}`, { 
-              state: { 
-                messages: updatedMessages,
-                fromNewConversation: true,
-                streamingId: streamingId 
-              } 
-            });
-          }
-          
-          return updatedMessages;
-        });
+        // Mark streaming as complete and navigate to session page
+        setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+        
+        // Navigate to the session page - let ConversationView load fresh data from backend
+        if (event.session_id) {
+          navigate(`/c/${event.session_id}`, { 
+            state: { 
+              fromNewConversation: true
+            } 
+          });
+        }
+        
         setStreamingId(null);
         break;
 
