@@ -37,6 +37,27 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 - Integration with Claude CLI's `--permission-prompt-tool` flag
 - Real-time permission event streaming to clients
 
+## Recent Major Changes
+
+### Zero-dependency JSON File Manager (commit 93e65ca)
+- Migrated from lowdb to custom JsonFileManager implementation
+- Zero external dependencies for file-based persistence
+- Atomic write operations with file locking for data integrity
+- Built-in backup and recovery mechanisms
+- Maintains full compatibility with existing session-info.json format
+
+### Comprehensive Configuration System
+- Replaced all environment variable-based configuration with centralized JSON config
+- Machine-specific configuration in `~/.ccui/config.json`
+- Auto-generated machine IDs for unique instance identification
+- Graceful configuration creation and validation on startup
+
+### Critical Streaming Race Condition Fix (commit 2440781)
+- Fixed parent message race condition in streaming responses
+- Ensures proper message ordering and parent-child relationships
+- Prevents orphaned messages in conversation history
+- Improved reliability of real-time conversation streaming
+
 ## Development Commands
 
 ```bash
@@ -90,7 +111,8 @@ The backend follows a service-oriented architecture with these key components:
 - **MCP Permission Server** (`src/mcp-server/index.ts`) - Standalone MCP server for handling permission requests
 - **FileSystemService** (`src/services/file-system-service.ts`) - Secure file system access with validation and sandboxing
 - **LogStreamBuffer** (`src/services/log-stream-buffer.ts`) - Circular buffer for capturing and streaming server logs
-- **SessionInfoService** (`src/services/session-info-service.ts`) - Manages session metadata including custom names using lowdb for fast local storage
+- **SessionInfoService** (`src/services/session-info-service.ts`) - Manages session metadata including custom names using JsonFileManager for fast local storage
+- **JsonFileManager** (`src/services/json-file-manager.ts`) - Custom zero-dependency JSON file persistence with atomic writes and file locking
 
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
 
@@ -311,11 +333,11 @@ Note: All server and logging configuration has been moved to the config file. En
 
 ## Database Cache System
 
-CCUI uses a lowdb-based database cache system stored in `~/.ccui/session-info.json` for managing session metadata. This provides fast access to session information without parsing JSONL files.
+CCUI uses a custom JSON file-based cache system stored in `~/.ccui/session-info.json` for managing session metadata. This provides fast access to session information without parsing JSONL files.
 
 ### Session Info Database
 - **Location**: `~/.ccui/session-info.json`
-- **Technology**: lowdb v7.0.1 with TypeScript support
+- **Technology**: Custom JsonFileManager with zero external dependencies
 - **Purpose**: Cache session metadata including custom names for fast retrieval
 
 ### Database Schema
@@ -336,10 +358,12 @@ interface SessionInfo {
 ### Key Features
 - **Automatic Creation**: Database file created on first server startup
 - **Default Values**: Sessions without entries return default empty custom_name
-- **Type Safety**: Full TypeScript integration with lowdb
+- **Type Safety**: Full TypeScript integration with generic types
 - **Performance**: Fast lookups without parsing Claude's JSONL files
 - **Graceful Degradation**: Falls back to defaults if database is inaccessible
 - **Schema Versioning**: Built-in migration support for future updates
+- **Atomic Writes**: File locking and atomic operations prevent data corruption
+- **Backup Recovery**: Automatic backup file creation and recovery on corruption
 
 ### API Integration
 - All conversation list endpoints include `custom_name` field
@@ -362,7 +386,7 @@ This is a **fully functional implementation** with:
 - ✅ MCP permission system integration
 - ✅ Real-time permission tracking and broadcasting
 - ✅ Real-time log streaming and console integration
-- ✅ Database cache system with lowdb for session metadata
+- ✅ Database cache system with custom JsonFileManager for session metadata
 - ✅ Custom session naming with persistent storage
 
 The project provides a production-ready foundation for web-based Claude CLI interaction with a modern, responsive UI.

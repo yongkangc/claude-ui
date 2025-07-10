@@ -9,6 +9,9 @@ This directory contains the core business logic services for CCUI backend.
 - **ClaudeHistoryReader** (`claude-history-reader.ts`) - Reads conversation history from ~/.claude and provides working directory lookup
 - **ConversationStatusTracker** (`conversation-status-tracker.ts`) - Tracks conversation status based on active streams
 - **JsonLinesParser** (`json-lines-parser.ts`) - Parses JSONL streams from Claude CLI
+- **JsonFileManager** (`json-file-manager.ts`) - Lightweight JSON file manager for atomic file operations
+- **ConfigService** (`config-service.ts`) - Centralized configuration management using ~/.ccui/config.json
+- **LogStreamBuffer** (`log-stream-buffer.ts`) - Circular buffer for capturing and streaming server logs
 
 ## Claude Process Management
 
@@ -57,6 +60,184 @@ class ClaudeProcessManager {
 
 **Important:** Claude CLI in print mode (`-p`) runs once and exits. It does not accept stdin input for continuing conversations.
 
+**Race Condition Fix:** The service includes a fix for a streaming parent message race condition. When parsing streaming messages, the system now properly associates thinking blocks with their parent messages by buffering blocks until the parent message is available. This ensures proper message grouping even when blocks arrive before their parent message in the stream.
+
+## JsonFileManager
+
+**Purpose:** Lightweight JSON file manager for atomic file operations without external dependencies.
+
+**Key Features:**
+- **Atomic writes** using write-rename pattern
+- **File locking** to prevent concurrent modifications
+- **Write queue** for serialized operations
+- **Process liveness detection** using PIDs
+- **Zero external dependencies** - built with Node.js core modules only
+
+**Implementation:**
+```typescript
+class JsonFileManager<T> {
+  private writeQueue: Array<() => Promise<void>> = [];
+  private isWriting = false;
+  private lockFilePath: string;
+  
+  constructor(private filePath: string, private defaultData: T) {
+    this.lockFilePath = `${filePath}.lock`;
+  }
+  
+  async read(): Promise<T> {
+    // Returns data from file or defaultData if file doesn't exist
+    // Handles JSON parsing errors gracefully
+  }
+  
+  async write(data: T): Promise<void> {
+    // Queues write operation
+    // Uses atomic write with temp file + rename
+    // Manages lock files with PID-based stale lock cleanup
+  }
+  
+  private async acquireLock(): Promise<void> {
+    // Creates lock file with current process PID
+    // Checks for stale locks from dead processes
+    // Retries with exponential backoff
+  }
+}
+```
+
+**Usage Example:**
+```typescript
+const manager = new JsonFileManager('/path/to/data.json', { users: [] });
+const data = await manager.read();
+data.users.push({ id: 1, name: 'Alice' });
+await manager.write(data);
+```
+
+## ConfigService
+
+**Purpose:** Centralized configuration management using `~/.ccui/config.json`, replacing environment variable-based configuration.
+
+**Key Features:**
+- **Auto-generated machine ID** on first startup
+- **File-based configuration** stored in user's home directory
+- **Constructor override support** for testing
+- **Singleton pattern** for consistent configuration access
+- **Automatic directory and file creation**
+
+**Configuration Structure:**
+```typescript
+interface CCUIConfig {
+  machine_id: string;  // Auto-generated: {hostname}-{8char_hash}
+  server: {
+    host: string;      // Default: 'localhost'
+    port: number;      // Default: 3001
+  };
+  logging: {
+    level: string;     // Default: 'info'
+  };
+}
+```
+
+**Machine ID Generation:**
+```typescript
+private generateMachineId(): string {
+  const hostname = os.hostname().toLowerCase();
+  const interfaces = os.networkInterfaces();
+  
+  // Find primary MAC address (non-internal, non-zero)
+  let primaryMac = '';
+  for (const [name, ifaces] of Object.entries(interfaces)) {
+    if (!ifaces) continue;
+    for (const iface of ifaces) {
+      if (!iface.internal && iface.mac !== '00:00:00:00:00:00') {
+        primaryMac = iface.mac;
+        break;
+      }
+    }
+    if (primaryMac) break;
+  }
+  
+  // Generate hash from MAC address
+  const hash = crypto.createHash('sha256').update(primaryMac).digest('hex');
+  return `${hostname}-${hash.substring(0, 8)}`;
+}
+```
+
+**Usage:**
+```typescript
+// In application startup
+const configService = ConfigService.getInstance();
+const config = configService.getConfig();
+
+// For testing with custom config path
+const testConfig = new ConfigService('/tmp/test-config.json');
+```
+
+## LogStreamBuffer
+
+**Purpose:** Circular buffer for capturing and streaming server logs to web clients.
+
+**Key Features:**
+- **Real-time streaming** via Server-Sent Events (SSE)
+- **Pino logger integration** with custom stream transport
+- **Circular buffer** with configurable size (default: 1000 entries)
+- **JSONL format** for structured log entries
+- **Graceful client disconnection handling**
+
+**Implementation:**
+```typescript
+class LogStreamBuffer {
+  private buffer: string[] = [];
+  private clients: Set<ServerResponse> = new Set();
+  private bufferSize: number;
+  
+  constructor(bufferSize = 1000) {
+    this.bufferSize = bufferSize;
+  }
+  
+  addLog(logEntry: string): void {
+    // Add to circular buffer
+    this.buffer.push(logEntry);
+    if (this.buffer.length > this.bufferSize) {
+      this.buffer.shift();
+    }
+    
+    // Broadcast to all connected clients
+    this.broadcast(logEntry);
+  }
+  
+  streamToClient(res: ServerResponse): void {
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+    
+    // Send buffered logs
+    for (const log of this.buffer) {
+      res.write(`data: ${log}\n\n`);
+    }
+    
+    this.clients.add(res);
+  }
+}
+```
+
+**Logger Integration:**
+```typescript
+// Create custom Pino transport
+const customTransport = pino.transport({
+  target: path.join(__dirname, 'log-transport.js'),
+  options: { /* transport config */ }
+});
+
+// In transport implementation
+process.on('message', (log) => {
+  const formatted = formatLog(log);
+  logBuffer.addLog(formatted);
+  process.stdout.write(formatted + '\n');
+});
+```
+
 ## Service Method Signatures
 
 ```typescript
@@ -89,6 +270,32 @@ class ConversationStatusTracker {
   unregisterActiveSession(streamingId: string): void
   getConversationStatus(claudeSessionId: string): 'completed' | 'ongoing' | 'pending'
   getStreamingIdForSession(claudeSessionId: string): string | undefined
+}
+
+// JsonFileManager key methods
+class JsonFileManager<T> {
+  constructor(filePath: string, defaultData: T)
+  async read(): Promise<T>
+  async write(data: T): Promise<void>
+}
+
+// ConfigService key methods
+class ConfigService {
+  static getInstance(): ConfigService
+  getConfig(): CCUIConfig
+  getPort(): number
+  getHost(): string
+  getLogLevel(): string
+  getMachineId(): string
+}
+
+// LogStreamBuffer key methods
+class LogStreamBuffer {
+  constructor(bufferSize?: number)
+  addLog(logEntry: string): void
+  getRecentLogs(limit?: number): string[]
+  streamToClient(res: ServerResponse): void
+  removeClient(res: ServerResponse): void
 }
 ```
 

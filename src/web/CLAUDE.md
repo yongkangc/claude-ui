@@ -61,6 +61,33 @@ src/web/
 - Handles connection lifecycle and cleanup
 - Automatic reconnection on failure
 
+### Recent UI Enhancements
+
+**Smart Auto-Scroll Behavior:**
+- Implements intelligent "following mode" that maintains scroll position based on user interaction
+- Auto-scrolls to bottom only when user is near bottom (within 100px threshold)
+- Shows floating "New messages" button when user scrolls up during active streaming
+- Provides instant scroll to bottom when navigating between conversations
+- Preserves user's scroll position when they're reading earlier messages
+
+**Sidechain Message Hiding:**
+- Automatically filters out sidechain messages from the chat interface
+- Improves readability by showing only primary conversation flow
+- Reduces visual clutter from system-level tool interactions
+- Maintains clean conversation history focused on user-assistant dialogue
+
+**Auto-Connect to Ongoing Conversations:**
+- Automatically detects and connects to active conversation streams when navigating
+- Seamlessly continues showing live updates without manual reconnection
+- Enhances user experience by maintaining real-time connection state
+- Prevents missing messages when switching between ongoing conversations
+
+**Working Directory Auto-Population:**
+- Intelligently pre-fills working directory field with most recently used project path
+- Reads from conversation history to determine last active directory
+- Reduces repetitive input for users working in the same project
+- Falls back to empty field when no recent directory is available
+
 ### Critical Implementation Details
 
 **Theme System:**

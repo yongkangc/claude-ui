@@ -6,7 +6,7 @@ This directory contains the command-line interface for CCUI backend, built with 
 
 ```bash
 # Start the CCUI backend server
-ccui serve --port 3001
+ccui serve --port 3001 --log-level info
 
 # List all conversations
 ccui list --project /path/to/project --limit 20 --json
@@ -21,6 +21,7 @@ ccui status --json
 ccui resume <sessionId> <message> --json --debug
 ```
 
+
 ## Command Structure
 
 Commands are organized in `/src/cli/commands/` with each command in its own file:
@@ -30,6 +31,16 @@ Commands are organized in `/src/cli/commands/` with each command in its own file
 - `get.ts` - Get conversation details
 - `status.ts` - System status information
 - `resume.ts` - Resume existing conversations
+
+## Server Command
+
+The `serve` command starts the CCUI backend server with the following options:
+
+- `--port <port>` - Override the configured port
+- `--log-level <level>` - Set the logging level (silent, error, warn, info, debug)
+  - Works with Pino multistream configuration
+  - Affects both console and file logging output
+  - Default: "info" (or from config file)
 
 ## Resume Conversation
 
@@ -80,3 +91,7 @@ The `~/.claude` directory follows this pattern:
 - **Consistent JSON output** for programmatic use
 - **Error handling** with proper exit codes
 - **Debug mode** support for troubleshooting
+- **Logging configuration** via `--log-level` flag (serve command only) with Pino multistream support
+  - Log levels: silent, error, warn, info, debug
+  - Properly filters both console and file stream outputs
+  - Overrides config file settings when specified
