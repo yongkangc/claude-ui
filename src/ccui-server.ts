@@ -353,6 +353,11 @@ export class CCUIServer {
       res.json({ status: 'ok' });
     });
 
+    // Hello endpoint
+    this.app.get('/api/hello', (req, res) => {
+      res.json({ message: 'Hello from CCUI!' });
+    });
+
     // Conversation management routes
     this.setupConversationRoutes();
     
