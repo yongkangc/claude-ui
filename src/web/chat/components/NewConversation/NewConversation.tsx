@@ -83,7 +83,8 @@ export function NewConversation() {
 
     // Add user message immediately
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: '', // Empty for pending user messages
+      messageId: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'user',
       content: message,
       timestamp: new Date().toISOString(),

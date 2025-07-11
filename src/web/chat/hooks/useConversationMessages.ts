@@ -27,12 +27,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
   // Add a message
   const addMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => {
-      // Check for duplicate IDs and drop them
-      if (prev.some(m => m.id === message.id)) {
-        console.log(`[useConversationMessages] Dropping duplicate message with ID: ${message.id}`);
-        return prev;
-      }
-      
       console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new message)`);
       return [...prev, message];
     });
@@ -54,6 +48,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         // Just add the message without any special handling
         const assistantMessage: ChatMessage = {
           id: event.message.id,
+          messageId: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'assistant',
           content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
           timestamp: new Date().toISOString(),
@@ -72,8 +67,10 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
 
       case 'error':
         // Add as a new error message
+        const errorId = `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const errorMessage: ChatMessage = {
-          id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: errorId,
+          messageId: errorId, // For error messages, use the same ID for both
           type: 'error',
           content: event.error,
           timestamp: new Date().toISOString(),

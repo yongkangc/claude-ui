@@ -16,7 +16,7 @@ export function MessageItem({ message }: MessageItemProps) {
     if (message.type === 'assistant' && Array.isArray(message.content)) {
       message.content.forEach((block: any, index: number) => {
         if (block.type === 'tool_use' || block.type === 'thinking') {
-          initial.add(`${message.id}-${index}`);
+          initial.add(`${message.messageId}-${index}`);
         }
       });
     }
@@ -80,7 +80,7 @@ export function MessageItem({ message }: MessageItemProps) {
       return (
         <div className={styles.blocksContainer}>
           {message.content.map((block: any, index: number) => {
-            const blockId = `${message.id}-${index}`;
+            const blockId = `${message.messageId}-${index}`;
             const isExpanded = expandedBlocks.has(blockId);
             const isCopied = copiedBlocks.has(blockId);
 

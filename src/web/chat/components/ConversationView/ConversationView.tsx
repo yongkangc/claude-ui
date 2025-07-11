@@ -120,7 +120,8 @@ export function ConversationView() {
 
     // Add user message immediately
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: '', // Empty for pending user messages
+      messageId: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'user',
       content: message,
       timestamp: new Date().toISOString(),
@@ -203,6 +204,7 @@ function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessa
       
       return {
         id: msg.uuid,
+        messageId: msg.uuid, // For historical messages, use UUID as messageId
         type: msg.type as 'user' | 'assistant' | 'system',
         content: content,
         timestamp: msg.timestamp,

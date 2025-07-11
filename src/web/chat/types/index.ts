@@ -32,7 +32,8 @@ export type {
 
 // Chat-specific types
 export interface ChatMessage {
-  id: string;
+  id: string; // Backend message ID (may not be unique, empty for pending user messages)
+  messageId: string; // Client-side unique ID for React rendering
   type: 'user' | 'assistant' | 'system' | 'error';
   content: string | ContentBlock[];
   timestamp: string;

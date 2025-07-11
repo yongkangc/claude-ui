@@ -29,7 +29,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, i
     <div className={styles.container} ref={containerRef}>
       <div className={styles.messageList}>
         {messages.map((message) => (
-          <MessageItem key={message.id} message={message} />
+          <MessageItem key={message.messageId} message={message} />
         ))}
         
         {isLoading && (
