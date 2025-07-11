@@ -67,7 +67,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
 
       case 'user':
         // Generate a stable ID for user messages based on content hash
-        const userMessageId = event.message.id || `user-${Date.now()}`;
+        const userMessageId = event.message.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const userMessage: ChatMessage = {
           id: userMessageId,
           type: 'user',
@@ -80,7 +80,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           // Check for duplicate user message ID
           const existingIndex = prev.findIndex(m => m.id === userMessageId);
           if (existingIndex !== -1) {
-            console.warn(`[useConversationMessages] Duplicate user message ID detected: ${userMessageId}. Updating existing message.`);
             const newMessages = [...prev];
             newMessages[existingIndex] = userMessage;
             console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Updated existing user message ${userMessageId})`);
@@ -104,13 +103,15 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         break;
 
       case 'assistant':
-        const assistantId = event.message.id;
+        let assistantId = event.message.id;
         
         setMessages(prev => {
           // Check for duplicate IDs (should never happen by design)
-          const existing = prev.find(m => m.id === assistantId);
-          if (existing) {
-            console.error(`[useConversationMessages] ERROR: Duplicate message ID detected: ${assistantId}. This should never happen in streaming.`);
+          const existingIndex = prev.findIndex(m => m.id === assistantId);
+          if (existingIndex !== -1) {
+            // Assign a new unique ID to avoid duplicate
+            const newAssistantId = `${assistantId}-dup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            assistantId = newAssistantId;
           }
           
           // Always add as new message
