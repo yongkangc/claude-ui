@@ -6,7 +6,7 @@ import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
 import { useStreaming, useConversationMessages } from '../../hooks';
 import { useConversations } from '../../contexts/ConversationsContext';
-import type { StartConversationRequest } from '../../types';
+import type { StartConversationRequest, ChatMessage } from '../../types';
 import styles from './NewConversation.module.css';
 
 export function NewConversation() {
@@ -27,10 +27,9 @@ export function NewConversation() {
   // Use shared conversation messages hook
   const {
     messages,
+    addMessage,
     clearMessages,
     handleStreamMessage,
-    addPendingUserMessage,
-    markAllMessagesAsComplete,
   } = useConversationMessages({
     onResult: (sessionId) => {
       // Navigate to the session page - let ConversationView load fresh data from backend
@@ -83,7 +82,13 @@ export function NewConversation() {
     setError(null);
 
     // Add user message immediately
-    addPendingUserMessage(message);
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+    addMessage(userMessage);
 
     try {
       // Always start a new conversation
@@ -113,8 +118,7 @@ export function NewConversation() {
       // Clear the streaming ID
       setStreamingId(null);
       
-      // Mark all messages as not streaming
-      markAllMessagesAsComplete();
+      // Streaming has stopped
     } catch (err: any) {
       console.error('Failed to stop conversation:', err);
       setError(err.message || 'Failed to stop conversation');

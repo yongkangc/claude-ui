@@ -24,25 +24,16 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     });
   }, []);
 
-  // Set all messages at once (for loading from API)
-  const setAllMessages = useCallback((newMessages: ChatMessage[]) => {
+  // Add a message
+  const addMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${newMessages.length} (reason: Loading conversation from API)`);
-      return newMessages;
-    });
-  }, []);
-
-  // Add or update a message
-  const upsertMessage = useCallback((message: ChatMessage) => {
-    setMessages(prev => {
-      const existingIndex = prev.findIndex(m => m.id === message.id);
-      if (existingIndex !== -1) {
-        // Update existing message
-        console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Updating existing message ${message.id})`);
-        return prev.map((m, i) => i === existingIndex ? message : m);
+      // Check for duplicate IDs and drop them
+      if (prev.some(m => m.id === message.id)) {
+        console.log(`[useConversationMessages] Dropping duplicate message with ID: ${message.id}`);
+        return prev;
       }
-      // Add new message
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new message via upsertMessage)`);
+      
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new message)`);
       return [...prev, message];
     });
   }, []);
@@ -55,78 +46,40 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         break;
 
       case 'user':
-        // Generate a stable ID for user messages based on content hash
-        const userMessageId = event.message.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const userMessage: ChatMessage = {
-          id: userMessageId,
-          type: 'user',
-          content: event.message.content,
-          timestamp: new Date().toISOString(),
-        };
-        
-        setMessages(prev => {
-          // Check for duplicate user message ID
-          const existingIndex = prev.findIndex(m => m.id === userMessageId);
-          if (existingIndex !== -1) {
-            const newMessages = [...prev];
-            newMessages[existingIndex] = userMessage;
-            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Updated existing user message ${userMessageId})`);
-            return newMessages;
-          }
-          
-          // Replace pending message or add new one
-          const pendingIndex = prev.findIndex(m => m.id.startsWith('user-pending-'));
-          if (pendingIndex !== -1) {
-            const newMessages = [...prev];
-            newMessages[pendingIndex] = userMessage;
-            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Replaced pending user message with actual)`);
-            return newMessages;
-          }
-          
-          console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new user message from stream)`);
-          return [...prev, userMessage];
-        });
-        
-        options.onUserMessage?.(userMessage);
+        // Drop user events completely
+        console.debug('[useConversationMessages] Dropping user event from stream');
         break;
 
       case 'assistant':
-        let assistantId = event.message.id;
+        // Just add the message without any special handling
+        const assistantMessage: ChatMessage = {
+          id: event.message.id,
+          type: 'assistant',
+          content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
+          timestamp: new Date().toISOString(),
+        };
         
-        setMessages(prev => {
-          // Check for duplicate IDs (should never happen by design)
-          const existingIndex = prev.findIndex(m => m.id === assistantId);
-          if (existingIndex !== -1) {
-            // Assign a new unique ID to avoid duplicate
-            const newAssistantId = `${assistantId}-dup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            assistantId = newAssistantId;
-          }
-          
-          // Always add as new message
-          const assistantMessage: ChatMessage = {
-            id: assistantId,
-            type: 'assistant',
-            content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
-            timestamp: new Date().toISOString(),
-            isStreaming: event.message.stop_reason === null,
-          };
-          
-          options.onAssistantMessage?.(assistantMessage);
-          console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new assistant message from stream)`);
-          return [...prev, assistantMessage];
-        });
+        addMessage(assistantMessage);
+        options.onAssistantMessage?.(assistantMessage);
         break;
 
       case 'result':
-        // Mark streaming as complete
-        setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
-        
+        // Only update conversation status, don't update messages
         if (event.session_id) {
           options.onResult?.(event.session_id);
         }
         break;
 
       case 'error':
+        // Add as a new error message
+        const errorMessage: ChatMessage = {
+          id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: 'error',
+          content: event.error,
+          timestamp: new Date().toISOString(),
+        };
+        
+        addMessage(errorMessage);
         options.onError?.(event.error);
         break;
 
@@ -135,37 +88,21 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         options.onClosed?.();
         break;
     }
-  }, [options]);
+  }, [addMessage, options]);
 
-  // Add a pending user message
-  const addPendingUserMessage = useCallback((content: string) => {
-    const tempUserMessage: ChatMessage = {
-      id: `user-pending-${Date.now()}`,
-      type: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
+  // Set all messages at once (for loading from API)
+  const setAllMessages = useCallback((newMessages: ChatMessage[]) => {
     setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding pending user message)`);
-      return [...prev, tempUserMessage];
-    });
-  }, []);
-
-  // Mark all messages as not streaming
-  const markAllMessagesAsComplete = useCallback(() => {
-    setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Marking all messages as complete)`);
-      return prev.map(m => ({ ...m, isStreaming: false }));
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${newMessages.length} (reason: Loading conversation from API)`);
+      return newMessages;
     });
   }, []);
 
   return {
     messages,
+    addMessage,
     clearMessages,
-    setAllMessages,
-    upsertMessage,
     handleStreamMessage,
-    addPendingUserMessage,
-    markAllMessagesAsComplete,
+    setAllMessages,
   };
 }

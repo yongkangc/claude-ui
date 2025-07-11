@@ -19,10 +19,9 @@ export function ConversationView() {
   const {
     messages,
     clearMessages,
+    addMessage,
     setAllMessages,
     handleStreamMessage,
-    addPendingUserMessage,
-    markAllMessagesAsComplete,
   } = useConversationMessages({
     onResult: (newSessionId) => {
       // Navigate to the new session page if session changed
@@ -120,7 +119,13 @@ export function ConversationView() {
     setError(null);
 
     // Add user message immediately
-    addPendingUserMessage(message);
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+    addMessage(userMessage);
 
     try {
       const response = await api.resumeConversation({
@@ -147,8 +152,7 @@ export function ConversationView() {
       // Clear the streaming ID
       setStreamingId(null);
       
-      // Mark all messages as not streaming
-      markAllMessagesAsComplete();
+      // Streaming has stopped
     } catch (err: any) {
       console.error('Failed to stop conversation:', err);
       setError(err.message || 'Failed to stop conversation');

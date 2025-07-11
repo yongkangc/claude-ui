@@ -19,7 +19,7 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 ### React-based Web UI with Vite Integration
 - Modern React + TypeScript frontend replacing vanilla JavaScript
 - Vite development server integration for hot module replacement
-- Real-time conversation streaming with proper content block rendering
+- Real-time conversation streaming with proper message rendering
 - File system navigation with security boundaries
 - Comprehensive error handling and status tracking
 - Real-time log viewer with filtering and JSONL parsing
@@ -133,5 +133,14 @@ The backend follows a service-oriented architecture with these key components:
   - Replaces previous environment variable-based configuration
   - Provides a centralized, file-based approach to configuration management
 - **Remember the correct mindset of message list handling**
+  - **Simplified Message Handling**: 
+    - ChatMessage no longer has isStreaming field - streaming is tracked only at conversation level
+    - Message content is properly typed as `string | ContentBlock[]`
+    - Messages are immutable once added (no update capability)
+    - useConversationMessages only exposes `addMessage`, `clearMessages`, and `setAllMessages`
+    - User streaming messages (tool_results) are dropped entirely, not added
+    - Duplicate messages are dropped with console.log for debugging
+  - **Important**: There is no auto-scroll feature in the UI
+  - Streaming status is only tracked at the conversation level via ConversationStatusTracker
 
 [... rest of the existing content remains unchanged ...]

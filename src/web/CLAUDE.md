@@ -83,6 +83,14 @@ src/web/
 
 ### Critical Implementation Details
 
+**Simplified Message Handling:**
+- Messages do not have individual streaming status - only conversations do
+- useConversationMessages hook provides only `addMessage`, `clearMessages`, and `setAllMessages`
+- User streaming messages (tool_results) are dropped to prevent UI clutter
+- Duplicate messages are dropped with console logging for debugging
+- Content is typed as `string | ContentBlock[]` for proper type safety
+- No auto-scroll feature - UI remains at current position
+
 **Theme System:**
 - CSS custom properties in `:root` and `[data-theme="dark"]`
 - `useTheme` hook manages theme state and persistence
@@ -97,7 +105,7 @@ src/web/
 **Content Rendering:**
 - Message content uses "blocks" pattern from Claude API
 - Supports text, code, tool use, and thinking blocks
-- Special handling for streaming partial content
+- Messages are immutable once added (no partial updates)
 - JSON viewer for raw message inspection
 
 **Error Boundaries:**

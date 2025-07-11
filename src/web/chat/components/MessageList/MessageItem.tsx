@@ -174,13 +174,6 @@ export function MessageItem({ message }: MessageItemProps) {
           </span>
         </div>
         {renderContent()}
-        {message.isStreaming && (
-          <div className={styles.streamingIndicator}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        )}
       </div>
     </div>
   );

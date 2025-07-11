@@ -13,6 +13,9 @@ import type {
   SystemInitMessage,
 } from '@/types';
 
+// Import ContentBlock from Anthropic SDK
+import type { ContentBlock } from '@anthropic-ai/sdk/resources/messages/messages';
+
 export type {
   ConversationSummary,
   ConversationMessage,
@@ -31,9 +34,9 @@ export type {
 export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant' | 'system' | 'error';
-  content: any;
+  content: string | ContentBlock[];
   timestamp: string;
-  isStreaming?: boolean;
+  // isStreaming removed
 }
 
 export interface ConversationState {
