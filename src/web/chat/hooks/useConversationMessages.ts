@@ -21,20 +21,26 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
 
   // Apply message grouping whenever messages change
   useEffect(() => {
-    console.log('[useConversationMessages] Applying groupMessages to', messages.length, 'messages');
+    // console.log('[useConversationMessages] Applying groupMessages to', messages.length, 'messages');
     const grouped = groupMessages(messages);
     setGroupedMessages(grouped);
   }, [messages]);
 
   // Clear messages
   const clearMessages = useCallback(() => {
-    setMessages([]);
+    setMessages(prev => {
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → 0 (reason: Clearing all messages)`);
+      return [];
+    });
     setGroupedMessages([]);
   }, []);
 
   // Set all messages at once (for loading from API)
   const setAllMessages = useCallback((newMessages: ChatMessage[]) => {
-    setMessages(newMessages);
+    setMessages(prev => {
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${newMessages.length} (reason: Loading conversation from API)`);
+      return newMessages;
+    });
   }, []);
 
   // Add or update a message
@@ -43,9 +49,11 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       const existingIndex = prev.findIndex(m => m.id === message.id);
       if (existingIndex !== -1) {
         // Update existing message
+        console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Updating existing message ${message.id})`);
         return prev.map((m, i) => i === existingIndex ? message : m);
       }
       // Add new message
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new message via upsertMessage)`);
       return [...prev, message];
     });
   }, []);
@@ -54,7 +62,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
   const handleStreamMessage = useCallback((event: StreamEvent) => {
     switch (event.type) {
       case 'connected':
-        console.log('[useConversationMessages] Stream connected');
+        // Stream connected
         break;
 
       case 'user':
@@ -72,6 +80,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           if (pendingIndex !== -1) {
             return prev.map((m, i) => i === pendingIndex ? userMessage : m);
           }
+          console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new user message from stream)`);
           return [...prev, userMessage];
         });
         
@@ -88,10 +97,12 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
             // Update existing message - accumulate content blocks instead of replacing
             const updatedMessage: ChatMessage = {
               ...existing,
-              content: [
-                ...(Array.isArray(existing.content) ? existing.content : []),
-                ...(Array.isArray(event.message.content) ? event.message.content : [event.message.content])
-              ],
+              content: (() => {
+                const existingContent = Array.isArray(existing.content) ? existing.content : [];
+                const newContent = Array.isArray(event.message.content) ? event.message.content : [event.message.content];
+                console.debug(`[useConversationMessages] Content blocks changed for assistant message ${assistantId}: ${existingContent.length} → ${existingContent.length + newContent.length} (reason: Concatenating content blocks)`);
+                return [...existingContent, ...newContent];
+              })(),
               isStreaming: event.message.stop_reason === null,
               parent_tool_use_id: event.parent_tool_use_id || existing.parent_tool_use_id || null,
             };
@@ -110,6 +121,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
             };
             
             options.onAssistantMessage?.(assistantMessage);
+            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new assistant message from stream)`);
             return [...prev, assistantMessage];
           }
         });
@@ -129,7 +141,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         break;
 
       case 'closed':
-        console.log('[useConversationMessages] Stream closed');
+        // Stream closed
         options.onClosed?.();
         break;
     }
@@ -143,12 +155,18 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       content,
       timestamp: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, tempUserMessage]);
+    setMessages(prev => {
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding pending user message)`);
+      return [...prev, tempUserMessage];
+    });
   }, []);
 
   // Mark all messages as not streaming
   const markAllMessagesAsComplete = useCallback(() => {
-    setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+    setMessages(prev => {
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Marking all messages as complete)`);
+      return prev.map(m => ({ ...m, isStreaming: false }));
+    });
   }, []);
 
   return {

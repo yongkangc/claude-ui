@@ -78,7 +78,9 @@ export function ConversationView() {
 
       try {
         const details = await api.getConversationDetails(sessionId);
+        console.debug('[ConversationView] Loaded conversation details with', details.messages.length, 'raw messages');
         const chatMessages = convertToChatlMessages(details);
+        console.debug('[ConversationView] Converted to', chatMessages.length, 'chat messages (after filtering sidechains)');
         
         // Always load fresh messages from backend
         setAllMessages(chatMessages);
@@ -91,7 +93,7 @@ export function ConversationView() {
         
         if (currentConversation?.status === 'ongoing' && currentConversation.streamingId) {
           // Automatically connect to the existing stream
-          console.log(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
+          console.debug(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
           setStreamingId(currentConversation.streamingId);
         }
       } catch (err: any) {

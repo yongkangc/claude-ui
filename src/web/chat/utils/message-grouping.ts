@@ -17,6 +17,8 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
   if (!messages || messages.length === 0) {
     return [];
   }
+  
+  console.debug(`[groupMessages] Message list length changed: 0 → ${messages.length} (reason: Grouping messages)`)
 
   const messageDict = new Map<string, ChatMessage>();
   const result: ChatMessage[] = [];
@@ -78,13 +80,13 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     }
 
     // Single compact log message
-    console.log(`[Message Grouping] ${messageCopy.id} (${messageCopy.type}) | ` +
-      `tool_result: ${isToolResult} | ` +
-      `streaming: ${messageCopy.isStreaming || false} | ` +
-      `parent_tool_use_id: ${messageCopy.parent_tool_use_id || 'none'} | ` +
-      `candidates: ${potentialParents.map(p => `${p.id}(${p.type})`).join(', ')} | ` +
-      `decision: ${decision}${parentInfo ? ` → ${parentInfo.id}` : ''}`
-    );
+    // console.log(`[Message Grouping] ${messageCopy.id} (${messageCopy.type}) | ` +
+    //   `tool_result: ${isToolResult} | ` +
+    //   `streaming: ${messageCopy.isStreaming || false} | ` +
+    //   `parent_tool_use_id: ${messageCopy.parent_tool_use_id || 'none'} | ` +
+    //   `candidates: ${potentialParents.map(p => `${p.id}(${p.type})`).join(', ')} | ` +
+    //   `decision: ${decision}${parentInfo ? ` → ${parentInfo.id}` : ''}`
+    // );
 
     // Track latest assistant message for Rule 2
     if (messageCopy.type === 'assistant') {
@@ -97,6 +99,7 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     }
   }
 
+  console.debug(`[groupMessages] Message list length changed: ${messages.length} → ${result.length} (reason: Finished grouping - top-level messages)`);
   return result;
 }
 
@@ -157,15 +160,18 @@ function hasToolResultContent(message: ChatMessage): boolean {
  */
 export function flattenMessages(messages: ChatMessage[]): ChatMessage[] {
   const flattened: ChatMessage[] = [];
+  console.debug(`[flattenMessages] Message list length changed: 0 → ${messages.length} (reason: Starting to flatten grouped messages)`);
   
   for (const message of messages) {
     flattened.push(message);
     
     if (message.subMessages && message.subMessages.length > 0) {
+      console.debug(`[flattenMessages] Message ${message.id} has ${message.subMessages.length} subMessages, expanding...`);
       flattened.push(...flattenMessages(message.subMessages));
     }
   }
   
+  console.debug(`[flattenMessages] Message list length changed: ${messages.length} → ${flattened.length} (reason: Finished flattening - expanded all submessages)`);
   return flattened;
 }
 

@@ -12,6 +12,8 @@ export interface MessageListProps {
 export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, isStreaming }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  console.debug('[MessageList] Rendering with', messages.length, 'messages, isLoading:', isLoading, 'isStreaming:', isStreaming);
 
   if (messages.length === 0 && !isLoading) {
     return (
