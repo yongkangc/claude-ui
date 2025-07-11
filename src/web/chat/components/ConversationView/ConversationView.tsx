@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { MessageList, MessageListRef } from '../MessageList/MessageList';
+import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
 import { useStreaming } from '../../hooks/useStreaming';
@@ -12,13 +12,11 @@ export function ConversationView() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const messageListRef = useRef<MessageListRef>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [groupedMessages, setGroupedMessages] = useState<ChatMessage[]>([]);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNewMessagesButton, setShowNewMessagesButton] = useState(false);
 
   // Clear navigation state to prevent issues on refresh
   useEffect(() => {
@@ -238,13 +236,9 @@ export function ConversationView() {
       )}
 
       <MessageList 
-        ref={messageListRef}
         messages={groupedMessages} 
         isLoading={isLoading}
         isStreaming={!!streamingId}
-        onFollowingChange={(isFollowing, hasNewMessages) => {
-          setShowNewMessagesButton(!!streamingId && !isFollowing && hasNewMessages);
-        }}
       />
 
       <InputArea
@@ -254,19 +248,6 @@ export function ConversationView() {
         placeholder="Continue the conversation..."
       />
 
-      {/* New messages button */}
-      {showNewMessagesButton && (
-        <button 
-          className={styles.newMessagesButton}
-          onClick={() => messageListRef.current?.scrollToBottom()}
-          aria-label="Scroll to new messages"
-          title="New messages"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 4L10 16M10 16L15 11M10 16L5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
     </div>
   );
 }

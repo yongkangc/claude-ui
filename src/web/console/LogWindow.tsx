@@ -16,7 +16,6 @@ interface LogWindowProps {
 function LogWindow({ isVisible, onToggle }: LogWindowProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
-  const [autoScroll, setAutoScroll] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -34,11 +33,6 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
     };
   }, [isVisible]);
 
-  useEffect(() => {
-    if (autoScroll && logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [logs, autoScroll]);
 
   const connectToLogStream = async () => {
     try {
@@ -163,15 +157,6 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
           onChange={(e) => setFilter(e.target.value)}
           disabled={!isVisible}
         />
-        <label className="auto-scroll-label">
-          <input
-            type="checkbox"
-            checked={autoScroll}
-            onChange={(e) => setAutoScroll(e.target.checked)}
-            disabled={!isVisible}
-          />
-          Auto-scroll
-        </label>
         <span className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
           {isConnected ? '● Connected' : '○ Disconnected'}
         </span>

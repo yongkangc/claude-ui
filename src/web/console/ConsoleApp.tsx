@@ -172,10 +172,6 @@ function ConsoleApp() {
     }
 
     setStreamResult([<span key="connecting" style={{ color: '#51cf66' }}>Connecting to stream...</span>]);
-    
-    setTimeout(() => {
-      streamResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
 
     try {
       const response = await fetch(`/api/stream/${streamId}`);
@@ -232,12 +228,6 @@ function ConsoleApp() {
           } else {
             setStreamResult(prev => [...prev, ...newLines]);
           }
-          
-          setTimeout(() => {
-            if (streamResultRef.current) {
-              streamResultRef.current.scrollTop = streamResultRef.current.scrollHeight;
-            }
-          }, 0);
         }
       }
     } catch (e: any) {

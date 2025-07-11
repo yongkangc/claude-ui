@@ -27,37 +27,3 @@
   }
 }
 
-/* New messages button */
-.newMessagesButton {
-  position: fixed;
-  bottom: calc(var(--input-area-height) + var(--spacing-lg) + var(--spacing-md));
-  right: var(--spacing-lg);
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-accent);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-lg);
-  z-index: 10;
-}
-
-.newMessagesButton:hover {
-  background-color: var(--color-accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-}
-
-.newMessagesButton:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-md);
-}
-
-.newMessagesButton svg {
-  flex-shrink: 0;
-}

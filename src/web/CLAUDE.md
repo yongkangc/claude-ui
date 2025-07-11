@@ -63,13 +63,6 @@ src/web/
 
 ### Recent UI Enhancements
 
-**Smart Auto-Scroll Behavior:**
-- Implements intelligent "following mode" that maintains scroll position based on user interaction
-- Auto-scrolls to bottom only when user is near bottom (within 100px threshold)
-- Shows floating "New messages" button when user scrolls up during active streaming
-- Provides instant scroll to bottom when navigating between conversations
-- Preserves user's scroll position when they're reading earlier messages
-
 **Sidechain Message Hiding:**
 - Automatically filters out sidechain messages from the chat interface
 - Improves readability by showing only primary conversation flow

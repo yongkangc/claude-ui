@@ -285,19 +285,6 @@ h2 {
     cursor: not-allowed;
 }
 
-.auto-scroll-label {
-    display: flex;
-    align-items: center;
-    color: #d4d4d4;
-    font-size: 12px;
-    gap: 5px;
-}
-
-.auto-scroll-label input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-}
-
 .connection-status {
     font-size: 12px;
     color: #d4d4d4;
