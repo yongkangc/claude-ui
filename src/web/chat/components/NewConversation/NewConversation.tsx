@@ -4,13 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
 import { api } from '../../services/api';
-import { useStreaming } from '../../hooks/useStreaming';
+import { useStreaming, useConversationMessages } from '../../hooks';
 import { useConversations } from '../../contexts/ConversationsContext';
-import type { ChatMessage, StreamEvent, StartConversationRequest } from '../../types';
+import type { StartConversationRequest } from '../../types';
 import styles from './NewConversation.module.css';
 
 export function NewConversation() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { getMostRecentWorkingDirectory } = useConversations();
@@ -25,13 +24,37 @@ export function NewConversation() {
   const [showWorkingDirInput, setShowWorkingDirInput] = useState(true);
   const navigate = useNavigate();
 
+  // Use shared conversation messages hook
+  const {
+    groupedMessages,
+    clearMessages,
+    handleStreamMessage,
+    addPendingUserMessage,
+    markAllMessagesAsComplete,
+  } = useConversationMessages({
+    onResult: (sessionId) => {
+      // Navigate to the session page - let ConversationView load fresh data from backend
+      navigate(`/c/${sessionId}`, {
+        state: {
+          fromNewConversation: true
+        }
+      });
+    },
+    onError: (err) => {
+      setError(err);
+      setStreamingId(null);
+    },
+    onClosed: () => {
+      setStreamingId(null);
+    },
+  });
+
   // Clear messages when component unmounts
   useEffect(() => {
     return () => {
-      // Clear messages on cleanup
-      setMessages([]);
+      clearMessages();
     };
-  }, []);
+  }, [clearMessages]);
   
   // Update working directory when returning to new conversation page if it's still empty
   useEffect(() => {
@@ -42,91 +65,6 @@ export function NewConversation() {
       }
     }
   }, [getMostRecentWorkingDirectory]);
-
-  // Handle streaming messages
-  const handleStreamMessage = useCallback((event: StreamEvent) => {
-    switch (event.type) {
-      case 'connected':
-        console.log('Stream connected');
-        break;
-
-
-      case 'user':
-        const userMessage: ChatMessage = {
-          id: `user-${Date.now()}`,
-          type: 'user',
-          content: event.message.content,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => {
-          // Replace pending message or add new one
-          const pendingIndex = prev.findIndex(m => m.id.startsWith('user-pending-'));
-          if (pendingIndex !== -1) {
-            return prev.map((m, i) => i === pendingIndex ? userMessage : m);
-          }
-          return [...prev, userMessage];
-        });
-        break;
-
-      case 'assistant':
-        const assistantId = event.message.id;
-        setMessages(prev => {
-          const existing = prev.find(m => m.id === assistantId);
-          if (existing) {
-            // Update existing message - accumulate content blocks instead of replacing
-            return prev.map(m => 
-              m.id === assistantId 
-                ? { 
-                    ...m, 
-                    content: [
-                      ...(Array.isArray(existing.content) ? existing.content : []),
-                      ...(Array.isArray(event.message.content) ? event.message.content : [event.message.content])
-                    ],
-                    isStreaming: event.message.stop_reason === null 
-                  }
-                : m
-            );
-          } else {
-            // Add new message
-            const assistantMessage: ChatMessage = {
-              id: assistantId,
-              type: 'assistant',
-              content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
-              timestamp: new Date().toISOString(),
-              isStreaming: event.message.stop_reason === null,
-            };
-            return [...prev, assistantMessage];
-          }
-        });
-        break;
-
-      case 'result':
-        // Mark streaming as complete and navigate to session page
-        setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
-        
-        // Navigate to the session page - let ConversationView load fresh data from backend
-        if (event.session_id) {
-          navigate(`/c/${event.session_id}`, { 
-            state: { 
-              fromNewConversation: true
-            } 
-          });
-        }
-        
-        setStreamingId(null);
-        break;
-
-      case 'error':
-        setError(event.error);
-        setStreamingId(null);
-        break;
-
-      case 'closed':
-        console.log('Stream closed');
-        setStreamingId(null);
-        break;
-    }
-  }, [navigate]);
 
   const { isConnected, disconnect } = useStreaming(streamingId, {
     onMessage: handleStreamMessage,
@@ -145,13 +83,7 @@ export function NewConversation() {
     setError(null);
 
     // Add user message immediately
-    const tempUserMessage: ChatMessage = {
-      id: `user-pending-${Date.now()}`,
-      type: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, tempUserMessage]);
+    addPendingUserMessage(message);
 
     try {
       // Always start a new conversation
@@ -182,7 +114,7 @@ export function NewConversation() {
       setStreamingId(null);
       
       // Mark all messages as not streaming
-      setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
+      markAllMessagesAsComplete();
     } catch (err: any) {
       console.error('Failed to stop conversation:', err);
       setError(err.message || 'Failed to stop conversation');
@@ -235,7 +167,7 @@ export function NewConversation() {
       )}
 
       <MessageList 
-        messages={messages} 
+        messages={groupedMessages} 
         isLoading={false}
       />
 
