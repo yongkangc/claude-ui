@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { groupMessages } from '../utils/message-grouping';
+import { useState, useCallback } from 'react';
 import type { ChatMessage, StreamEvent } from '../types';
 
 interface UseConversationMessagesOptions {
@@ -11,20 +10,11 @@ interface UseConversationMessagesOptions {
 }
 
 /**
- * Shared hook for managing conversation messages and grouping
- * Handles both raw messages and grouped messages state
- * Provides common handlers for streaming events
+ * Shared hook for managing conversation messages
+ * Handles message state and streaming events
  */
 export function useConversationMessages(options: UseConversationMessagesOptions = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [groupedMessages, setGroupedMessages] = useState<ChatMessage[]>([]);
-
-  // Apply message grouping whenever messages change
-  useEffect(() => {
-    // console.log('[useConversationMessages] Applying groupMessages to', messages.length, 'messages');
-    const grouped = groupMessages(messages);
-    setGroupedMessages(grouped);
-  }, [messages]);
 
   // Clear messages
   const clearMessages = useCallback(() => {
@@ -32,7 +22,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → 0 (reason: Clearing all messages)`);
       return [];
     });
-    setGroupedMessages([]);
   }, []);
 
   // Set all messages at once (for loading from API)
@@ -73,7 +62,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           type: 'user',
           content: event.message.content,
           timestamp: new Date().toISOString(),
-          parent_tool_use_id: event.parent_tool_use_id || null,
         };
         
         setMessages(prev => {
@@ -121,7 +109,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
             content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
             timestamp: new Date().toISOString(),
             isStreaming: event.message.stop_reason === null,
-            parent_tool_use_id: event.parent_tool_use_id || null,
           };
           
           options.onAssistantMessage?.(assistantMessage);
@@ -174,7 +161,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
 
   return {
     messages,
-    groupedMessages,
     clearMessages,
     setAllMessages,
     upsertMessage,

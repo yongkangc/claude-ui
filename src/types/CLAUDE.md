@@ -210,7 +210,6 @@ export interface AssistantStreamMessage {
     stop_sequence: string | null;
     usage: Usage;
   };
-  parent_tool_use_id: string | null;
   session_id: string;           // Claude CLI's session ID
 }
 
@@ -220,7 +219,6 @@ export interface UserStreamMessage {
     role: 'user';
     content: Array<ContentBlockParam>;
   };
-  parent_tool_use_id: string | null;
   session_id: string;           // Claude CLI's session ID
 }
 

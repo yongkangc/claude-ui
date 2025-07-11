@@ -17,7 +17,7 @@ export function ConversationView() {
 
   // Use shared conversation messages hook
   const {
-    groupedMessages,
+    messages,
     clearMessages,
     setAllMessages,
     handleStreamMessage,
@@ -164,7 +164,7 @@ export function ConversationView() {
       )}
 
       <MessageList 
-        messages={groupedMessages} 
+        messages={messages} 
         isLoading={isLoading}
         isStreaming={!!streamingId}
       />
@@ -197,48 +197,11 @@ function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessa
         content = msg.message.content;
       }
       
-      // Extract parent_tool_use_id from multiple possible sources
-      let parentToolUseId: string | null = null;
-      
-      // First, check if parent_tool_use_id is directly available in the message
-      if (typeof msg.message === 'object' && 'parent_tool_use_id' in msg.message) {
-        parentToolUseId = msg.message.parent_tool_use_id as string;
-      }
-      
-      // If not found and we have a parentUuid, try to resolve it from the parent message
-      if (!parentToolUseId && msg.parentUuid) {
-        const parentMessage = messageMap.get(msg.parentUuid);
-        if (parentMessage && parentMessage.type === 'assistant') {
-          // Look for tool_use content in the parent assistant message
-          const parentContent = parentMessage.message && 
-            typeof parentMessage.message === 'object' && 
-            'content' in parentMessage.message 
-            ? parentMessage.message.content 
-            : parentMessage.message;
-            
-          if (Array.isArray(parentContent)) {
-            // Find the last tool_use block in parent message
-            for (let i = parentContent.length - 1; i >= 0; i--) {
-              const block = parentContent[i];
-              if (block && 
-                  typeof block === 'object' && 
-                  'type' in block && 
-                  block.type === 'tool_use' && 
-                  'id' in block) {
-                parentToolUseId = block.id as string;
-                break;
-              }
-            }
-          }
-        }
-      }
-      
       return {
         id: msg.uuid,
         type: msg.type as 'user' | 'assistant' | 'system',
         content: content,
         timestamp: msg.timestamp,
-        parent_tool_use_id: parentToolUseId,
       };
     });
 }

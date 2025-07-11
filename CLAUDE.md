@@ -58,11 +58,6 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 - Prevents orphaned messages in conversation history
 - Improved reliability of real-time conversation streaming
 
-### Message Grouping Consistency Fix
-- Fixed discrepancy between streaming and API-loaded message grouping
-- Properly resolves `parent_tool_use_id` from conversation history's `parentUuid`
-- Handles nested tool calls (like Task agent) correctly in both scenarios
-- Key insight: `parentUuid` points to message UUID, not tool_use_id
 
 ## Development Commands
 

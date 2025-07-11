@@ -36,7 +36,6 @@ export interface ConversationMessage {
 export interface StreamMessage {
   type: 'system' | 'assistant' | 'user' | 'result';
   session_id: string; // Claude CLI's session ID (in stream messages)
-  parent_tool_use_id?: string | null;
 }
 
 export interface SystemInitMessage extends StreamMessage {

@@ -23,7 +23,6 @@ export function MessageItem({ message }: MessageItemProps) {
     return initial;
   });
   const [copiedBlocks, setCopiedBlocks] = useState<Set<string>>(new Set());
-  const [subMessagesExpanded, setSubMessagesExpanded] = useState(true); // Auto-expand sub-messages by default
 
   const toggleBlock = (blockId: string) => {
     setExpandedBlocks(prev => {
@@ -37,9 +36,6 @@ export function MessageItem({ message }: MessageItemProps) {
     });
   };
 
-  const toggleSubMessages = () => {
-    setSubMessagesExpanded(prev => !prev);
-  };
 
   const copyContent = async (content: string, blockId: string) => {
     try {
@@ -166,37 +162,6 @@ export function MessageItem({ message }: MessageItemProps) {
     );
   };
 
-  const renderSubMessages = () => {
-    if (!message.subMessages || message.subMessages.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className={styles.subMessagesContainer}>
-        <div className={styles.subMessagesHeader}>
-          <button
-            className={styles.toggleButton}
-            onClick={toggleSubMessages}
-            aria-label={subMessagesExpanded ? 'Collapse sub-messages' : 'Expand sub-messages'}
-          >
-            {subMessagesExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </button>
-          <span className={styles.subMessagesLabel}>
-            {message.subMessages.length} related message{message.subMessages.length > 1 ? 's' : ''}
-          </span>
-        </div>
-        {subMessagesExpanded && (
-          <div className={styles.subMessagesList}>
-            {message.subMessages.map((subMessage) => (
-              <div key={subMessage.id} className={styles.subMessageItem}>
-                <MessageItem message={subMessage} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className={`${styles.message} ${styles[message.type]}`}>
@@ -216,7 +181,6 @@ export function MessageItem({ message }: MessageItemProps) {
             <span></span>
           </div>
         )}
-        {renderSubMessages()}
       </div>
     </div>
   );

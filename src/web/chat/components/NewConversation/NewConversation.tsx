@@ -26,7 +26,7 @@ export function NewConversation() {
 
   // Use shared conversation messages hook
   const {
-    groupedMessages,
+    messages,
     clearMessages,
     handleStreamMessage,
     addPendingUserMessage,
@@ -167,7 +167,7 @@ export function NewConversation() {
       )}
 
       <MessageList 
-        messages={groupedMessages} 
+        messages={messages} 
         isLoading={false}
       />
 

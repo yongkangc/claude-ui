@@ -5,14 +5,13 @@ import type { ChatMessage, UserStreamMessage, AssistantStreamMessage } from '../
  * Ensures consistent message structure with all required fields
  */
 export function createUserMessageFromStream(
-  event: { message: UserStreamMessage; parent_tool_use_id?: string | null }
+  event: { message: UserStreamMessage }
 ): ChatMessage {
   return {
     id: `user-${Date.now()}`,
     type: 'user',
     content: event.message.content,
     timestamp: new Date().toISOString(),
-    parent_tool_use_id: event.parent_tool_use_id || null,
   };
 }
 
@@ -21,7 +20,7 @@ export function createUserMessageFromStream(
  * Ensures consistent message structure with all required fields
  */
 export function createAssistantMessageFromStream(
-  event: { message: AssistantStreamMessage; parent_tool_use_id?: string | null }
+  event: { message: AssistantStreamMessage }
 ): ChatMessage {
   return {
     id: event.message.id,
@@ -31,7 +30,6 @@ export function createAssistantMessageFromStream(
       : [event.message.content],
     timestamp: new Date().toISOString(),
     isStreaming: event.message.stop_reason === null,
-    parent_tool_use_id: event.parent_tool_use_id || null,
   };
 }
 
@@ -54,7 +52,7 @@ export function createPendingUserMessage(content: string): ChatMessage {
  */
 export function updateAssistantMessage(
   existing: ChatMessage,
-  update: { content: any; stop_reason: string | null; parent_tool_use_id?: string | null }
+  update: { content: any; stop_reason: string | null }
 ): ChatMessage {
   return {
     ...existing,
@@ -63,6 +61,5 @@ export function updateAssistantMessage(
       ...(Array.isArray(update.content) ? update.content : [update.content])
     ],
     isStreaming: update.stop_reason === null,
-    parent_tool_use_id: update.parent_tool_use_id || existing.parent_tool_use_id || null,
   };
 }
