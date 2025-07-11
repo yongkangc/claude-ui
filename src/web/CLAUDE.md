@@ -81,7 +81,22 @@ src/web/
 - Reduces repetitive input for users working in the same project
 - Falls back to empty field when no recent directory is available
 
+**Message Grouping Fix (Nested Tool Calls):**
+- Fixed discrepancy between streaming and API-loaded message grouping
+- Properly resolves `parent_tool_use_id` from conversation history's `parentUuid`
+- Handles nested tool calls (like Task agent) correctly in both scenarios
+- Ensures consistent message hierarchy regardless of data source
+
 ### Critical Implementation Details
+
+**Message Parent Resolution:**
+- Streaming messages include `parent_tool_use_id` directly from Claude CLI
+- Conversation history uses `parentUuid` which points to parent message UUID
+- `convertToChatlMessages` resolves `parent_tool_use_id` by:
+  1. Using direct `parent_tool_use_id` if available (streaming format)
+  2. Looking up parent message and extracting tool_use_id from its content
+  3. Falling back to extracting tool_use_id from tool_result content blocks
+- This ensures consistent message grouping between streaming and loaded conversations
 
 **Theme System:**
 - CSS custom properties in `:root` and `[data-theme="dark"]`

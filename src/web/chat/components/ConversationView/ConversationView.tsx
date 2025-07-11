@@ -254,6 +254,10 @@ export function ConversationView() {
 
 // Helper function to convert API response to chat messages
 function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessage[] {
+  // Create a map for quick parent message lookup
+  const messageMap = new Map<string, ConversationMessage>();
+  details.messages.forEach(msg => messageMap.set(msg.uuid, msg));
+
   return details.messages
     .filter(msg => !msg.isSidechain) // Filter out sidechain messages
     .map(msg => {
@@ -268,39 +272,37 @@ function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessa
       // Extract parent_tool_use_id from multiple possible sources
       let parentToolUseId: string | null = null;
       
-      // Check if it's in the ConversationMessage structure
-      if (msg.parentUuid) {
-        // Note: parentUuid might be the parent message UUID, not the tool_use_id
-        // This would require additional logic to resolve the actual tool_use_id
-        // For now, we'll use it as-is and let the grouping algorithm handle it
-        parentToolUseId = msg.parentUuid;
-      }
-      
-      // Check if it's in the message content (Anthropic format)
+      // First, check if parent_tool_use_id is directly available in the message
       if (typeof msg.message === 'object' && 'parent_tool_use_id' in msg.message) {
         parentToolUseId = msg.message.parent_tool_use_id as string;
       }
       
-      // For tool_result content, extract the tool_use_id as parent reference
-      if (Array.isArray(content)) {
-        for (const block of content) {
-          if (block && 
-              typeof block === 'object' && 
-              'type' in block && 
-              block.type === 'tool_result' && 
-              'tool_use_id' in block && 
-              !parentToolUseId) {
-            parentToolUseId = block.tool_use_id as string;
-            break;
+      // If not found and we have a parentUuid, try to resolve it from the parent message
+      if (!parentToolUseId && msg.parentUuid) {
+        const parentMessage = messageMap.get(msg.parentUuid);
+        if (parentMessage && parentMessage.type === 'assistant') {
+          // Look for tool_use content in the parent assistant message
+          const parentContent = parentMessage.message && 
+            typeof parentMessage.message === 'object' && 
+            'content' in parentMessage.message 
+            ? parentMessage.message.content 
+            : parentMessage.message;
+            
+          if (Array.isArray(parentContent)) {
+            // Find the last tool_use block in parent message
+            for (let i = parentContent.length - 1; i >= 0; i--) {
+              const block = parentContent[i];
+              if (block && 
+                  typeof block === 'object' && 
+                  'type' in block && 
+                  block.type === 'tool_use' && 
+                  'id' in block) {
+                parentToolUseId = block.id as string;
+                break;
+              }
+            }
           }
         }
-      } else if (content && 
-                 typeof content === 'object' && 
-                 'type' in content && 
-                 content.type === 'tool_result' && 
-                 'tool_use_id' in content && 
-                 !parentToolUseId) {
-        parentToolUseId = content.tool_use_id as string;
       }
       
       return {
