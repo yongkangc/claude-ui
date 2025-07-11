@@ -5,6 +5,8 @@ import type { ChatMessage } from '../types';
  * Rule 1: Messages with parent_tool_use_id should be grouped under their parent tool call message
  * Rule 2: User messages with content.type == "tool_result" should be grouped under the nearest previous assistant message
  * 
+ * IMPORTANT: For tool_result messages, Rule 2 ALWAYS takes priority regardless of parent_tool_use_id.
+ * 
  * Uses a single-pass algorithm with dictionary lookup for O(1) parent finding.
  * Leverages the constraint that parent messages ALWAYS appear before child messages.
  * 
@@ -54,8 +56,24 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     }
     console.log('5. Potential parent candidates:', potentialParents);
 
-    // Rule 1: Handle parent_tool_use_id (highest priority)
-    if (messageCopy.parent_tool_use_id) {
+    // IMPORTANT: For tool_result messages, ALWAYS use Rule 2 (find nearest assistant)
+    // Rule 2 has priority for tool_result content
+    if (messageCopy.type === 'user' && hasToolResultContent(messageCopy)) {
+      if (latestAssistant) {
+        latestAssistant.subMessages = latestAssistant.subMessages || [];
+        latestAssistant.subMessages.push(messageCopy);
+        isSubMessage = true;
+        console.log('6. Decision: Rule 2 applied - tool_result grouped under latest assistant:', {
+          parentId: latestAssistant.id,
+          parentType: latestAssistant.type,
+          note: 'tool_result messages MUST use Rule 2'
+        });
+      } else {
+        console.log('6. Decision: Rule 2 attempted but no latest assistant found');
+      }
+    }
+    // Rule 1: Handle parent_tool_use_id (only if not a tool_result)
+    else if (messageCopy.parent_tool_use_id) {
       const parent = findParentByToolId(messageDict, messageCopy.parent_tool_use_id);
       if (parent) {
         parent.subMessages = parent.subMessages || [];
@@ -68,21 +86,6 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
         });
       } else {
         console.log('6. Decision: Rule 1 attempted but no parent found for tool_use_id:', messageCopy.parent_tool_use_id);
-      }
-    }
-
-    // Rule 2: Handle tool_result content type (only if not already grouped by Rule 1)
-    if (!isSubMessage && messageCopy.type === 'user' && hasToolResultContent(messageCopy)) {
-      if (latestAssistant) {
-        latestAssistant.subMessages = latestAssistant.subMessages || [];
-        latestAssistant.subMessages.push(messageCopy);
-        isSubMessage = true;
-        console.log('6. Decision: Rule 2 applied - grouped under latest assistant:', {
-          parentId: latestAssistant.id,
-          parentType: latestAssistant.type
-        });
-      } else {
-        console.log('6. Decision: Rule 2 attempted but no latest assistant found');
       }
     }
 

@@ -171,8 +171,8 @@ describe('groupMessages', () => {
     });
   });
 
-  describe('Rule priority: parent_tool_use_id takes precedence', () => {
-    it('should use parent_tool_use_id even if latest assistant exists', () => {
+  describe('Rule priority: tool_result always uses Rule 2', () => {
+    it('should always group tool_result under latest assistant, ignoring parent_tool_use_id', () => {
       const messages: ChatMessage[] = [
         { 
           id: '1', 
@@ -186,17 +186,17 @@ describe('groupMessages', () => {
           type: 'user', 
           content: [{ type: 'tool_result', tool_use_id: 'tool_123', content: 'Result' }],
           timestamp: '2024-01-01T00:00:02Z',
-          parent_tool_use_id: 'tool_123' // Should group under message 1, not 2
+          parent_tool_use_id: 'tool_123' // Should group under message 2 (latest assistant), not 1
         },
       ];
       
       const result = groupMessages(messages);
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('1');
-      expect(result[0].subMessages).toHaveLength(1);
-      expect(result[0].subMessages![0].id).toBe('3');
+      expect(result[0].subMessages).toBeUndefined(); // No sub-messages under first assistant
       expect(result[1].id).toBe('2');
-      expect(result[1].subMessages).toBeUndefined();
+      expect(result[1].subMessages).toHaveLength(1);
+      expect(result[1].subMessages![0].id).toBe('3'); // tool_result grouped under latest assistant
     });
   });
 
@@ -239,7 +239,7 @@ describe('groupMessages', () => {
       expect(result[1].subMessages![0].id).toBe('5');
     });
 
-    it('should handle nested sub-messages correctly', () => {
+    it('should handle sequential tool_result messages correctly', () => {
       const messages: ChatMessage[] = [
         { 
           id: '1', 
@@ -255,7 +255,7 @@ describe('groupMessages', () => {
           type: 'user', 
           content: [{ type: 'tool_result', tool_use_id: 'tool_parent', content: 'Parent result' }],
           timestamp: '2024-01-01T00:00:01Z',
-          parent_tool_use_id: 'tool_parent'
+          parent_tool_use_id: 'tool_parent' // Will be ignored, groups under latest assistant (1)
         },
         { 
           id: '3', 
@@ -271,19 +271,19 @@ describe('groupMessages', () => {
           type: 'user', 
           content: [{ type: 'tool_result', tool_use_id: 'tool_nested', content: 'Nested result' }],
           timestamp: '2024-01-01T00:00:03Z',
-          parent_tool_use_id: 'tool_nested'
+          parent_tool_use_id: 'tool_nested' // Will be ignored, groups under latest assistant (3)
         },
       ];
       
       const result = groupMessages(messages);
       expect(result).toHaveLength(2);
       
-      // First assistant with its sub-message
+      // First assistant with its tool_result
       expect(result[0].id).toBe('1');
       expect(result[0].subMessages).toHaveLength(1);
       expect(result[0].subMessages![0].id).toBe('2');
       
-      // Second assistant with its sub-message
+      // Second assistant with its tool_result
       expect(result[1].id).toBe('3');
       expect(result[1].subMessages).toHaveLength(1);
       expect(result[1].subMessages![0].id).toBe('4');
