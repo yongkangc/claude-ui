@@ -30,7 +30,6 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
       subMessages: undefined, // Reset subMessages for fresh grouping
     };
     messageDict.set(messageCopy.id, messageCopy);
-
     let isSubMessage = false;
     const isToolResult = hasToolResultContent(messageCopy);
     
@@ -100,6 +99,7 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
   }
 
   console.debug(`[groupMessages] Message list length changed: ${messages.length} → ${result.length} (reason: Finished grouping - top-level messages)`);
+  
   return result;
 }
 

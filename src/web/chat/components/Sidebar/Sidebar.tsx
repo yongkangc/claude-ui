@@ -12,12 +12,13 @@ export function Sidebar() {
   useEffect(() => {
     loadConversations();
     
-    // Refresh conversations every 5 seconds
-    const interval = setInterval(() => {
-      loadConversations();
-    }, 5000);
+    // Auto-refresh disabled
+    // // Refresh conversations every 5 seconds
+    // const interval = setInterval(() => {
+    //   loadConversations();
+    // }, 5000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   // Reload conversations when a new conversation starts

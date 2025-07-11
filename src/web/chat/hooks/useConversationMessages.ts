@@ -66,8 +66,10 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         break;
 
       case 'user':
+        // Generate a stable ID for user messages based on content hash
+        const userMessageId = event.message.id || `user-${Date.now()}`;
         const userMessage: ChatMessage = {
-          id: `user-${Date.now()}`,
+          id: userMessageId,
           type: 'user',
           content: event.message.content,
           timestamp: new Date().toISOString(),
@@ -75,11 +77,25 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         };
         
         setMessages(prev => {
+          // Check for duplicate user message ID
+          const existingIndex = prev.findIndex(m => m.id === userMessageId);
+          if (existingIndex !== -1) {
+            console.warn(`[useConversationMessages] Duplicate user message ID detected: ${userMessageId}. Updating existing message.`);
+            const newMessages = [...prev];
+            newMessages[existingIndex] = userMessage;
+            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Updated existing user message ${userMessageId})`);
+            return newMessages;
+          }
+          
           // Replace pending message or add new one
           const pendingIndex = prev.findIndex(m => m.id.startsWith('user-pending-'));
           if (pendingIndex !== -1) {
-            return prev.map((m, i) => i === pendingIndex ? userMessage : m);
+            const newMessages = [...prev];
+            newMessages[pendingIndex] = userMessage;
+            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length} (reason: Replaced pending user message with actual)`);
+            return newMessages;
           }
+          
           console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new user message from stream)`);
           return [...prev, userMessage];
         });
@@ -91,39 +107,25 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         const assistantId = event.message.id;
         
         setMessages(prev => {
+          // Check for duplicate IDs (should never happen by design)
           const existing = prev.find(m => m.id === assistantId);
-          
           if (existing) {
-            // Update existing message - accumulate content blocks instead of replacing
-            const updatedMessage: ChatMessage = {
-              ...existing,
-              content: (() => {
-                const existingContent = Array.isArray(existing.content) ? existing.content : [];
-                const newContent = Array.isArray(event.message.content) ? event.message.content : [event.message.content];
-                console.debug(`[useConversationMessages] Content blocks changed for assistant message ${assistantId}: ${existingContent.length} → ${existingContent.length + newContent.length} (reason: Concatenating content blocks)`);
-                return [...existingContent, ...newContent];
-              })(),
-              isStreaming: event.message.stop_reason === null,
-              parent_tool_use_id: event.parent_tool_use_id || existing.parent_tool_use_id || null,
-            };
-            
-            options.onAssistantMessage?.(updatedMessage);
-            return prev.map(m => m.id === assistantId ? updatedMessage : m);
-          } else {
-            // Add new message
-            const assistantMessage: ChatMessage = {
-              id: assistantId,
-              type: 'assistant',
-              content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
-              timestamp: new Date().toISOString(),
-              isStreaming: event.message.stop_reason === null,
-              parent_tool_use_id: event.parent_tool_use_id || null,
-            };
-            
-            options.onAssistantMessage?.(assistantMessage);
-            console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new assistant message from stream)`);
-            return [...prev, assistantMessage];
+            console.error(`[useConversationMessages] ERROR: Duplicate message ID detected: ${assistantId}. This should never happen in streaming.`);
           }
+          
+          // Always add as new message
+          const assistantMessage: ChatMessage = {
+            id: assistantId,
+            type: 'assistant',
+            content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
+            timestamp: new Date().toISOString(),
+            isStreaming: event.message.stop_reason === null,
+            parent_tool_use_id: event.parent_tool_use_id || null,
+          };
+          
+          options.onAssistantMessage?.(assistantMessage);
+          console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new assistant message from stream)`);
+          return [...prev, assistantMessage];
         });
         break;
 
