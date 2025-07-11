@@ -93,13 +93,37 @@ export function ConversationView() {
         console.log('Stream connected');
         break;
 
-      case 'user':
+      case 'user': {
+        // Extract tool_use_id from tool_result content if present
+        let extractedParentToolUseId: string | null = event.parent_tool_use_id || null;
+        
+        // Check if content contains tool_result blocks and extract tool_use_id
+        const messageContent = event.message.content;
+        if (Array.isArray(messageContent)) {
+          for (const block of messageContent) {
+            if (block && 
+                typeof block === 'object' && 
+                'type' in block && 
+                block.type === 'tool_result' && 
+                'tool_use_id' in block) {
+              extractedParentToolUseId = block.tool_use_id as string;
+              break;
+            }
+          }
+        } else if (messageContent && 
+                   typeof messageContent === 'object' && 
+                   'type' in messageContent && 
+                   messageContent.type === 'tool_result' && 
+                   'tool_use_id' in messageContent) {
+          extractedParentToolUseId = messageContent.tool_use_id as string;
+        }
+        
         const userMessage: ChatMessage = {
           id: `user-${Date.now()}`,
           type: 'user',
           content: event.message.content,
           timestamp: new Date().toISOString(),
-          parent_tool_use_id: event.parent_tool_use_id || null,
+          parent_tool_use_id: extractedParentToolUseId,
         };
         setMessages(prev => {
           // Replace pending message or add new one
@@ -110,8 +134,9 @@ export function ConversationView() {
           return [...prev, userMessage];
         });
         break;
+      }
 
-      case 'assistant':
+      case 'assistant': {
         const assistantId = event.message.id;
         setMessages(prev => {
           const existing = prev.find(m => m.id === assistantId);
@@ -143,8 +168,9 @@ export function ConversationView() {
           }
         });
         break;
+      }
 
-      case 'result':
+      case 'result': {
         // Mark streaming as complete and navigate to new session if needed
         setMessages(prev => prev.map(m => ({ ...m, isStreaming: false })));
         
@@ -159,6 +185,7 @@ export function ConversationView() {
         
         setStreamingId(null);
         break;
+      }
 
       case 'error':
         setError(event.error);
