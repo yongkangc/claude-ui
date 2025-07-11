@@ -30,20 +30,9 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
     messageDict.set(messageCopy.id, messageCopy);
 
     let isSubMessage = false;
-
-    // Log message grouping analysis
-    console.log('=== Analyzing message for grouping ===');
-    console.log('1. Message content:', {
-      id: messageCopy.id,
-      type: messageCopy.type,
-      content: messageCopy.content,
-      timestamp: messageCopy.timestamp
-    });
-    console.log('2. Is tool_result:', hasToolResultContent(messageCopy));
-    console.log('3. Is in streaming:', messageCopy.isStreaming || false);
-    console.log('4. Has parent_tool_use_id:', messageCopy.parent_tool_use_id || 'none');
+    const isToolResult = hasToolResultContent(messageCopy);
     
-    // Log potential parent candidates
+    // Build potential parent candidates info
     const potentialParents: Array<{id: string, type: string, hasToolUse: boolean}> = [];
     for (const [id, msg] of messageDict) {
       const hasToolUse = msg.type === 'assistant' && Array.isArray(msg.content) && 
@@ -54,22 +43,22 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
         hasToolUse
       });
     }
-    console.log('5. Potential parent candidates:', potentialParents);
+
+    // Determine grouping decision
+    let decision = '';
+    let parentInfo = null;
 
     // IMPORTANT: For tool_result messages, ALWAYS use Rule 2 (find nearest assistant)
     // Rule 2 has priority for tool_result content
-    if (messageCopy.type === 'user' && hasToolResultContent(messageCopy)) {
+    if (messageCopy.type === 'user' && isToolResult) {
       if (latestAssistant) {
         latestAssistant.subMessages = latestAssistant.subMessages || [];
         latestAssistant.subMessages.push(messageCopy);
         isSubMessage = true;
-        console.log('6. Decision: Rule 2 applied - tool_result grouped under latest assistant:', {
-          parentId: latestAssistant.id,
-          parentType: latestAssistant.type,
-          note: 'tool_result messages MUST use Rule 2'
-        });
+        decision = 'Rule 2 applied - tool_result grouped under latest assistant';
+        parentInfo = { id: latestAssistant.id, type: latestAssistant.type };
       } else {
-        console.log('6. Decision: Rule 2 attempted but no latest assistant found');
+        decision = 'Rule 2 attempted but no latest assistant found';
       }
     }
     // Rule 1: Handle parent_tool_use_id (only if not a tool_result)
@@ -79,28 +68,28 @@ export function groupMessages(messages: ChatMessage[]): ChatMessage[] {
         parent.subMessages = parent.subMessages || [];
         parent.subMessages.push(messageCopy);
         isSubMessage = true;
-        console.log('6. Decision: Rule 1 applied - grouped under parent with tool_use_id:', {
-          parentId: parent.id,
-          parentType: parent.type,
-          toolUseId: messageCopy.parent_tool_use_id
-        });
+        decision = 'Rule 1 applied - grouped under parent with tool_use_id';
+        parentInfo = { id: parent.id, type: parent.type, toolUseId: messageCopy.parent_tool_use_id };
       } else {
-        console.log('6. Decision: Rule 1 attempted but no parent found for tool_use_id:', messageCopy.parent_tool_use_id);
+        decision = `Rule 1 attempted but no parent found for tool_use_id: ${messageCopy.parent_tool_use_id}`;
       }
+    } else {
+      decision = 'No grouping rules apply - added as top-level message';
     }
 
-    // No grouping rules apply
-    if (!isSubMessage) {
-      console.log('6. Decision: No grouping rules apply - added as top-level message');
-    }
+    // Single compact log message
+    console.log(`[Message Grouping] ${messageCopy.id} (${messageCopy.type}) | ` +
+      `tool_result: ${isToolResult} | ` +
+      `streaming: ${messageCopy.isStreaming || false} | ` +
+      `parent_tool_use_id: ${messageCopy.parent_tool_use_id || 'none'} | ` +
+      `candidates: ${potentialParents.map(p => `${p.id}(${p.type})`).join(', ')} | ` +
+      `decision: ${decision}${parentInfo ? ` → ${parentInfo.id}` : ''}`
+    );
 
     // Track latest assistant message for Rule 2
     if (messageCopy.type === 'assistant') {
       latestAssistant = messageCopy;
-      console.log('Updated latest assistant to:', messageCopy.id);
     }
-
-    console.log('=====================================\n');
 
     // Add to main result list if not a sub-message
     if (!isSubMessage) {
@@ -119,20 +108,8 @@ function findParentByToolId(
   messageDict: Map<string, ChatMessage>,
   toolUseId: string
 ): ChatMessage | null {
-  console.log(`  -> Searching for parent with tool_use_id: ${toolUseId}`);
-  
   for (const [, message] of messageDict) {
     if (message.type === 'assistant' && Array.isArray(message.content)) {
-      const toolUseBlocks = message.content.filter((block: any) => 
-        block?.type === 'tool_use' && block?.id
-      );
-      
-      if (toolUseBlocks.length > 0) {
-        console.log(`  -> Checking assistant message ${message.id} with tool_use blocks:`, 
-          toolUseBlocks.map((b: any) => ({ id: b.id, name: b.name }))
-        );
-      }
-      
       for (const block of message.content) {
         if (block && 
             typeof block === 'object' && 
@@ -140,14 +117,11 @@ function findParentByToolId(
             block.type === 'tool_use' && 
             'id' in block && 
             (block as { id: string }).id === toolUseId) {
-          console.log(`  -> Found parent! Message ${message.id} contains tool_use with id ${toolUseId}`);
           return message;
         }
       }
     }
   }
-  
-  console.log(`  -> No parent found for tool_use_id: ${toolUseId}`);
   return null;
 }
 
