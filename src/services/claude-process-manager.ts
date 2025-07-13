@@ -521,9 +521,9 @@ export class ClaudeProcessManager extends EventEmitter {
     );
 
     // Add working directory access
-    if (config.workingDirectory) {
-      args.push('--add-dir', config.workingDirectory);
-    }
+    // if (config.workingDirectory) {
+    //   args.push('--add-dir', config.workingDirectory);
+    // }
 
     // Add model specification
     if (config.model) {
