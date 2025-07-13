@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Bot, AlertCircle, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import type { ChatMessage } from '../../types';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
@@ -75,7 +76,15 @@ export function MessageItem({ message, toolResults = {} }: MessageItemProps) {
 
     // Handle different content formats
     if (typeof message.content === 'string') {
-      return <div className={styles.textContent}>{message.content}</div>;
+      return (
+        <div className={styles.textContent}>
+          {message.type === 'assistant' ? (
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          ) : (
+            message.content
+          )}
+        </div>
+      );
     }
 
     if (Array.isArray(message.content)) {
@@ -89,7 +98,11 @@ export function MessageItem({ message, toolResults = {} }: MessageItemProps) {
             if (block.type === 'text') {
               return (
                 <div key={blockId} className={styles.textBlock}>
-                  {block.text}
+                  {message.type === 'assistant' ? (
+                    <ReactMarkdown>{block.text}</ReactMarkdown>
+                  ) : (
+                    block.text
+                  )}
                 </div>
               );
             }

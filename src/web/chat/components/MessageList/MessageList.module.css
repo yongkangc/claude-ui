@@ -129,6 +129,40 @@
   word-wrap: break-word;
 }
 
+/* Apply same markdown styles to textContent */
+.textContent h1,
+.textContent h2,
+.textContent h3,
+.textContent h4,
+.textContent h5,
+.textContent h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.textContent h1 { font-size: 1.5em; }
+.textContent h2 { font-size: 1.3em; }
+.textContent h3 { font-size: 1.1em; }
+.textContent h4 { font-size: 1em; }
+.textContent h5 { font-size: 0.9em; }
+.textContent h6 { font-size: 0.85em; }
+
+.textContent p { margin: 0.5em 0; }
+.textContent ul, .textContent ol { margin: 0.5em 0; padding-left: 2em; }
+.textContent li { margin: 0.25em 0; }
+.textContent code { background-color: var(--color-bg-tertiary); padding: 0.1em 0.3em; border-radius: var(--radius-xs); font-family: var(--font-mono); font-size: 0.9em; }
+.textContent pre { background-color: var(--color-bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm); overflow-x: auto; margin: 0.5em 0; }
+.textContent pre code { background-color: transparent; padding: 0; font-size: 0.875em; }
+.textContent blockquote { border-left: 3px solid var(--color-border); padding-left: var(--spacing-sm); margin: 0.5em 0; color: var(--color-text-secondary); }
+.textContent a { color: var(--color-accent); text-decoration: none; }
+.textContent a:hover { text-decoration: underline; }
+.textContent hr { border: none; border-top: 1px solid var(--color-border); margin: 1em 0; }
+.textContent table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+.textContent th, .textContent td { border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); text-align: left; }
+.textContent th { background-color: var(--color-bg-secondary); font-weight: 600; }
+.textContent img { max-width: 100%; height: auto; border-radius: var(--radius-sm); margin: 0.5em 0; }
+
 .errorContent {
   color: var(--color-error);
   font-size: var(--font-size-sm);
@@ -147,6 +181,108 @@
   line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+/* Markdown styles for assistant messages */
+.textBlock h1,
+.textBlock h2,
+.textBlock h3,
+.textBlock h4,
+.textBlock h5,
+.textBlock h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.textBlock h1 { font-size: 1.5em; }
+.textBlock h2 { font-size: 1.3em; }
+.textBlock h3 { font-size: 1.1em; }
+.textBlock h4 { font-size: 1em; }
+.textBlock h5 { font-size: 0.9em; }
+.textBlock h6 { font-size: 0.85em; }
+
+.textBlock p {
+  margin: 0.5em 0;
+}
+
+.textBlock ul,
+.textBlock ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.textBlock li {
+  margin: 0.25em 0;
+}
+
+.textBlock code {
+  background-color: var(--color-bg-tertiary);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.textBlock pre {
+  background-color: var(--color-bg-tertiary);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.textBlock pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.875em;
+}
+
+.textBlock blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: var(--spacing-sm);
+  margin: 0.5em 0;
+  color: var(--color-text-secondary);
+}
+
+.textBlock a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.textBlock a:hover {
+  text-decoration: underline;
+}
+
+.textBlock hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1em 0;
+}
+
+.textBlock table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.textBlock th,
+.textBlock td {
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+}
+
+.textBlock th {
+  background-color: var(--color-bg-secondary);
+  font-weight: 600;
+}
+
+.textBlock img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 0.5em 0;
 }
 
 /* Tool blocks */
