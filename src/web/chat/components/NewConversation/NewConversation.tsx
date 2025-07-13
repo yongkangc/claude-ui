@@ -27,6 +27,7 @@ export function NewConversation() {
   // Use shared conversation messages hook
   const {
     messages,
+    toolResults,
     addMessage,
     clearMessages,
     handleStreamMessage,
@@ -172,7 +173,8 @@ export function NewConversation() {
       )}
 
       <MessageList 
-        messages={messages} 
+        messages={messages}
+        toolResults={toolResults} 
         isLoading={false}
       />
 

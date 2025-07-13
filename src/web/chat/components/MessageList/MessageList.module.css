@@ -186,6 +186,16 @@
   color: var(--color-accent);
 }
 
+.toolStatus {
+  font-size: var(--font-size-sm);
+  margin-left: var(--spacing-xs);
+  color: var(--color-text-muted);
+}
+
+.toolStatus.hasResult {
+  color: var(--color-success);
+}
+
 .copyButton {
   display: flex;
   align-items: center;
@@ -201,6 +211,47 @@
 
 .toolContent {
   padding: var(--spacing-sm);
+}
+
+.toolResult {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.toolResultHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-xs);
+  user-select: none;
+}
+
+.toolResultContent {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  position: relative;
+  overflow: hidden;
+}
+
+.toolResultContent.collapsed {
+  max-height: 3.6em; /* Approximately 3 lines */
+  line-height: 1.2;
+}
+
+.toolResultContent.collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.2em;
+  background: linear-gradient(to bottom, transparent, var(--color-bg-primary));
+  pointer-events: none;
 }
 
 /* Thinking blocks */

@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { User, Bot, AlertCircle, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import type { ChatMessage } from '../../types';
+import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import styles from './MessageList.module.css';
 
 interface MessageItemProps {
   message: ChatMessage;
+  toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | ContentBlockParam[] }>;
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, toolResults = {} }: MessageItemProps) {
   // Initialize expanded blocks based on message type
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -93,6 +95,11 @@ export function MessageItem({ message }: MessageItemProps) {
             }
 
             if (block.type === 'tool_use') {
+              const toolResult = toolResults[block.id];
+              const hasResult = toolResult?.status === 'completed';
+              const resultBlockId = `${blockId}-result`;
+              const isResultExpanded = expandedBlocks.has(resultBlockId);
+              
               return (
                 <div key={blockId} className={styles.toolBlock}>
                   <div className={styles.toolHeader}>
@@ -104,6 +111,12 @@ export function MessageItem({ message }: MessageItemProps) {
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
                     <span className={styles.toolName}>{block.name}</span>
+                    <span 
+                      className={`${styles.toolStatus} ${hasResult ? styles.hasResult : styles.pending}`}
+                      title={hasResult ? 'Tool completed' : 'Waiting for result...'}
+                    >
+                      {hasResult ? '✓' : '⟳'}
+                    </span>
                     <button
                       className={styles.copyButton}
                       onClick={() => copyContent(JSON.stringify(block.input, null, 2), blockId)}
@@ -115,6 +128,33 @@ export function MessageItem({ message }: MessageItemProps) {
                   {isExpanded && (
                     <div className={styles.toolContent}>
                       <JsonViewer data={block.input} />
+                      {hasResult && toolResult?.result && (
+                        <div className={styles.toolResult}>
+                          <div 
+                            className={styles.toolResultHeader}
+                            onClick={() => toggleBlock(resultBlockId)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <span>Tool Result</span>
+                            <button
+                              className={styles.toggleButton}
+                              aria-label={isResultExpanded ? 'Collapse' : 'Expand'}
+                            >
+                              {isResultExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          </div>
+                          <div 
+                            className={`${styles.toolResultContent} ${!isResultExpanded ? styles.collapsed : ''}`}
+                            onClick={() => !isResultExpanded && toggleBlock(resultBlockId)}
+                            style={{ cursor: !isResultExpanded ? 'pointer' : 'default' }}
+                          >
+                            {typeof toolResult.result === 'string' 
+                              ? toolResult.result 
+                              : <JsonViewer data={toolResult.result} />
+                            }
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
