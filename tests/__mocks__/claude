@@ -151,7 +151,10 @@ async function simulateClaudeResponse(config) {
     mcp_servers: config.mcpConfig ? [{ name: 'ccui-permissions', type: 'stdio' }] : [],
     model: 'claude-opus-4-20250514',
     permissionMode: 'default',
-    apiKeySource: 'none'
+    apiKeySource: 'none',
+    // Include environment info for testing
+    env_pwd: process.env.PWD,
+    env_init_cwd: process.env.INIT_CWD
   };
   
   // Assistant response message

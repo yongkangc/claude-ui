@@ -191,6 +191,58 @@ describe('ClaudeProcessManager', () => {
     }, 2000);
   });
 
+  describe('environment variables', () => {
+    it('should set PWD and INIT_CWD to match working directory', async () => {
+      const testDir = path.join(process.cwd(), 'tests');
+      const config: ConversationConfig = {
+        workingDirectory: testDir,
+        initialPrompt: 'test environment'
+      };
+
+      let systemInitMessage: any;
+      manager.once('claude-message', ({ message }) => {
+        if (message.type === 'system' && message.subtype === 'init') {
+          systemInitMessage = message;
+        }
+      });
+
+      await manager.startConversation(config);
+      
+      // Wait for the system init message
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      expect(systemInitMessage).toBeDefined();
+      expect(systemInitMessage.env_pwd).toBe(testDir);
+      expect(systemInitMessage.env_init_cwd).toBe(testDir);
+    }, 2000);
+
+    it('should set PWD and INIT_CWD for resumed conversations', async () => {
+      const testDir = path.join(process.cwd(), 'src');
+      
+      // Mock the history reader to return our test directory
+      jest.spyOn(mockHistoryReader, 'getConversationWorkingDirectory').mockResolvedValue(testDir);
+
+      let systemInitMessage: any;
+      manager.once('claude-message', ({ message }) => {
+        if (message.type === 'system' && message.subtype === 'init') {
+          systemInitMessage = message;
+        }
+      });
+
+      await manager.resumeConversation({
+        sessionId: 'test-session-id',
+        message: 'resume test'
+      });
+      
+      // Wait for the system init message
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      expect(systemInitMessage).toBeDefined();
+      expect(systemInitMessage.env_pwd).toBe(testDir);
+      expect(systemInitMessage.env_init_cwd).toBe(testDir);
+    }, 2000);
+  });
+
   describe('session management', () => {
     it('should track multiple active sessions', async () => {
       const config1: ConversationConfig = {

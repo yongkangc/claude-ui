@@ -398,7 +398,9 @@ export class ClaudeProcessManager extends EventEmitter {
       // Add streamingId to environment for MCP server to use
       const envWithStreamingId = {
         ...spawnConfig.env,
-        CCUI_STREAMING_ID: streamingId
+        CCUI_STREAMING_ID: streamingId,
+        PWD: spawnConfig.cwd,
+        INIT_CWD: spawnConfig.cwd
       };
       
       const process = this.spawnProcess(
