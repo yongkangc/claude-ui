@@ -226,13 +226,11 @@ export interface UserStreamMessage {
 export interface ResultStreamMessage {
   type: 'result';
   subtype: 'success' | 'error_max_turns';
-  cost_usd: number;
   is_error: boolean;
   duration_ms: number;
   duration_api_ms: number;
   num_turns: number;
   result?: string;
-  total_cost: number;
   usage: {
     input_tokens: number;
     cache_creation_input_tokens: number;
@@ -275,7 +273,6 @@ export interface ConversationSummary {
   createdAt: string;            // ISO 8601 timestamp
   updatedAt: string;            // ISO 8601 timestamp
   messageCount: number;         // Total message count
-  totalCost: number;            // Sum of all message costs
   totalDuration: number;        // Total processing time
   model: string;                // Model used for conversation
   status: 'completed' | 'ongoing' | 'pending';
