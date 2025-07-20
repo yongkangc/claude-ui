@@ -607,12 +607,15 @@ export class ClaudeProcessManager extends EventEmitter {
       
       // Log the exact command for debugging
       const fullCommand = `${executablePath} ${args.join(' ')}`;
-      sessionLogger.error('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
+      sessionLogger.info('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
         fullCommand,
         executablePath,
         args,
         cwd,
-        env: Object.keys(env)
+        env: Object.entries(env).reduce((acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, string | undefined>)
       });
       
       const claudeProcess = spawn(executablePath, args, {
