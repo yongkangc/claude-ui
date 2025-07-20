@@ -46,7 +46,6 @@ export function ConversationView() {
   // Clear navigation state to prevent issues on refresh
   useEffect(() => {
     const state = location.state as { 
-      fromNewConversation?: boolean;
       fromConversation?: boolean;
     } | null;
     

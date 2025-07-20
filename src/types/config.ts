@@ -2,15 +2,9 @@
  * Configuration types for CCUI
  */
 
-export type LogLevel = 'silent' | 'debug' | 'info' | 'warn' | 'error';
-
 export interface ServerConfig {
   host: string;
   port: number;
-}
-
-export interface LoggingConfig {
-  level: LogLevel;
 }
 
 export interface CCUIConfig {
@@ -25,11 +19,6 @@ export interface CCUIConfig {
    * Server configuration
    */
   server: ServerConfig;
-  
-  /**
-   * Logging configuration
-   */
-  logging: LoggingConfig;
 }
 
 /**
@@ -39,8 +28,5 @@ export const DEFAULT_CONFIG: Omit<CCUIConfig, 'machine_id'> = {
   server: {
     host: 'localhost',
     port: 3001
-  },
-  logging: {
-    level: 'info'
   }
 };

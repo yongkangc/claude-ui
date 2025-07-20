@@ -105,13 +105,26 @@ npm run lint
 
 ## Configuration
 
-Copy `.env.example` to `.env` and configure:
+CCUI uses a configuration file at `~/.ccui/config.json` for server settings. The file is automatically created on first startup.
+
+### Logging Configuration
+
+Set the log level using the `LOG_LEVEL` environment variable:
 
 ```bash
-PORT=3001
-CLAUDE_HOME_PATH=~/.claude
-MCP_CONFIG_PATH=./config/mcp-config.json
-LOG_LEVEL=info
+# Run with debug logging
+LOG_LEVEL=debug npm run dev
+
+# Run with info logging (default)
+LOG_LEVEL=info npm run dev
+
+# Available levels: silent, error, warn, info, debug
+```
+
+Alternatively, use the CLI flag:
+
+```bash
+ccui serve --log-level debug
 ```
 
 ## Testing

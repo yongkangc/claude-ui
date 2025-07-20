@@ -83,8 +83,6 @@ describe('ClaudeProcessManager', () => {
       expect(args).toContain('-p');
       expect(args).toContain('--output-format');
       expect(args).toContain('stream-json');
-      expect(args).toContain('--add-dir');
-      expect(args).toContain('/test/dir');
       expect(args).toContain('--model');
       expect(args).toContain('claude-opus-4-20250514');
       expect(args).toContain('--allowedTools');

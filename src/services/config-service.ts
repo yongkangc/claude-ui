@@ -51,17 +51,9 @@ export class ConfigService {
       // Load and validate config
       await this.loadConfig();
       
-      // Update logger level with the configured value
-      if (this.config?.logging.level) {
-        // Import logger dynamically to avoid circular dependency at module load time
-        const { logger } = await import('./logger');
-        (logger as any).updateLogLevel(this.config.logging.level);
-      }
-      
       this.logger.info('Configuration initialized successfully', {
         machineId: this.config?.machine_id,
-        serverPort: this.config?.server.port,
-        logLevel: this.config?.logging.level
+        serverPort: this.config?.server.port
       });
     } catch (error) {
       this.logger.error('Failed to initialize configuration', error);
@@ -133,9 +125,6 @@ export class ConfigService {
       }
       if (!config.server || typeof config.server.port !== 'number') {
         throw new Error('Invalid config: missing or invalid server configuration');
-      }
-      if (!config.logging || !config.logging.level) {
-        throw new Error('Invalid config: missing or invalid logging configuration');
       }
 
       this.config = config;

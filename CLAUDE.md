@@ -47,10 +47,10 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 - Maintains full compatibility with existing session-info.json format
 
 ### Comprehensive Configuration System
-- Replaced all environment variable-based configuration with centralized JSON config
-- Machine-specific configuration in `~/.ccui/config.json`
+- Machine-specific configuration in `~/.ccui/config.json` for server settings
 - Auto-generated machine IDs for unique instance identification
 - Graceful configuration creation and validation on startup
+- Log levels controlled via LOG_LEVEL environment variable (not in config file)
 
 ### Critical Streaming Race Condition Fix (commit 2440781)
 - Fixed parent message race condition in streaming responses
@@ -129,9 +129,9 @@ The backend follows a service-oriented architecture with these key components:
   - Location: `~/.ccui/config.json`
   - Automatically created on first server startup
   - Contains machine-specific configuration with auto-generated machine ID
-  - Includes server, logging, and machine identification settings
-  - Replaces previous environment variable-based configuration
+  - Includes server and machine identification settings
   - Provides a centralized, file-based approach to configuration management
+  - Log levels are controlled via LOG_LEVEL environment variable
 - **Remember the correct mindset of message list handling**
   - **Simplified Message Handling**: 
     - ChatMessage no longer has isStreaming field - streaming is tracked only at conversation level

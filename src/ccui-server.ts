@@ -28,9 +28,8 @@ import {
   SessionRenameRequest,
   SessionRenameResponse
 } from './types';
-import { createLogger, logger as globalLogger } from './services/logger';
+import { createLogger } from './services/logger';
 import type { Logger } from 'pino';
-import type { LogLevel } from './types/config';
 
 // Conditionally import ViteExpress only in non-test environments
 let ViteExpress: any;
@@ -56,16 +55,11 @@ export class CCUIServer {
   private logger: Logger;
   private port: number;
   private host: string;
-  private configOverrides?: { port?: number; host?: string; logLevel?: LogLevel };
+  private configOverrides?: { port?: number; host?: string };
 
-  constructor(configOverrides?: { port?: number; host?: string; logLevel?: LogLevel }) {
+  constructor(configOverrides?: { port?: number; host?: string }) {
     this.app = express();
     this.configOverrides = configOverrides;
-    
-    // Update log level immediately if provided via CLI, before creating any child loggers
-    if (configOverrides?.logLevel) {
-      globalLogger.updateLogLevel(configOverrides.logLevel);
-    }
     
     this.logger = createLogger('CCUIServer');
     
@@ -126,7 +120,6 @@ export class CCUIServer {
         machineId: config.machine_id,
         port: this.port,
         host: this.host,
-        logLevel: config.logging.level,
         overrides: this.configOverrides ? Object.keys(this.configOverrides) : []
       });
 

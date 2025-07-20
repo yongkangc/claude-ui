@@ -130,9 +130,6 @@ interface CCUIConfig {
     host: string;      // Default: 'localhost'
     port: number;      // Default: 3001
   };
-  logging: {
-    level: string;     // Default: 'info'
-  };
 }
 ```
 
@@ -397,6 +394,8 @@ interface ErrorResponse {
 ## Important Notes
 
 - **Logging**: Always use `@/services/logger.ts` for logging. NEVER USE CONSOLE.LOG in production code
+  - Log level controlled via `LOG_LEVEL` environment variable (debug, info, warn, error, silent)
+  - Logger reads environment variable at startup - no dynamic updates
 - **Process Independence**: Each conversation runs as a separate Claude CLI child process
 - **Event-driven architecture** using Node.js EventEmitter
 - **Stateless design** for scalability

@@ -15,9 +15,8 @@ A modern, minimalistic chat interface for CCUI (Claude Code Web UI) with a TUI-i
 
 ### Components
 
-- **Layout**: Main container with responsive sidebar
-- **Sidebar**: Conversation list with status indicators
-- **NewConversation**: Form for starting new conversations
+- **Layout**: Main container with header and theme toggle
+- **Home**: Landing page showing recent conversations
 - **ConversationView**: Message display with streaming support
 - **MessageList**: Scrollable message container
 - **MessageItem**: Individual message rendering with content blocks
@@ -43,12 +42,10 @@ A modern, minimalistic chat interface for CCUI (Claude Code Web UI) with a TUI-i
 
 ## Usage
 
-1. Navigate to `/new` to start a new conversation
-2. Fill in working directory and initial prompt
-3. Click "Start Conversation" to begin
-4. Messages stream in real-time
-5. Continue conversations with the input area
-6. Switch between conversations using the sidebar
+1. Navigate to `/` to see recent conversations
+2. Click on a conversation to view or continue it
+3. Messages stream in real-time
+4. Continue conversations with the input area
 
 ## Development
 

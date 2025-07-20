@@ -3,7 +3,6 @@ import { join, dirname } from 'path';
 import { tmpdir } from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/services/logger';
-import { ConfigService } from '@/services/config-service';
 
 export interface MCPConfig {
   mcpServers: {
@@ -39,10 +38,6 @@ export class MCPConfigGenerator {
       ? join(__dirname, '..', 'mcp-server', 'index.js')
       : join(__dirname, '..', '..', 'dist', 'mcp-server', 'index.js');
     
-    // Get config for log level
-    const configService = ConfigService.getInstance();
-    const appConfig = configService.getConfig();
-    
     const config: MCPConfig = {
       mcpServers: {
         'ccui-permissions': {
@@ -51,7 +46,7 @@ export class MCPConfigGenerator {
           env: {
             CCUI_SERVER_URL: `http://localhost:${port}`,
             CCUI_SERVER_PORT: String(port),
-            LOG_LEVEL: appConfig.logging.level
+            LOG_LEVEL: process.env.LOG_LEVEL || 'info'
           }
         }
       }

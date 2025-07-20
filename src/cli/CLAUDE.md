@@ -38,9 +38,9 @@ The `serve` command starts the CCUI backend server with the following options:
 
 - `--port <port>` - Override the configured port
 - `--log-level <level>` - Set the logging level (silent, error, warn, info, debug)
-  - Works with Pino multistream configuration
-  - Affects both console and file logging output
-  - Default: "info" (or from config file)
+  - Sets the LOG_LEVEL environment variable before server initialization
+  - Affects both console output and log streaming
+  - Default: "info" (or from LOG_LEVEL environment variable)
 
 ## Resume Conversation
 

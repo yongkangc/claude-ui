@@ -516,8 +516,7 @@ export class ClaudeProcessManager extends EventEmitter {
 
     args.push(
       '--output-format', 'stream-json', // JSONL output format
-      '--verbose', // Required when using stream-json with print mode
-      '--max-turns', '10' // Allow multiple turns to see Claude responses in tests
+      '--verbose' // Required when using stream-json with print mode
     );
 
     // Add working directory access
