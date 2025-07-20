@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { type Logger } from './logger';
 
 /**
  * Simple JSON file manager with race condition protection

@@ -142,5 +142,12 @@ The backend follows a service-oriented architecture with these key components:
     - Duplicate messages are dropped with console.log for debugging
   - **Important**: There is no auto-scroll feature in the UI
   - Streaming status is only tracked at the conversation level via ConversationStatusTracker
+- **Logger Wrapper Implementation (CCUILogger)**:
+  - Created `CCUILogger` wrapper class to provide intuitive API: `logger.method('message', context)`
+  - Translates to Pino's expected format: `logger.method(context, 'message')`
+  - Maintains backward compatibility for all 206+ logger calls across the codebase
+  - Type alias `export type Logger = CCUILogger` ensures no type errors
+  - Supports all log levels: debug, info, warn, error, fatal
+  - Special handling for error method to support both `error('msg', err, context)` and `error('msg', context)` patterns
 
 [... rest of the existing content remains unchanged ...]

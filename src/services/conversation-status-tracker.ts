@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
-import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { createLogger, type Logger } from './logger';
 
 /**
  * Tracks the mapping between Claude session IDs and active CCUI streaming IDs

@@ -4,8 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
 import { JsonLinesParser } from './json-lines-parser';
-import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
 
 /**

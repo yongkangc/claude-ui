@@ -2,9 +2,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
-import { createLogger } from './logger';
+import { createLogger, type Logger } from './logger';
 import { SessionInfoService } from './session-info-service';
-import type { Logger } from 'pino';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface RawJsonEntry {
@@ -251,7 +250,8 @@ export class ClaudeHistoryReader {
           const entry = JSON.parse(line) as RawJsonEntry;
           entries.push(entry);
         } catch (parseError) {
-          this.logger.warn('Failed to parse line from JSONL file', parseError, { 
+          this.logger.warn('Failed to parse line from JSONL file', { 
+            error: parseError,
             filePath, 
             line: line.substring(0, 100) 
           });

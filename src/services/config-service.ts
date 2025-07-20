@@ -3,8 +3,7 @@ import path from 'path';
 import os from 'os';
 import { CCUIConfig, DEFAULT_CONFIG } from '@/types/config';
 import { generateMachineId } from '@/utils/machine-id';
-import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { createLogger, type Logger } from './logger';
 
 /**
  * ConfigService manages CCUI configuration

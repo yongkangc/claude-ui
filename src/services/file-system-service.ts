@@ -3,7 +3,7 @@ import * as path from 'path';
 import ignore from 'ignore';
 import { CCUIError, FileSystemEntry } from '@/types';
 import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { type Logger } from './logger';
 
 /**
  * Service for secure file system operations

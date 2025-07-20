@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { StreamEvent } from '@/types';
 import { EventEmitter } from 'events';
 import { createLogger } from './logger';
-import type { Logger } from 'pino';
+import { type Logger } from './logger';
 
 /**
  * Manages streaming connections to multiple clients

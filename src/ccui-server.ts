@@ -28,8 +28,7 @@ import {
   SessionRenameRequest,
   SessionRenameResponse
 } from './types';
-import { createLogger } from './services/logger';
-import type { Logger } from 'pino';
+import { createLogger, type Logger } from './services/logger';
 
 // Conditionally import ViteExpress only in non-test environments
 let ViteExpress: any;
@@ -310,7 +309,7 @@ export class CCUIServer {
       const requestId = Math.random().toString(36).substring(7);
       (req as any).requestId = requestId;
       
-      this.logger.info({ 
+      this.logger.info('Incoming request', { 
         method: req.method, 
         url: req.url,
         requestId,
@@ -320,7 +319,7 @@ export class CCUIServer {
         },
         query: req.query,
         ip: req.ip
-      }, 'Incoming request');
+      });
       
       // Log response when finished
       const startTime = Date.now();
@@ -386,7 +385,7 @@ export class CCUIServer {
         });
         res.status(err.statusCode).json({ error: err.message, code: err.code });
       } else {
-        this.logger.error(err, 'Unhandled error', {
+        this.logger.error('Unhandled error', err, {
           requestId,
           url: req.url,
           method: req.method,

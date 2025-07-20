@@ -1,4 +1,4 @@
-import pino, { Logger } from 'pino';
+import pino, { Logger as PinoLogger } from 'pino';
 import { PassThrough } from 'stream';
 
 export interface LogContext {
@@ -10,15 +10,87 @@ export interface LogContext {
 }
 
 /**
+ * Wrapper class for Pino logger that provides an intuitive API
+ * Translates logger.method('message', context) to Pino's logger.method(context, 'message')
+ */
+// Re-export CCUILogger as Logger for backward compatibility
+export type Logger = CCUILogger;
+
+export class CCUILogger {
+  constructor(private pinoLogger: PinoLogger) {}
+
+  debug(message: string, context?: any): void {
+    if (context !== undefined) {
+      this.pinoLogger.debug(context, message);
+    } else {
+      this.pinoLogger.debug(message);
+    }
+  }
+
+  info(message: string, context?: any): void {
+    if (context !== undefined) {
+      this.pinoLogger.info(context, message);
+    } else {
+      this.pinoLogger.info(message);
+    }
+  }
+
+  warn(message: string, context?: any): void {
+    if (context !== undefined) {
+      this.pinoLogger.warn(context, message);
+    } else {
+      this.pinoLogger.warn(message);
+    }
+  }
+
+  error(message: string, error?: Error | unknown, context?: any): void {
+    if (error instanceof Error) {
+      const logData = { err: error, ...context };
+      this.pinoLogger.error(logData, message);
+    } else if (error !== undefined && context !== undefined) {
+      // error is actually context, context is extra data
+      const logData = { ...error, ...context };
+      this.pinoLogger.error(logData, message);
+    } else if (error !== undefined) {
+      // error is context
+      this.pinoLogger.error(error, message);
+    } else {
+      this.pinoLogger.error(message);
+    }
+  }
+
+  fatal(message: string, error?: Error | unknown, context?: any): void {
+    if (error instanceof Error) {
+      const logData = { err: error, ...context };
+      this.pinoLogger.fatal(logData, message);
+    } else if (error !== undefined && context !== undefined) {
+      // error is actually context, context is extra data
+      const logData = { ...error, ...context };
+      this.pinoLogger.fatal(logData, message);
+    } else if (error !== undefined) {
+      // error is context
+      this.pinoLogger.fatal(error, message);
+    } else {
+      this.pinoLogger.fatal(message);
+    }
+  }
+
+  // Support for creating child loggers
+  child(context: LogContext): CCUILogger {
+    return new CCUILogger(this.pinoLogger.child(context));
+  }
+}
+
+/**
  * Centralized logger service using Pino
  * Provides consistent logging across all CCUI components
  * Log level is controlled by LOG_LEVEL environment variable
  */
 class LoggerService {
   private static instance: LoggerService;
-  private baseLogger: Logger;
+  private baseLogger: PinoLogger;
   private logInterceptStream: PassThrough;
-  private childLoggers: Map<string, Logger> = new Map();
+  private childLoggers: Map<string, PinoLogger> = new Map();
 
   private constructor() {
     // Get log level from environment variable, default to 'info'
@@ -73,19 +145,19 @@ class LoggerService {
   /**
    * Create a child logger with context
    */
-  child(context: LogContext): Logger {
+  child(context: LogContext): CCUILogger {
     const contextKey = JSON.stringify(context);
     if (!this.childLoggers.has(contextKey)) {
       this.childLoggers.set(contextKey, this.baseLogger.child(context));
     }
-    return this.childLoggers.get(contextKey)!;
+    return new CCUILogger(this.childLoggers.get(contextKey)!);
   }
 
   /**
    * Get the base logger
    */
-  getLogger(): Logger {
-    return this.baseLogger;
+  getLogger(): CCUILogger {
+    return new CCUILogger(this.baseLogger);
   }
 
   /**
@@ -150,7 +222,7 @@ class LoggerService {
 export const logger = LoggerService.getInstance();
 
 // Export factory function for creating component loggers
-export function createLogger(component: string, baseContext?: LogContext): Logger {
+export function createLogger(component: string, baseContext?: LogContext): CCUILogger {
   const context = { component, ...baseContext };
   return logger.child(context);
 }
