@@ -1,0 +1,269 @@
+<div class="flex h-full w-full flex-col">
+    <div class="relative flex h-full w-full flex-1 transition-colors z-0">
+        <div class="relative flex h-full w-full flex-row">
+            <div class="relative flex h-full max-w-full flex-1 flex-col">
+                <main class="transition-width relative h-full w-full flex-1 overflow-auto" id="main" z-index="-1">
+                    <div class="flex h-full flex-col">
+                        <div
+                            class="header draggable no-draggable-children sticky top-0 p-3 flex items-center justify-between z-20 h-header-height font-semibold bg-token-bg-primary">
+                            <div class="inner-header sticky top-0 flex w-full justify-end py-3 ps-3 pe-1">
+                                <div class="logo absolute start-0 top-3 flex items-center gap-3 self-center">
+                                    <a class="text-token-text-primary flex items-center gap-2 hover:cursor-pointer ms-[5px] mt-[5px]" data-discover="true" href="/codex">
+                                        <div class="h-[27px] w-[27px]">
+                                            <div autoplay="">
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="nav-menu flex items-center gap-2">
+                                    <div class="nav-item me-1 flex items-center gap-5 leading-none">
+                                        <a aria-label="Link to the Codex environment configuration page" class="text-token-text-secondary text-sm font-normal hover:underline"
+                                            data-discover="true" href="/codex/settings/environments">
+                                            Environments
+                                        </a>
+                                        <a alt="https://platform.openai.com/docs/codex/overview" aria-label="Link to the Codex docs page"
+                                            class="text-token-text-secondary text-sm font-normal hover:underline" href="https://platform.openai.com/docs/codex/overview"
+                                            rel="noopener" target="_blank">
+                                            Docs
+                                        </a>
+                                    </div>
+                                    <button aria-expanded="false" aria-haspopup="menu" aria-label="Open Profile Menu"
+                                        class="user-profile text-token-text-secondary hover:text-token-text-primary hover:bg-token-interactive-bg-secondary-hover radix-state-open:text-token-text-secondary flex h-10 w-10 items-center justify-center rounded-full px-1 transition focus-visible:outline-0"
+                                        data-state="closed" data-testid="profile-button" id="radix-«R16v6p5j5»" type="button">
+                                        <span class="relative">
+                                            <div class="relative">
+                                                <div class="flex overflow-hidden rounded-full select-none bg-gray-500/30 h-6 w-6 shrink-0">
+                                                    <img alt="Profile image" class="h-6 w-6 shrink-0" referrerpolicy="no-referrer"
+                                                        src="https://lh3.googleusercontent.com/a/AGNmyxY0nVWjGgUPEQGc58TFD6CpcWd1USQsrpbnWRm6=s96-c" />
+                                                </div>
+                                                <span
+                                                    class="absolute end-[4.8px] top-[21.5px] -me-2 flex h-3 items-center justify-center rounded-full bg-white text-[8px] font-medium text-black"
+                                                    style="width: 1.6rem; box-shadow: rgba(128, 128, 128, 0.1) 0px 0px 0px 1.1px; letter-spacing: -0.5px;">
+                                                    PLUS
+                                                </span>
+                                            </div>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="main-content h-full w-full overflow-y-auto" style="scrollbar-gutter: stable;">
+                            <div class="z-0 mx-auto flex w-full flex-col md:w-3xl">
+                                <div class="greeting-input-nav-bar bg-token-bg-primary sticky top-0 z-50 flex flex-col items-center">
+                                    <h1 class="mb-4 pt-4 text-2xl 2xl:mb-8 2xl:pt-8 2xl:text-3xl [@media(max-height:550px)]:hidden">
+                                        What are we coding next?
+                                    </h1>
+                                    <div class="input-area w-full pt-px max-md:px-3">
+                                        <div class="contents">
+                                            <form aria-label="Codex composer" class="w-full [view-transition-name:var(--vt-composer)]" data-type="unified-composer">
+                                                <div
+                                                    class="bg-token-bg-primary shadow-short flex w-full cursor-text flex-col items-center justify-center overflow-clip bg-clip-padding contain-inline-size dark:bg-[#303030] rounded-[28px]">
+                                                    <div class="relative flex min-h-14 w-full items-end">
+                                                        <div class="relative flex w-full flex-auto flex-col">
+                                                            <div class="text-area relative mx-5 flex min-h-14 flex-auto bg-transparent items-start" style="transform: none;">
+                                                                <div class="flex w-full flex-col justify-start" style="min-height: 142px;">
+                                                                    <div
+                                                                        class="_prosemirror-parent_276o5_2 text-token-text-primary max-h-[max(10rem,min(calc(100dvh-29rem),50dvh))] max-h-52 flex-1 overflow-auto [scrollbar-width:thin] default-browser vertical-scroll-fade-mask">
+                                                                        <textarea class="_fallbackTextarea_276o5_2" data-virtualkeyboard="true" name="prompt-textarea"
+                                                                            placeholder="Describe another task" style="display: none;"></textarea>
+                                                                        <script nonce="">
+                   window.__oai_logHTML?window.__oai_logHTML():window.__oai_SSR_HTML=window.__oai_SSR_HTML||Date.now();requestAnimationFrame((function(){window.__oai_logTTI?window.__oai_logTTI():window.__oai_SSR_TTI=window.__oai_SSR_TTI||Date.now()}))
+                                                                        </script>
+                                                                        <div class="ProseMirror" contenteditable="true" data-virtualkeyboard="true" id="prompt-textarea"
+                                                                            translate="no">
+                                                                            <p class="placeholder" data-placeholder="Describe another task">
+                                                                                <br class="ProseMirror-trailingBreak" />
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="option-item-in-input-padding justify-content-end relative ms-2 flex w-full flex-auto flex-col">
+                                                                <div class="flex-auto">
+                                                                </div>
+                                                            </div>
+                                                            <div style="height: 48px;">
+                                                            </div>
+                                                        </div>
+                                                        <div class="composer-footer-action-buttons absolute bottom-2.5 flex items-center" data-testid="composer-footer-actions"
+                                                            style="inset-inline-start: calc(2.5*var(--spacing)); inset-inline-end: 60px; transform: none;">
+                                                            <div>
+                                                                <div class="flex gap-2">
+                                                                    <div class="z-0 flex w-full justify-between">
+                                                                        <div class="flex gap-4">
+                                                                            <div class="flex items-center gap-2 rounded-full">
+                                                                                <button aria-controls="radix-«r1n»" aria-expanded="false" aria-haspopup="dialog"
+                                                                                    aria-label="View all code environments" class="composer-btn px-2" data-pill="true"
+                                                                                    data-state="closed" type="button">
+                                                                                    <span class="text-sm font-medium">
+                                                                                        <div class="flex max-w-full items-center gap-1.5 ps-1">
+                                                                                            <span class="hidden sm:block max-w-[8rem] truncate md:max-w-[10rem]">
+                                                                                                BMPixel/ccui
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </span>
+                                                                                </button>
+                                                                                <div class="items-center rounded-full">
+                                                                                    <button aria-controls="radix-«r1p»" aria-expanded="false" aria-haspopup="dialog"
+                                                                                        aria-label="Search for your branch" class="composer-btn px-2" data-pill="true"
+                                                                                        data-state="closed" type="button">
+                                                                                        <span class="text-sm font-medium" data-state="closed">
+                                                                                            <div class="flex max-w-full items-center gap-1.5 ps-1">
+                                                                                                <span class="hidden sm:block max-w-[8rem] truncate md:max-w-[10rem]">
+                                                                                                    main
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div aria-controls="radix-«r0»" aria-expanded="false" aria-haspopup="dialog" aria-label="Announcements"
+                                                                        class="w-fit" data-state="closed" type="button">
+                                                                        <button aria-controls="radix-«r1»" aria-expanded="false" aria-haspopup="dialog"
+                                                                            aria-label="Open versions number selector, currently set to 1x" class="composer-btn px-2"
+                                                                            data-pill="true" data-state="closed" type="button">
+                                                                            <span class="text-sm font-medium" data-state="closed">
+                                                                                <div class="flex max-w-full items-center gap-1.5 ps-1">
+                                                                                    <span class="hidden sm:block w-fit">
+                                                                                        1x
+                                                                                    </span>
+                                                                                </div>
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="voice-input-mic absolute end-2.5 bottom-2.5 flex items-center gap-2" data-testid="composer-trailing-actions">
+                                                            <div class="ms-auto flex items-center gap-1.5">
+                                                                <div>
+                                                                    <span class="" data-state="closed">
+                                                                        <button aria-label="Dictate button" class="composer-btn" type="button">
+                                                                        </button>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="switch-view-for-convsersation-list border-token-border-primary mt-4 flex w-full items-center border-b align-middle md:mt-6">
+                                        <div class="flex items-center gap-2">
+                                            <div class="dark:border-b-token-border-heavy flex gap-4 text-sm font-medium">
+                                                <span>
+                                                    <button aria-label="Tab selector to view all tasks" class="p-2 pb-3 text-token-text-primary">
+                                                        Tasks
+                                                    </button>
+                                                    <div class="border-token-text-primary z-10 translate-y-[1px] border-b" style="transform: none; transform-origin: 50% 50%;">
+                                                    </div>
+                                                </span>
+                                                <span>
+                                                    <button aria-label="Tab selector to view archived tasks"
+                                                        class="p-2 pb-3 text-token-text-tertiary hover:text-token-text-secondary">
+                                                        Archive
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="conversation-list flex flex-col justify-center">
+                                    <div class="group task-row-container">
+                                        <div
+                                            class="hover:bg-token-bg-tertiary relative ring-inset focus-within:border-token-border-heavy focus-within:border-s-2 focus-within:ps-[-2px]">
+                                            <a class="outline-offset-[-1px] focus-within:rounded-lg" data-discover="true"
+                                                href="/codex/tasks/task_e_687b9d8bd0c4833298bc8dd99b52cf27">
+                                                <div
+                                                    class="border-token-border-light grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-b px-4 py-3.5 text-sm md:px-3">
+                                                    <div class="flex flex-col gap-0.5">
+                                                        <div class="text-token-text-primary flex w-full min-w-0 items-center gap-1.5">
+                                                            <div class="flex-1 truncate font-medium">
+                                                                <span>
+                                                                    讲解代码库基本结构和学习建议
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-token-text-tertiary flex gap-1">
+                                                            <span class="truncate empty:hidden">
+                                                                Just now
+                                                            </span>
+                                                            <span class="text-token-text-tertiary">
+                                                                ·
+                                                            </span>
+                                                            <span class="truncate empty:hidden">
+                                                                BMPixel/ccui
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-1 items-center gap-2">
+                                                    </div>
+                                                </div>
+                                                <div class="before:from-token-bg-tertiary before:via-token-bg-tertiary absolute inset-y-1 end-0 z-20 flex w-20 cursor-pointer items-center justify-end pe-2 opacity-0 transition-opacity duration-0 group-hover:opacity-100 group-hover:duration-0 before:pointer-events-none before:absolute before:inset-0 before:-start-0.5 before:bg-gradient-to-l before:to-transparent before:content-['']"
+                                                    role="button">
+                                                    <span class="" data-state="closed">
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="group task-row-container">
+                                        <div
+                                            class="hover:bg-token-bg-tertiary relative ring-inset focus-within:border-token-border-heavy focus-within:border-s-2 focus-within:ps-[-2px]">
+                                            <a class="outline-offset-[-1px] focus-within:rounded-lg" data-discover="true"
+                                                href="/codex/tasks/task_e_687cd576bee48332ad647caac65d035e">
+                                                <div
+                                                    class="border-token-border-light grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-b px-4 py-3.5 text-sm md:px-3">
+                                                    <div class="flex flex-col gap-0.5">
+                                                        <div class="text-token-text-primary flex w-full min-w-0 items-center gap-1.5">
+                                                            <div class="flex-1 truncate font-medium">
+                                                                <span>
+                                                                    Investigate claude CLI working directory issue
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-token-text-tertiary flex gap-1">
+                                                            <span class="truncate empty:hidden">
+                                                                Just now
+                                                            </span>
+                                                            <span class="text-token-text-tertiary">
+                                                                ·
+                                                            </span>
+                                                            <span class="truncate empty:hidden">
+                                                                BMPixel/ccui
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-1 items-center gap-2">
+                                                        <span class="loading-shimmer-pure-text">
+                                                            Starting container
+                                                        </span>
+                                                        <button aria-label="Cancel task"
+                                                            class="border-token-border-heavy hover:bg-token-bg-secondary flex h-6 w-6 items-center justify-center rounded-full border"
+                                                            data-testid="stop-button" type="button">
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="flex w-full items-center justify-center bg-token-bg-primary">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        <div class="bg-token-sidebar-surface-primary relative z-1 shrink-0 overflow-x-hidden max-lg:w-0!" style="width: 0px;">
+            <div class="absolute h-full pointer-events-none" style="width: 400px;">
+                <div class="flex h-full flex-col">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

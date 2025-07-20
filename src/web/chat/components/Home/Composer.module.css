@@ -1,0 +1,168 @@
+.composer {
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: var(--color-token-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-short);
+  overflow: hidden;
+  cursor: text;
+}
+
+[data-theme="dark"] .container {
+  background: #303030;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  min-height: 56px;
+}
+
+.textAreaContainer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  margin: 0 20px;
+  min-height: 56px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 142px;
+  max-height: 208px;
+  padding: 16px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-token-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.textarea::placeholder {
+  color: var(--color-token-text-tertiary);
+}
+
+.footerActions {
+  position: absolute;
+  bottom: 10px;
+  left: calc(2.5 * var(--spacing));
+  right: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 16px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-token-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover {
+  background: var(--color-token-bg-tertiary);
+}
+
+.buttonText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+}
+
+.buttonLabel {
+  display: block;
+  max-width: 128px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .buttonLabel {
+    max-width: 160px;
+  }
+}
+
+.voiceButton {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-token-text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.iconButton:hover {
+  background: var(--color-token-bg-tertiary);
+  color: var(--color-token-text-primary);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .textAreaContainer {
+    margin: 0 16px;
+  }
+  
+  .buttonLabel {
+    display: none;
+  }
+  
+  .actionButton {
+    padding: 4px;
+  }
+  
+  .footerActions {
+    left: 10px;
+    right: 50px;
+  }
+}

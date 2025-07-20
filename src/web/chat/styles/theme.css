@@ -54,6 +54,35 @@
   /* Border radius */
   --radius-sm: 4px;
   --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 28px;
+  
+  /* Codex-specific tokens */
+  --color-token-bg-primary: var(--color-bg-primary);
+  --color-token-bg-secondary: var(--color-bg-secondary);
+  --color-token-bg-tertiary: var(--color-bg-tertiary);
+  --color-token-text-primary: var(--color-text-primary);
+  --color-token-text-secondary: var(--color-text-secondary);
+  --color-token-text-tertiary: var(--color-text-muted);
+  --color-token-border-primary: var(--color-border);
+  --color-token-border-light: var(--color-border-light);
+  --color-token-border-heavy: var(--color-accent);
+  --color-token-interactive-bg-secondary-hover: var(--color-bg-hover);
+  
+  /* Codex-specific dimensions */
+  --header-height-codex: 60px;
+  --spacing: 4px;
+  
+  /* Codex shadows */
+  --shadow-short: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Status colors */
+  --color-success-bg: rgba(81, 207, 102, 0.1);
+  --color-info-bg: rgba(51, 154, 240, 0.1);
+  --color-error-bg: rgba(255, 107, 107, 0.1);
+  
+  /* Loading animation */
+  --loading-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
 }
 
 [data-theme="dark"] {
@@ -80,4 +109,11 @@
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3);
+  
+  /* Dark mode Codex overrides */
+  --shadow-short: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --color-success-bg: rgba(93, 217, 115, 0.15);
+  --color-info-bg: rgba(93, 171, 248, 0.15);
+  --color-error-bg: rgba(255, 121, 121, 0.15);
+  --loading-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
 }

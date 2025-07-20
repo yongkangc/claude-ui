@@ -1,0 +1,156 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  height: var(--header-height-codex);
+  background: var(--color-token-bg-primary);
+  border-bottom: 1px solid var(--color-token-border-light);
+  font-weight: 600;
+}
+
+.innerHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 4px;
+}
+
+.logo {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-token-text-primary);
+  text-decoration: none;
+  margin-left: 5px;
+  margin-top: 5px;
+  cursor: pointer;
+}
+
+.logoIcon {
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoText {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.navMenu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.navItems {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-right: 16px;
+  line-height: 1;
+}
+
+.navLink {
+  color: var(--color-token-text-secondary);
+  font-size: 14px;
+  font-weight: normal;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.navLink:hover {
+  text-decoration: underline;
+}
+
+.profileButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-token-text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profileButton:hover {
+  color: var(--color-token-text-primary);
+  background: var(--color-token-interactive-bg-secondary-hover);
+}
+
+.profileButton:focus-visible {
+  outline: none;
+}
+
+.profileImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.3);
+}
+
+.profilePlaceholder {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.plusBadge {
+  position: absolute;
+  right: 4.8px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 12px;
+  background: white;
+  color: black;
+  font-size: 8px;
+  font-weight: 500;
+  border-radius: 50%;
+  box-shadow: rgba(128, 128, 128, 0.1) 0px 0px 0px 1.1px;
+  letter-spacing: -0.5px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .logoText {
+    display: none;
+  }
+  
+  .navItems {
+    gap: 12px;
+    margin-right: 8px;
+  }
+}
