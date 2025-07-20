@@ -8,7 +8,6 @@
   padding: 12px;
   height: var(--header-height-codex);
   background: var(--color-token-bg-primary);
-  border-bottom: 1px solid var(--color-token-border-light);
   font-weight: 600;
 }
 

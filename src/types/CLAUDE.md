@@ -293,7 +293,6 @@ export interface ConversationMessage {
   userType?: string;            // e.g., 'external'
   cwd?: string;                 // Working directory when created
   version?: string;             // Claude CLI version
-  costUSD?: number;             // API cost (assistant messages only)
   durationMs?: number;          // Generation time (assistant messages only)
 }
 

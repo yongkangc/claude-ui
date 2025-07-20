@@ -16,7 +16,7 @@ export function Header() {
                 <circle cx="12" cy="12" r="10" />
               </svg>
             </div>
-            <span className={styles.logoText}>Codex</span>
+            <span className={styles.logoText}>cui</span>
           </a>
         </div>
 

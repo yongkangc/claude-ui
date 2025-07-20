@@ -7,6 +7,10 @@
   background: var(--color-token-bg-tertiary);
 }
 
+.container:hover .title {
+  color: var(--color-token-text-primary);
+}
+
 .link {
   display: block;
   text-decoration: none;

@@ -9,6 +9,7 @@
   justify-content: center;
   width: 100%;
   background: var(--color-token-bg-primary);
+  border: 1px solid var(--color-token-border-light);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-short);
   overflow: hidden;
@@ -59,7 +60,7 @@
 
 .footerActions {
   position: absolute;
-  bottom: 10px;
+  bottom: 16px;
   left: calc(2.5 * var(--spacing));
   right: 60px;
   display: flex;
@@ -121,7 +122,7 @@
 .voiceButton {
   position: absolute;
   right: 10px;
-  bottom: 10px;
+  bottom: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
