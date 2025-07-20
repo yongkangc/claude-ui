@@ -332,4 +332,128 @@ describe('ConversationStatusTracker', () => {
       expect(tracker.getSessionId('non-existent')).toBeUndefined();
     });
   });
+
+  describe('conversation context', () => {
+    it('should register and retrieve conversation context', () => {
+      const claudeSessionId = 'claude-session-123';
+      const context = {
+        initialPrompt: 'Hello Claude!',
+        workingDirectory: '/test/dir',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T12:00:00Z'
+      };
+
+      tracker.registerConversationContext(claudeSessionId, context);
+      const retrievedContext = tracker.getConversationContext(claudeSessionId);
+
+      expect(retrievedContext).toEqual(context);
+    });
+
+    it('should register pending context and transfer when session is registered', () => {
+      const streamingId = 'streaming-123';
+      const claudeSessionId = 'claude-session-456';
+      const context = {
+        initialPrompt: 'Test prompt',
+        workingDirectory: '/workspace',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T12:00:00Z'
+      };
+
+      // Register pending context with streaming ID
+      tracker.registerPendingContext(streamingId, context);
+      
+      // Context should not be available via session ID yet
+      expect(tracker.getConversationContext(claudeSessionId)).toBeUndefined();
+
+      // Register the session
+      tracker.registerActiveSession(streamingId, claudeSessionId);
+
+      // Context should now be available via session ID
+      const retrievedContext = tracker.getConversationContext(claudeSessionId);
+      expect(retrievedContext).toEqual(context);
+    });
+
+    it('should clean up pending context when session is unregistered', () => {
+      const streamingId = 'streaming-123';
+      const context = {
+        initialPrompt: 'Test prompt',
+        workingDirectory: '/workspace',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T12:00:00Z'
+      };
+
+      // Register pending context
+      tracker.registerPendingContext(streamingId, context);
+
+      // Unregister the session (even though it wasn't fully registered)
+      tracker.unregisterActiveSession(streamingId);
+
+      // Pending context should be cleaned up
+      // We can't directly test this as pendingContext is private, but we can verify
+      // that if we later register this streaming ID, no context is transferred
+      const claudeSessionId = 'claude-session-456';
+      tracker.registerActiveSession(streamingId, claudeSessionId);
+      
+      expect(tracker.getConversationContext(claudeSessionId)).toBeUndefined();
+    });
+
+    it('should clean up context when session is unregistered', () => {
+      const streamingId = 'streaming-123';
+      const claudeSessionId = 'claude-session-456';
+      const context = {
+        initialPrompt: 'Test prompt',
+        workingDirectory: '/workspace',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T12:00:00Z'
+      };
+
+      // Register session and context
+      tracker.registerActiveSession(streamingId, claudeSessionId);
+      tracker.registerConversationContext(claudeSessionId, context);
+
+      // Verify context exists
+      expect(tracker.getConversationContext(claudeSessionId)).toEqual(context);
+
+      // Unregister session
+      tracker.unregisterActiveSession(streamingId);
+
+      // Context should be cleaned up
+      expect(tracker.getConversationContext(claudeSessionId)).toBeUndefined();
+    });
+
+    it('should clear all contexts when clear() is called', () => {
+      const streamingId1 = 'streaming-1';
+      const streamingId2 = 'streaming-2';
+      const claudeSessionId = 'claude-session-1';
+      const context1 = {
+        initialPrompt: 'Prompt 1',
+        workingDirectory: '/dir1',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T12:00:00Z'
+      };
+      const context2 = {
+        initialPrompt: 'Prompt 2',
+        workingDirectory: '/dir2',
+        model: 'claude-3-5-sonnet',
+        timestamp: '2024-01-01T13:00:00Z'
+      };
+
+      // Set up some data
+      tracker.registerPendingContext(streamingId1, context1);
+      tracker.registerActiveSession(streamingId2, claudeSessionId);
+      tracker.registerConversationContext(claudeSessionId, context2);
+
+      // Clear everything
+      tracker.clear();
+
+      // Verify everything is cleared
+      expect(tracker.getConversationContext(claudeSessionId)).toBeUndefined();
+      expect(tracker.isSessionActive(claudeSessionId)).toBe(false);
+      expect(tracker.getStreamingId(claudeSessionId)).toBeUndefined();
+      
+      // Also verify that pending context was cleared by registering the session
+      tracker.registerActiveSession(streamingId1, 'new-session');
+      expect(tracker.getConversationContext('new-session')).toBeUndefined();
+    });
+  });
 });

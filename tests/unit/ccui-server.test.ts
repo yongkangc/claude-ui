@@ -82,6 +82,9 @@ describe('CCUIServer', () => {
     mockStatusTracker = {
       registerActiveSession: jest.fn(),
       unregisterActiveSession: jest.fn(),
+      registerConversationContext: jest.fn(),
+      registerPendingContext: jest.fn(),
+      getConversationContext: jest.fn(),
       getConversationStatus: jest.fn(),
       isSessionActive: jest.fn(),
       getStreamingId: jest.fn(),
@@ -797,6 +800,66 @@ describe('CCUIServer', () => {
         // Just verify it's an error status
         expect(response.status).toBeGreaterThanOrEqual(400);
       });
+
+      it('should return synthetic response for active session not in history', async () => {
+        const sessionId = 'active-session-123';
+        const mockContext = {
+          initialPrompt: 'Hello Claude!',
+          workingDirectory: '/test/workspace',
+          model: 'claude-3-5-sonnet',
+          timestamp: '2024-01-01T12:00:00Z'
+        };
+
+        // Mock history reader to throw not found error
+        jest.spyOn((server as any).historyReader, 'fetchConversation')
+          .mockRejectedValue(new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
+        
+        // Mock status tracker to indicate session is active with context
+        jest.spyOn((server as any).statusTracker, 'isSessionActive').mockReturnValue(true);
+        jest.spyOn((server as any).statusTracker, 'getConversationContext').mockReturnValue(mockContext);
+
+        const response = await request(app)
+          .get(`/api/conversations/${sessionId}`)
+          .expect(200);
+
+        expect(response.body).toEqual({
+          messages: [{
+            uuid: `synthetic-${sessionId}-user`,
+            type: 'user',
+            message: {
+              role: 'user',
+              content: 'Hello Claude!'
+            },
+            timestamp: '2024-01-01T12:00:00Z',
+            sessionId: sessionId,
+            cwd: '/test/workspace'
+          }],
+          summary: '',
+          projectPath: '/test/workspace',
+          metadata: {
+            totalCost: 0,
+            totalDuration: 0,
+            model: 'claude-3-5-sonnet'
+          }
+        });
+      });
+
+      it('should return 404 for non-existent session that is also not active', async () => {
+        const sessionId = 'inactive-session-456';
+
+        // Mock history reader to throw not found error
+        jest.spyOn((server as any).historyReader, 'fetchConversation')
+          .mockRejectedValue(new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
+        
+        // Mock status tracker to indicate session is not active
+        jest.spyOn((server as any).statusTracker, 'isSessionActive').mockReturnValue(false);
+        jest.spyOn((server as any).statusTracker, 'getConversationContext').mockReturnValue(undefined);
+
+        const response = await request(app)
+          .get(`/api/conversations/${sessionId}`);
+
+        expect(response.status).toBe(404);
+      });
     });
 
     describe('GET /api/conversations', () => {
@@ -972,6 +1035,63 @@ describe('CCUIServer', () => {
         // Verify headers were set correctly
         expect(response.headers['content-type']).toContain('application/x-ndjson');
         expect(response.headers['cache-control']).toContain('no-cache');
+      });
+    });
+
+    describe('POST /api/conversations/start', () => {
+      it('should start conversation and register pending context', async () => {
+        const mockSystemInit = {
+          type: 'system',
+          subtype: 'init',
+          session_id: 'test-session-123',
+          cwd: '/test/project',
+          tools: ['Bash', 'Read'],
+          mcp_servers: [],
+          model: 'claude-3-5-sonnet',
+          permissionMode: 'auto',
+          apiKeySource: 'env'
+        };
+
+        jest.spyOn((server as any).processManager, 'startConversation')
+          .mockResolvedValue({ streamingId: 'stream-123', systemInit: mockSystemInit });
+        
+        // Spy on the status tracker method
+        jest.spyOn((server as any).statusTracker, 'registerPendingContext');
+
+        const response = await request(app)
+          .post('/api/conversations/start')
+          .send({
+            workingDirectory: '/test/project',
+            initialPrompt: 'Hello Claude!'
+          })
+          .expect(200);
+
+        // Verify process manager was called
+        expect((server as any).processManager.startConversation).toHaveBeenCalledWith({
+          workingDirectory: '/test/project',
+          initialPrompt: 'Hello Claude!'
+        });
+
+        // Verify pending context was registered
+        expect((server as any).statusTracker.registerPendingContext).toHaveBeenCalledWith('stream-123', {
+          initialPrompt: 'Hello Claude!',
+          workingDirectory: '/test/project',
+          model: 'claude-3-5-sonnet',
+          timestamp: expect.any(String)
+        });
+
+        // Verify response
+        expect(response.body).toEqual({
+          streamingId: 'stream-123',
+          streamUrl: '/api/stream/stream-123',
+          sessionId: 'test-session-123',
+          cwd: '/test/project',
+          tools: ['Bash', 'Read'],
+          mcpServers: [],
+          model: 'claude-3-5-sonnet',
+          permissionMode: 'auto',
+          apiKeySource: 'env'
+        });
       });
     });
 

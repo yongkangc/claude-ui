@@ -2,6 +2,16 @@ import { EventEmitter } from 'events';
 import { createLogger, type Logger } from './logger';
 
 /**
+ * Context data stored for active conversations
+ */
+export interface ConversationContext {
+  initialPrompt: string;
+  workingDirectory: string;
+  model: string;
+  timestamp: string;
+}
+
+/**
  * Tracks the mapping between Claude session IDs and active CCUI streaming IDs
  * to determine conversation status (ongoing vs completed)
  */
@@ -10,6 +20,10 @@ export class ConversationStatusTracker extends EventEmitter {
   private sessionToStreaming: Map<string, string> = new Map();
   // Maps CCUI streaming ID -> Claude session ID (reverse lookup)
   private streamingToSession: Map<string, string> = new Map();
+  // Maps Claude session ID -> conversation context for active sessions
+  private sessionContext: Map<string, ConversationContext> = new Map();
+  // Temporary storage for context before session ID is known (maps streaming ID -> context)
+  private pendingContext: Map<string, ConversationContext> = new Map();
   private logger: Logger;
 
   constructor() {
@@ -47,19 +61,74 @@ export class ConversationStatusTracker extends EventEmitter {
         newClaudeSessionId: claudeSessionId
       });
       this.sessionToStreaming.delete(existingClaudeSessionId);
+      this.sessionContext.delete(existingClaudeSessionId);
     }
 
     // Set the new mapping
     this.sessionToStreaming.set(claudeSessionId, streamingId);
     this.streamingToSession.set(streamingId, claudeSessionId);
 
+    // Check if we have pending context for this streaming ID
+    const pendingContext = this.pendingContext.get(streamingId);
+    if (pendingContext) {
+      this.logger.debug('Transferring pending context to session', {
+        streamingId,
+        claudeSessionId,
+        hasInitialPrompt: !!pendingContext.initialPrompt
+      });
+      this.sessionContext.set(claudeSessionId, pendingContext);
+      this.pendingContext.delete(streamingId);
+    }
+
     this.logger.info('Active session registered', { 
       streamingId, 
       claudeSessionId,
-      totalActiveSessions: this.sessionToStreaming.size
+      totalActiveSessions: this.sessionToStreaming.size,
+      hadPendingContext: !!pendingContext
     });
 
     this.emit('session-started', { streamingId, claudeSessionId });
+  }
+
+  /**
+   * Register conversation context for an active session
+   * This should be called when starting a new conversation
+   */
+  registerConversationContext(claudeSessionId: string, context: ConversationContext): void {
+    this.logger.debug('Registering conversation context', {
+      claudeSessionId,
+      hasInitialPrompt: !!context.initialPrompt,
+      workingDirectory: context.workingDirectory,
+      model: context.model
+    });
+
+    this.sessionContext.set(claudeSessionId, context);
+
+    this.logger.info('Conversation context registered', {
+      claudeSessionId,
+      contextTimestamp: context.timestamp
+    });
+  }
+
+  /**
+   * Register pending conversation context using streaming ID
+   * This is used when we start a conversation but don't yet have the Claude session ID
+   */
+  registerPendingContext(streamingId: string, context: ConversationContext): void {
+    this.logger.debug('Registering pending conversation context', {
+      streamingId,
+      hasInitialPrompt: !!context.initialPrompt,
+      workingDirectory: context.workingDirectory,
+      model: context.model
+    });
+
+    this.pendingContext.set(streamingId, context);
+
+    this.logger.info('Pending conversation context registered', {
+      streamingId,
+      contextTimestamp: context.timestamp,
+      pendingCount: this.pendingContext.size
+    });
   }
 
   /**
@@ -76,6 +145,7 @@ export class ConversationStatusTracker extends EventEmitter {
 
       this.sessionToStreaming.delete(claudeSessionId);
       this.streamingToSession.delete(streamingId);
+      this.sessionContext.delete(claudeSessionId);
 
       this.logger.info('Active session unregistered', { 
         streamingId, 
@@ -87,6 +157,24 @@ export class ConversationStatusTracker extends EventEmitter {
     } else {
       this.logger.warn('Attempted to unregister unknown streaming session', { streamingId });
     }
+    
+    // Also clean up any pending context
+    if (this.pendingContext.has(streamingId)) {
+      this.logger.debug('Removing pending context for streaming ID', { streamingId });
+      this.pendingContext.delete(streamingId);
+    }
+  }
+
+  /**
+   * Get conversation context for an active session
+   */
+  getConversationContext(claudeSessionId: string): ConversationContext | undefined {
+    const context = this.sessionContext.get(claudeSessionId);
+    this.logger.debug('Getting conversation context', {
+      claudeSessionId,
+      hasContext: !!context
+    });
+    return context;
   }
 
   /**
@@ -171,6 +259,8 @@ export class ConversationStatusTracker extends EventEmitter {
     this.logger.debug('Clearing all session mappings');
     this.sessionToStreaming.clear();
     this.streamingToSession.clear();
+    this.sessionContext.clear();
+    this.pendingContext.clear();
   }
 
   /**
@@ -179,6 +269,7 @@ export class ConversationStatusTracker extends EventEmitter {
   getStats(): {
     activeSessionsCount: number;
     activeStreamingIdsCount: number;
+    activeContextsCount: number;
     activeSessions: Array<{ claudeSessionId: string; streamingId: string }>;
   } {
     const activeSessions = Array.from(this.sessionToStreaming.entries()).map(
@@ -188,6 +279,7 @@ export class ConversationStatusTracker extends EventEmitter {
     return {
       activeSessionsCount: this.sessionToStreaming.size,
       activeStreamingIdsCount: this.streamingToSession.size,
+      activeContextsCount: this.sessionContext.size,
       activeSessions
     };
   }

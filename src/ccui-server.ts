@@ -3,7 +3,7 @@ import cors from 'cors';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
-import { ConversationStatusTracker } from './services/conversation-status-tracker';
+import { ConversationStatusTracker, ConversationContext } from './services/conversation-status-tracker';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
@@ -16,6 +16,7 @@ import {
   ResumeConversationRequest,
   ConversationListQuery,
   ConversationDetailsResponse,
+  ConversationMessage,
   SystemStatusResponse,
   ModelsResponse,
   StreamEvent,
@@ -427,6 +428,15 @@ export class CCUIServer {
           model: systemInit.model,
           cwd: systemInit.cwd
         });
+
+        // Register pending context for when we receive the session ID
+        const context: ConversationContext = {
+          initialPrompt: req.body.initialPrompt,
+          workingDirectory: req.body.workingDirectory,
+          model: systemInit.model,
+          timestamp: new Date().toISOString()
+        };
+        this.statusTracker.registerPendingContext(streamingId, context);
         
         res.json({ 
           streamingId,
@@ -573,33 +583,84 @@ export class CCUIServer {
       });
       
       try {
-        const messages = await this.historyReader.fetchConversation(req.params.sessionId);
-        const metadata = await this.historyReader.getConversationMetadata(req.params.sessionId);
-        
-        if (!metadata) {
-          throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
-        }
-        
-        const response: ConversationDetailsResponse = {
-          messages,
-          summary: metadata.summary,
-          projectPath: metadata.projectPath,
-          metadata: {
-            totalCost: metadata.totalCost,
-            totalDuration: metadata.totalDuration,
-            model: metadata.model
+        // First try to fetch from history
+        try {
+          const messages = await this.historyReader.fetchConversation(req.params.sessionId);
+          const metadata = await this.historyReader.getConversationMetadata(req.params.sessionId);
+          
+          if (!metadata) {
+            throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
           }
-        };
-        
-        this.logger.debug('Conversation details retrieved successfully', {
-          requestId,
-          sessionId,
-          messageCount: response.messages.length,
-          hasSummary: !!response.summary,
-          projectPath: response.projectPath
-        });
-        
-        res.json(response);
+          
+          const response: ConversationDetailsResponse = {
+            messages,
+            summary: metadata.summary,
+            projectPath: metadata.projectPath,
+            metadata: {
+              totalCost: metadata.totalCost,
+              totalDuration: metadata.totalDuration,
+              model: metadata.model
+            }
+          };
+          
+          this.logger.debug('Conversation details retrieved from history', {
+            requestId,
+            sessionId,
+            messageCount: response.messages.length,
+            hasSummary: !!response.summary,
+            projectPath: response.projectPath
+          });
+          
+          res.json(response);
+        } catch (historyError) {
+          // If not found in history, check if it's an active session
+          if (historyError instanceof CCUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
+            const isActive = this.statusTracker.isSessionActive(sessionId);
+            const context = this.statusTracker.getConversationContext(sessionId);
+            
+            if (isActive && context) {
+              // Create synthetic response for active session
+              const syntheticMessage: ConversationMessage = {
+                uuid: `synthetic-${sessionId}-user`,
+                type: 'user',
+                message: {
+                  role: 'user',
+                  content: context.initialPrompt
+                },
+                timestamp: context.timestamp,
+                sessionId: sessionId,
+                cwd: context.workingDirectory
+              };
+              
+              const response: ConversationDetailsResponse = {
+                messages: [syntheticMessage],
+                summary: '', // No summary for active conversation
+                projectPath: context.workingDirectory,
+                metadata: {
+                  totalCost: 0,
+                  totalDuration: 0,
+                  model: context.model
+                }
+              };
+              
+              this.logger.debug('Conversation details created for active session', {
+                requestId,
+                sessionId,
+                isActive: true,
+                hasContext: true,
+                workingDirectory: context.workingDirectory
+              });
+              
+              res.json(response);
+            } else {
+              // Not found in history and not active
+              throw historyError;
+            }
+          } else {
+            // Other errors, re-throw
+            throw historyError;
+          }
+        }
       } catch (error) {
         this.logger.debug('Get conversation details failed', {
           requestId,
