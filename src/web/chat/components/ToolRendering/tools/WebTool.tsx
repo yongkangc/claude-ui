@@ -15,14 +15,7 @@ export function WebTool({ input, result, isError, isPending, toolType }: WebTool
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          {toolType === 'WebSearch' ? 'Searching web...' : 'Fetching content...'}
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   if (isError) {

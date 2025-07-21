@@ -14,14 +14,7 @@ export function FallbackTool({ toolName, input, result, isError, isPending }: Fa
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          Executing {toolName}...
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   const formatContent = (content: string): string => {

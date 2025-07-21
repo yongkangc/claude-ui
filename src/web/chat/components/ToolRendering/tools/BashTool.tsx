@@ -10,14 +10,7 @@ interface BashToolProps {
 
 export function BashTool({ input, result, isError, isPending }: BashToolProps) {
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          Executing command...
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   return (

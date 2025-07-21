@@ -11,7 +11,7 @@ interface ToolLabelProps {
 export function ToolLabel({ toolName, toolInput, workingDirectory }: ToolLabelProps) {
   console.debug('ToolLabel called with:', { toolName, toolInput, workingDirectory });
   
-  const generateLabel = (): string => {
+  const generateLabel = (): React.ReactNode => {
     switch (toolName) {
       case 'Read': {
         const filePath = formatFilePath(toolInput.file_path, workingDirectory);
@@ -28,48 +28,103 @@ export function ToolLabel({ toolName, toolInput, workingDirectory }: ToolLabelPr
           pathWithRange = `${filePath}:0,${limit}`;
         }
         
-        return `Read(${pathWithRange})`;
+        return (
+          <>
+            <span className={styles.toolName}>Read</span>
+            <span className={styles.toolParams}>({pathWithRange})</span>
+          </>
+        );
       }
       
       case 'Edit':
-        return `Update(${formatFilePath(toolInput.file_path, workingDirectory)})`;
+        return (
+          <>
+            <span className={styles.toolName}>Update</span>
+            <span className={styles.toolParams}>({formatFilePath(toolInput.file_path, workingDirectory)})</span>
+          </>
+        );
       
       case 'MultiEdit':
-        return `MultiEdit(${formatFilePath(toolInput.file_path, workingDirectory)})`;
+        return (
+          <>
+            <span className={styles.toolName}>MultiEdit</span>
+            <span className={styles.toolParams}>({formatFilePath(toolInput.file_path, workingDirectory)})</span>
+          </>
+        );
       
       case 'Bash':
-        return `Bash(${toolInput.command || ''})`;
+        return (
+          <>
+            <span className={styles.toolName}>Bash</span>
+            <span className={styles.toolParams}>({toolInput.command || ''})</span>
+          </>
+        );
       
       case 'Grep':
-        return `Search(pattern: "${toolInput.pattern || ''}", path: "${toolInput.path || ''}")`;
+        return (
+          <>
+            <span className={styles.toolName}>Search</span>
+            <span className={styles.toolParams}>(pattern: "{toolInput.pattern || ''}", path: "{toolInput.path || ''}")</span>
+          </>
+        );
       
       case 'Glob':
-        return `Search(pattern: "${toolInput.pattern || ''}", path: "${toolInput.path || ''}")`;
+        return (
+          <>
+            <span className={styles.toolName}>Search</span>
+            <span className={styles.toolParams}>(pattern: "{toolInput.pattern || ''}", path: "{toolInput.path || ''}")</span>
+          </>
+        );
       
       case 'LS':
-        return `List(${formatFilePath(toolInput.path, workingDirectory)})`;
+        return (
+          <>
+            <span className={styles.toolName}>List</span>
+            <span className={styles.toolParams}>({formatFilePath(toolInput.path, workingDirectory)})</span>
+          </>
+        );
       
       case 'TodoRead':
-        return 'Read Todos';
+        return <span className={styles.toolName}>Read Todos</span>;
       
       case 'TodoWrite':
-        return 'Update Todos';
+        return <span className={styles.toolName}>Update Todos</span>;
       
       case 'WebSearch':
-        return `Web Search("${toolInput.query || ''}")`;
+        return (
+          <>
+            <span className={styles.toolName}>Web Search</span>
+            <span className={styles.toolParams}>("{toolInput.query || ''}")</span>
+          </>
+        );
       
       case 'WebFetch':
-        return `Fetch(${toolInput.url || ''})`;
+        return (
+          <>
+            <span className={styles.toolName}>Fetch</span>
+            <span className={styles.toolParams}>({toolInput.url || ''})</span>
+          </>
+        );
       
       case 'Task':
-        return `Task(${toolInput.description || ''})`;
+        return (
+          <>
+            <span className={styles.toolName}>Task</span>
+            <span className={styles.toolParams}>({toolInput.description || ''})</span>
+          </>
+        );
       
       case 'exit_plan_mode':
-        return 'Plan';
+        return <span className={styles.toolName}>Plan</span>;
       
       default:
         // Fallback for any unspecified tool
-        return `${toolName}(${formatToolInput(toolInput)})`;
+        return (
+          <>
+            <span className={styles.toolName}>{toolName}</span>
+            <span className={styles.toolParams}>({formatToolInput(toolInput)})</span>
+          </>
+        );
     }
   };
 

@@ -15,16 +15,7 @@ export function SearchTool({ input, result, isError, isPending, toolType }: Sear
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          {toolType === 'Grep' ? 'Searching content...' : 
-           toolType === 'Glob' ? 'Finding files...' :
-           'Listing directory...'}
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   if (isError) {

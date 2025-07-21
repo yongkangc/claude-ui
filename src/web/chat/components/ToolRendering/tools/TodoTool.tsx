@@ -1,4 +1,5 @@
 import React from 'react';
+import { Circle, Clock, CheckCircle } from 'lucide-react';
 import { parseTodos } from '../../../utils/tool-utils';
 import styles from '../ToolRendering.module.css';
 
@@ -10,16 +11,21 @@ interface TodoToolProps {
   isWrite: boolean;
 }
 
+function getTodoStatusIcon(status: string) {
+  switch (status) {
+    case 'completed':
+      return <CheckCircle size={16} className={styles.todoIconCompleted} />;
+    case 'in_progress':
+      return <Clock size={16} className={styles.todoIconInProgress} />;
+    case 'pending':
+    default:
+      return <Circle size={16} className={styles.todoIconPending} />;
+  }
+}
+
 export function TodoTool({ input, result, isError, isPending, isWrite }: TodoToolProps) {
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          {isWrite ? 'Updating todos...' : 'Loading todos...'}
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   if (isError) {
@@ -54,19 +60,21 @@ export function TodoTool({ input, result, isError, isPending, isWrite }: TodoToo
 
   return (
     <div className={styles.toolContent}>
-      <div className={styles.todoList}>
-        {todos.map((todo) => (
-          <div key={todo.id} className={styles.todoItem}>
-            <span className={styles.todoCheckbox}>
-              {todo.status === 'completed' ? '✅' : '☐'}
-            </span>
-            <span className={`${styles.todoContent} ${
-              todo.status === 'completed' ? styles.todoCompleted : ''
-            }`}>
-              {todo.content}
-            </span>
-          </div>
-        ))}
+      <div className={styles.todoListContainer}>
+        <div className={styles.todoList}>
+          {todos.map((todo) => (
+            <div key={todo.id} className={styles.todoItem}>
+              <span className={styles.todoCheckbox}>
+                {getTodoStatusIcon(todo.status)}
+              </span>
+              <span className={`${styles.todoContent} ${
+                todo.status === 'completed' ? styles.todoCompleted : ''
+                }`}>
+                {todo.content}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

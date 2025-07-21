@@ -1,9 +1,17 @@
 /* Tool Label Styles */
 .toolLabel {
   font-size: 14px;
-  font-weight: 500;
+  font-family: 'Roboto Mono', monospace;
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
+}
+
+.toolName {
+  font-weight: 600;
+}
+
+.toolParams {
+  font-weight: 400;
 }
 
 /* Tool Content Styles */
@@ -11,6 +19,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  margin-top: -2px;
 }
 
 .toolSummary {
@@ -116,11 +125,17 @@
 }
 
 /* Todo List Styles */
+.todoListContainer {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
 .todoList {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 .todoItem {
@@ -134,6 +149,8 @@
 .todoCheckbox {
   margin-top: 2px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .todoContent {
@@ -143,6 +160,19 @@
 .todoCompleted {
   text-decoration: line-through;
   color: var(--color-text-secondary);
+}
+
+/* Todo Status Icon Styles */
+.todoIconPending {
+  color: var(--color-text-secondary);
+}
+
+.todoIconInProgress {
+  color: #3b82f6; /* Blue for in-progress */
+}
+
+.todoIconCompleted {
+  color: #10b981; /* Green for completed */
 }
 
 /* Collapsible Container */

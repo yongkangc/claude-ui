@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code, Globe, Settings } from 'lucide-react';
+import { Copy, Check, Code, Globe, Settings, FileText, Edit, Terminal, Search, List, CheckSquare, ExternalLink, Play, FileEdit, ClipboardList } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import { ToolUseRenderer } from '../ToolRendering/ToolUseRenderer';
@@ -12,6 +12,38 @@ interface MessageItemProps {
   toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | ContentBlockParam[] }>;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
+}
+
+function getToolIcon(toolName: string) {
+  switch (toolName) {
+    case 'Read':
+      return <FileText size={15} />;
+    case 'Edit':
+    case 'MultiEdit':
+      return <Edit size={15} />;
+    case 'Bash':
+      return <Terminal size={15} />;
+    case 'Grep':
+    case 'Glob':
+      return <Search size={15} />;
+    case 'LS':
+      return <List size={15} />;
+    case 'TodoRead':
+    case 'TodoWrite':
+      return <CheckSquare size={15} />;
+    case 'WebSearch':
+      return <Globe size={15} />;
+    case 'WebFetch':
+      return <ExternalLink size={15} />;
+    case 'Task':
+      return <Play size={15} />;
+    case 'exit_plan_mode':
+      return <ClipboardList size={15} />;
+    case 'Write':
+      return <FileEdit size={15} />;
+    default:
+      return <Settings size={15} />;
+  }
 }
 
 export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, isLastInGroup = true }: MessageItemProps) {
@@ -93,16 +125,28 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
             );
           }
 
+          if (block.type === 'thinking') {
+            return (
+              <div key={blockId} className={styles.assistantBlock}>
+                <div className={styles.timelineIcon}>
+                  <div className={styles.timelineDot} />
+                </div>
+                <div className={styles.thinkingContent}>
+                  <ReactMarkdown>{block.thinking}</ReactMarkdown>
+                </div>
+              </div>
+            );
+          }
+
           if (block.type === 'tool_use') {
             const toolResult = toolResults[block.id];
-            
-            // Check if this is a web search tool for icon selection
-            const isWebSearch = block.name === 'WebSearch' || block.name === 'WebFetch';
+            const isLoading = !toolResult || toolResult.status === 'pending';
             
             return (
               <div key={blockId} className={styles.assistantBlock}>
                 <div className={styles.timelineIcon}>
-                  {isWebSearch ? <Globe size={15} /> : <Settings size={15} />}
+                  {getToolIcon(block.name)}
+                  {isLoading && <div className={styles.loadingCircle} />}
                 </div>
                 <div className={styles.toolUseContent}>
                   <ToolUseRenderer

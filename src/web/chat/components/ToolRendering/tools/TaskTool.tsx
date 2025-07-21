@@ -13,14 +13,7 @@ export function TaskTool({ input, result, isError, isPending }: TaskToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          Executing task...
-        </div>
-      </div>
-    );
+    return <div className={styles.toolContent} />;
   }
 
   return (
