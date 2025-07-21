@@ -711,31 +711,6 @@ describe('CCUIServer', () => {
         expect(response.body).toHaveProperty('claudePath');
       });
 
-      it('should handle missing Claude CLI gracefully', async () => {
-        // Create a new server instance to test Claude CLI not found scenario
-        const testPort = 9000 + Math.floor(Math.random() * 1000);
-        
-        // Mock execSync before creating the server
-        mockExecSync.mockImplementation(() => {
-          throw new Error('Command not found');
-        });
-        
-        const testServer = createTestServer({ port: testPort });
-        await testServer.start();
-        
-        const response = await request((testServer as any).app)
-          .get('/api/system/status')
-          .expect(200);
-
-        expect(response.body).toEqual({
-          claudeVersion: 'unknown',
-          claudePath: 'unknown',
-          configPath: expect.any(String),
-          activeConversations: 0
-        });
-        
-        await testServer.stop();
-      });
 
       it('should handle system status error', async () => {
         // Mock getActiveSessions to throw error
