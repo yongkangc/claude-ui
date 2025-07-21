@@ -37,7 +37,6 @@ export async function getCommand(sessionId: string, options: GetOptions): Promis
     console.log(`Project Path: ${metadata.projectPath}`);
     console.log(`Model: ${metadata.model || 'Unknown'}`);
     console.log(`Messages: ${messages.length}`);
-    console.log(`Total Cost: $${metadata.totalCost.toFixed(4)}`);
     console.log(`Total Duration: ${(metadata.totalDuration / 1000).toFixed(2)}s`);
     console.log('\nMessages:');
     console.log('-'.repeat(50));
@@ -86,9 +85,6 @@ export async function getCommand(sessionId: string, options: GetOptions): Promis
         }
       }
 
-      if (msg.costUSD) {
-        console.log(`Cost: $${msg.costUSD.toFixed(4)}`);
-      }
     }
   } catch (error) {
     console.error('Error getting conversation:', error);

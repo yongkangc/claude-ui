@@ -756,7 +756,6 @@ describe('CCUIServer', () => {
         const mockMetadata = {
           summary: 'Test conversation',
           projectPath: '/test/project',
-          totalCost: 0.005,
           totalDuration: 1500,
           model: 'claude-3-5-sonnet'
         };
@@ -773,7 +772,6 @@ describe('CCUIServer', () => {
           summary: 'Test conversation',
           projectPath: '/test/project',
           metadata: {
-            totalCost: 0.005,
             totalDuration: 1500,
             model: 'claude-3-5-sonnet'
           }
@@ -837,7 +835,6 @@ describe('CCUIServer', () => {
           summary: '',
           projectPath: '/test/workspace',
           metadata: {
-            totalCost: 0,
             totalDuration: 0,
             model: 'claude-3-5-sonnet'
           }

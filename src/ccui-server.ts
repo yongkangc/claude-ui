@@ -597,7 +597,6 @@ export class CCUIServer {
             summary: metadata.summary,
             projectPath: metadata.projectPath,
             metadata: {
-              totalCost: metadata.totalCost,
               totalDuration: metadata.totalDuration,
               model: metadata.model
             }
@@ -637,7 +636,6 @@ export class CCUIServer {
                 summary: '', // No summary for active conversation
                 projectPath: context.workingDirectory,
                 metadata: {
-                  totalCost: 0,
                   totalDuration: 0,
                   model: context.model
                 }

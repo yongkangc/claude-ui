@@ -7,7 +7,15 @@ import { TaskList } from './TaskList';
 import styles from './Home.module.css';
 
 export function Home() {
-  const { conversations, loading, error, loadConversations } = useConversations();
+  const { 
+    conversations, 
+    loading, 
+    loadingMore, 
+    hasMore, 
+    error, 
+    loadConversations, 
+    loadMoreConversations 
+  } = useConversations();
   const [activeTab, setActiveTab] = useState<'tasks' | 'archive'>('tasks');
 
   useEffect(() => {
@@ -51,8 +59,11 @@ export function Home() {
             <TaskList 
               conversations={conversations}
               loading={loading}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
               error={error}
               activeTab={activeTab}
+              onLoadMore={loadMoreConversations}
             />
           </div>
         </div>

@@ -58,12 +58,6 @@ export async function listCommand(options: ListOptions): Promise<void> {
 }
 
 // Helper functions for formatting
-function formatCost(cost: number): string {
-  if (cost === 0) return '$0';
-  if (cost < 0.001) return '<$0.001';
-  return `$${cost.toFixed(3)}`;
-}
-
 function formatDuration(durationMs: number): string {
   if (durationMs === 0) return '0s';
   if (durationMs < 1000) return `${durationMs}ms`;
@@ -104,9 +98,6 @@ function displayCompact(conversations: ConversationSummary[], options: ListOptio
     
     let line = `${sessionShort} ${projectName.padEnd(20)} ${msgs.padStart(5)} ${timeAgo.padStart(8)}`;
     
-    if (options.showCost && conv.totalCost > 0) {
-      line += ` ${formatCost(conv.totalCost).padStart(8)}`;
-    }
     
     if (options.showModel) {
       const modelShort = conv.model.replace('claude-', '').replace('-20250514', '');
@@ -126,10 +117,6 @@ function displayTable(conversations: ConversationSummary[], options: ListOptions
   const headers = ['Session', 'Project', 'Msgs', 'Updated'];
   const widths = [8, 25, 5, 8];
   
-  if (options.showCost) {
-    headers.push('Cost');
-    widths.push(8);
-  }
   
   if (options.showModel) {
     headers.push('Model');
@@ -154,9 +141,6 @@ function displayTable(conversations: ConversationSummary[], options: ListOptions
       formatRelativeTime(conv.updatedAt)
     ];
     
-    if (options.showCost) {
-      row.push(formatCost(conv.totalCost));
-    }
     
     if (options.showModel) {
       const modelShort = conv.model.replace('claude-', '').replace('-20250514', '');
@@ -181,9 +165,8 @@ function displayDetailed(conversations: ConversationSummary[], options: ListOpti
     }
     console.log(`  Messages: ${conv.messageCount}, Updated: ${formatRelativeTime(conv.updatedAt)}`);
     
-    if (options.showCost || options.showModel || conv.totalCost > 0) {
+    if (options.showModel || conv.totalDuration > 0) {
       const details = [];
-      if (conv.totalCost > 0) details.push(`Cost: ${formatCost(conv.totalCost)}`);
       if (conv.totalDuration > 0) details.push(`Duration: ${formatDuration(conv.totalDuration)}`);
       if (options.showModel) details.push(`Model: ${conv.model}`);
       if (details.length > 0) {

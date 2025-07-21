@@ -82,7 +82,7 @@ describe('ClaudeHistoryReader', () => {
       
       const conversationContent = `{"type":"summary","summary":"Example Development Session","leafUuid":"04d6794d-6350-4d37-abe4-f6f643fdf83d"}
 {"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/project","sessionId":"${sessionId}","version":"1.0.3","type":"user","message":{"role":"user","content":"Please help me add a new config file to my project"},"uuid":"9ff29d57-8b28-4da9-8e7f-b0e4e7e2ba46","timestamp":"2025-05-26T07:27:40.079Z"}
-{"parentUuid":"9ff29d57-8b28-4da9-8e7f-b0e4e7e2ba46","isSidechain":false,"userType":"external","cwd":"/Users/username/project","sessionId":"${sessionId}","version":"1.0.3","message":{"id":"msg_01Example123","type":"message","role":"assistant","model":"claude-opus-4-20250514","content":[{"type":"text","text":"I'll help you add a new config file."}],"stop_reason":"end_turn","usage":{"input_tokens":100,"output_tokens":200}},"costUSD":0.00250,"durationMs":2500,"type":"assistant","uuid":"04d6794d-6350-4d37-abe4-f6f643fdf83d","timestamp":"2025-05-26T07:27:42.579Z"}`;
+{"parentUuid":"9ff29d57-8b28-4da9-8e7f-b0e4e7e2ba46","isSidechain":false,"userType":"external","cwd":"/Users/username/project","sessionId":"${sessionId}","version":"1.0.3","message":{"id":"msg_01Example123","type":"message","role":"assistant","model":"claude-opus-4-20250514","content":[{"type":"text","text":"I'll help you add a new config file."}],"stop_reason":"end_turn","usage":{"input_tokens":100,"output_tokens":200}},"durationMs":2500,"type":"assistant","uuid":"04d6794d-6350-4d37-abe4-f6f643fdf83d","timestamp":"2025-05-26T07:27:42.579Z"}`;
       
       await fs.writeFile(conversationFile, conversationContent);
       
@@ -98,7 +98,7 @@ describe('ClaudeHistoryReader', () => {
       expect(conversation.messageCount).toBe(2); // user + assistant message
       expect(conversation.createdAt).toBeDefined();
       expect(conversation.updatedAt).toBeDefined();
-      expect(conversation.totalCost).toBe(0.0025); // From assistant message
+      // Total cost calculation has been removed
       expect(conversation.totalDuration).toBe(2500); // From assistant message
       expect(conversation.model).toBe('claude-opus-4-20250514'); // From assistant message
       expect(conversation.status).toBe('completed'); // CLI conversations are always completed
@@ -207,7 +207,7 @@ describe('ClaudeHistoryReader', () => {
       
       const fileContent = `{"type":"summary","summary":"Test conversation","leafUuid":"msg1"}
 {"parentUuid":null,"type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z","sessionId":"${sessionId}"}
-{"parentUuid":"msg1","type":"assistant","message":{"role":"assistant","content":"Hi there","id":"msg_123"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}","costUSD":0.001,"durationMs":1000}`;
+{"parentUuid":"msg1","type":"assistant","message":{"role":"assistant","content":"Hi there","id":"msg_123"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}","durationMs":1000}`;
 
       await fs.writeFile(conversationFile, fileContent);
 
@@ -219,7 +219,6 @@ describe('ClaudeHistoryReader', () => {
       expect(messages[0].sessionId).toBe(sessionId);
       expect(messages[1].type).toBe('assistant');
       expect(messages[1].uuid).toBe('msg2');
-      expect(messages[1].costUSD).toBe(0.001);
       expect(messages[1].durationMs).toBe(1000);
     });
 
@@ -267,7 +266,6 @@ describe('ClaudeHistoryReader', () => {
       expect(message.uuid).toBe('2c333acb-b9f2-41bf-b2d1-d20f0fa413e5');
       expect(message.parentUuid).toBe('b72a5272-ecd5-4b58-b8e6-87483e9acad6');
       expect(message.sessionId).toBe(sessionId);
-      expect(message.costUSD).toBe(0.00180);
       expect(message.durationMs).toBe(1800);
       
       // Verify message content structure - this is an assistant message (Anthropic.Message)
@@ -315,8 +313,8 @@ describe('ClaudeHistoryReader', () => {
       const conversationFile = path.join(projectDir, 'metadata.jsonl');
       
       const fileContent = `{"type":"summary","summary":"Metadata Test Session","leafUuid":"msg1"}
-{"parentUuid":null,"cwd":"/Users/username/project","message":{"role":"user","content":"Hello","model":"claude-opus-4-20250514"},"costUSD":0.005,"durationMs":2000,"sessionId":"${sessionId}","type":"user","uuid":"msg1"}
-{"parentUuid":"msg1","costUSD":0.003,"durationMs":1500,"sessionId":"${sessionId}","type":"assistant","message":{"role":"assistant","content":"Hi","model":"claude-opus-4-20250514"},"uuid":"msg2"}`;
+{"parentUuid":null,"cwd":"/Users/username/project","message":{"role":"user","content":"Hello","model":"claude-opus-4-20250514"},"durationMs":2000,"sessionId":"${sessionId}","type":"user","uuid":"msg1"}
+{"parentUuid":"msg1","durationMs":1500,"sessionId":"${sessionId}","type":"assistant","message":{"role":"assistant","content":"Hi","model":"claude-opus-4-20250514"},"uuid":"msg2"}`;
 
       await fs.writeFile(conversationFile, fileContent);
 
@@ -326,7 +324,7 @@ describe('ClaudeHistoryReader', () => {
       expect(metadata!.summary).toBe('Metadata Test Session');
       expect(metadata!.projectPath).toBe('/Users/username/project');
       expect(metadata!.model).toBe('claude-opus-4-20250514');
-      expect(metadata!.totalCost).toBe(0.008); // 0.005 + 0.003
+      // Total cost calculation has been removed
       expect(metadata!.totalDuration).toBe(3500); // 2000 + 1500
     });
 

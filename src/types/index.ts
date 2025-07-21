@@ -10,7 +10,6 @@ export interface ConversationSummary {
   createdAt: string;
   updatedAt: string;
   messageCount: number;
-  totalCost: number;
   totalDuration: number;
   model: string;
   status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
@@ -28,7 +27,6 @@ export interface ConversationMessage {
   userType?: string; // Type of user interaction (e.g., 'external')
   cwd?: string; // Working directory when the message was created
   version?: string; // Claude CLI version used for this message
-  costUSD?: number;
   durationMs?: number;
 }
 
@@ -62,13 +60,11 @@ export interface UserStreamMessage extends StreamMessage {
 export interface ResultStreamMessage extends StreamMessage {
   type: 'result';
   subtype: 'success' | 'error_max_turns';
-  cost_usd: number;
   is_error: boolean;
   duration_ms: number;
   duration_api_ms: number;
   num_turns: number;
   result?: string;
-  total_cost: number;
   usage: {
     input_tokens: number;
     cache_creation_input_tokens: number;
@@ -144,8 +140,7 @@ export interface ConversationDetailsResponse {
   summary: string;
   projectPath: string;
   metadata: {
-    totalCost: number;
-    totalDuration: number;
+      totalDuration: number;
     model: string;
   };
 }

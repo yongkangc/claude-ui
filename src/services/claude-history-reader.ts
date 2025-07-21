@@ -14,7 +14,6 @@ interface RawJsonEntry {
   timestamp?: string;
   message?: Anthropic.Message | Anthropic.MessageParam;
   cwd?: string;
-  costUSD?: number;
   durationMs?: number;
   isSidechain?: boolean;
   userType?: string;
@@ -30,7 +29,6 @@ interface ConversationChain {
   summary: string;
   createdAt: string;
   updatedAt: string;
-  totalCost: number;
   totalDuration: number;
   model: string;
 }
@@ -88,7 +86,6 @@ export class ClaudeHistoryReader {
             createdAt: chain.createdAt,
             updatedAt: chain.updatedAt,
             messageCount: chain.messages.length,
-            totalCost: chain.totalCost,
             totalDuration: chain.totalDuration,
             model: chain.model,
             status: 'completed' as const // Default status, will be updated by server
@@ -135,7 +132,6 @@ export class ClaudeHistoryReader {
     summary: string;
     projectPath: string;
     model: string;
-    totalCost: number;
     totalDuration: number;
   } | null> {
     try {
@@ -150,7 +146,6 @@ export class ClaudeHistoryReader {
         summary: conversation.summary,
         projectPath: conversation.projectPath,
         model: conversation.model,
-        totalCost: conversation.totalCost,
         totalDuration: conversation.totalDuration
       };
     } catch (error) {
@@ -345,7 +340,6 @@ export class ClaudeHistoryReader {
       const summary = this.determineConversationSummary(orderedMessages, summaries);
       
       // Calculate metadata
-      const totalCost = messages.reduce((sum, msg) => sum + (msg.costUSD || 0), 0);
       const totalDuration = messages.reduce((sum, msg) => sum + (msg.durationMs || 0), 0);
       const model = this.extractModel(messages);
       
@@ -365,7 +359,6 @@ export class ClaudeHistoryReader {
         summary,
         createdAt,
         updatedAt,
-        totalCost,
         totalDuration,
         model
       };
@@ -502,7 +495,6 @@ export class ClaudeHistoryReader {
       userType: entry.userType,
       cwd: entry.cwd,
       version: entry.version,
-      costUSD: entry.costUSD,
       durationMs: entry.durationMs
     };
   }

@@ -51,7 +51,7 @@ describe('CLI List Command', () => {
       createdAt: '2024-01-01T10:00:00Z',
       updatedAt: '2024-01-01T10:30:00Z',
       messageCount: 5,
-      totalCost: 0.0023,
+      // totalCost field has been removed
       totalDuration: 1500,
       model: 'claude-sonnet-3-5-20241022',
       status: 'completed'
@@ -64,7 +64,7 @@ describe('CLI List Command', () => {
       createdAt: '2024-01-02T14:00:00Z',
       updatedAt: '2024-01-02T15:30:00Z',
       messageCount: 8,
-      totalCost: 0.0045,
+      // totalCost field has been removed
       totalDuration: 3000,
       model: 'claude-opus-20240229',
       status: 'completed'
@@ -77,7 +77,7 @@ describe('CLI List Command', () => {
       createdAt: '2024-01-03T09:00:00Z',
       updatedAt: '2024-01-03T11:00:00Z',
       messageCount: 12,
-      totalCost: 0.0067,
+      // totalCost field has been removed
       totalDuration: 4500,
       model: 'claude-sonnet-3-5-20241022',
       status: 'completed'
@@ -167,7 +167,7 @@ describe('CLI List Command', () => {
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
         messageCount: 3,
-        totalCost: 0.001,
+        // totalCost field has been removed
         totalDuration: 1000,
         model: 'claude-sonnet-3-5-20241022',
         status: 'completed'
@@ -218,7 +218,7 @@ describe('CLI List Command', () => {
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
         messageCount: 1,
-        totalCost: 0,
+        // totalCost field has been removed
         totalDuration: 0,
         model: 'claude-sonnet-3-5-20241022',
         status: 'completed'
@@ -406,7 +406,7 @@ describe('CLI List Command', () => {
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
         messageCount: 9999,
-        totalCost: 0.567,
+        // totalCost field has been removed
         totalDuration: 25000,
         model: 'claude-opus-20240229',
         status: 'completed'
@@ -457,7 +457,7 @@ describe('CLI List Command', () => {
         createdAt: '2024-12-31T23:59:59Z',
         updatedAt: '2024-12-31T23:59:59Z',
         messageCount: 1,
-        totalCost: 0,
+        // totalCost field has been removed
         totalDuration: 0,
         model: 'claude-sonnet-3-5-20241022',
         status: 'completed'

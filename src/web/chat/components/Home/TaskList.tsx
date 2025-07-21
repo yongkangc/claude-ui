@@ -1,18 +1,31 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskItem } from './TaskItem';
 import styles from './TaskList.module.css';
-import type { Conversation } from '../../types/conversation';
+import type { ConversationSummary } from '../../types';
 
 interface TaskListProps {
-  conversations: Conversation[];
+  conversations: ConversationSummary[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   activeTab: 'tasks' | 'archive';
+  onLoadMore: () => void;
 }
 
-export function TaskList({ conversations, loading, error, activeTab }: TaskListProps) {
+export function TaskList({ 
+  conversations, 
+  loading, 
+  loadingMore, 
+  hasMore, 
+  error, 
+  activeTab, 
+  onLoadMore 
+}: TaskListProps) {
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
 
   // Filter conversations based on active tab
   // For now, we'll show all conversations in "Tasks" and none in "Archive"
@@ -26,6 +39,36 @@ export function TaskList({ conversations, loading, error, activeTab }: TaskListP
     // Mock cancel functionality
     console.log('Cancel task:', sessionId);
   };
+
+  // Intersection Observer for infinite scrolling
+  const handleIntersection = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+        onLoadMore();
+      }
+    },
+    [hasMore, loadingMore, loading, onLoadMore]
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleIntersection, {
+      root: scrollRef.current,
+      rootMargin: '100px',
+      threshold: 0.1,
+    });
+
+    const currentLoadingRef = loadingRef.current;
+    if (currentLoadingRef) {
+      observer.observe(currentLoadingRef);
+    }
+
+    return () => {
+      if (currentLoadingRef) {
+        observer.unobserve(currentLoadingRef);
+      }
+    };
+  }, [handleIntersection]);
 
   if (loading && conversations.length === 0) {
     return (
@@ -54,7 +97,7 @@ export function TaskList({ conversations, loading, error, activeTab }: TaskListP
   }
 
   return (
-    <div className={styles.container}>
+    <div ref={scrollRef} className={styles.container}>
       {filteredConversations.map((conversation) => (
         <TaskItem
           key={conversation.sessionId}
@@ -71,6 +114,24 @@ export function TaskList({ conversations, loading, error, activeTab }: TaskListP
           }
         />
       ))}
+      
+      {/* Loading indicator for infinite scroll */}
+      {hasMore && (
+        <div ref={loadingRef} className={styles.loadingMore}>
+          {loadingMore && (
+            <div className={styles.loadingSpinner}>
+              Loading more tasks...
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* End of list message */}
+      {!hasMore && filteredConversations.length > 0 && (
+        <div className={styles.endMessage}>
+          No more tasks to load
+        </div>
+      )}
     </div>
   );
 }

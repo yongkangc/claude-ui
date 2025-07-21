@@ -149,5 +149,6 @@ The backend follows a service-oriented architecture with these key components:
   - Type alias `export type Logger = CCUILogger` ensures no type errors
   - Supports all log levels: debug, info, warn, error, fatal
   - Special handling for error method to support both `error('msg', err, context)` and `error('msg', context)` patterns
+- **Cost tracking feature removed**: Legacy cost tracking fields have been removed from all interfaces and services as they were not being used
 
 [... rest of the existing content remains unchanged ...]

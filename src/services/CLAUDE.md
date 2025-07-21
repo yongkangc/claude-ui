@@ -326,7 +326,7 @@ class ConversationStatusTracker {
 - Conversation list endpoint includes current status for each conversation
 - **Streaming ID field**: Ongoing conversations include an optional `streamingId` field in API responses that provides the CCUI internal streaming identifier for connecting to active streams or stopping conversations
 - Status tracking handles process errors and cleanup gracefully
-- Rich metadata support including conversation summaries, message counts, and cost tracking
+- Rich metadata support including conversation summaries, message counts, and duration tracking
 
 ## Data Flow Architecture
 

@@ -85,6 +85,15 @@ button {
   color: inherit;
 }
 
+button:hover {
+  /* Remove default hover effects */
+  background: inherit;
+  color: inherit;
+  border: inherit;
+  transform: none;
+  opacity: inherit;
+}
+
 /* Inputs */
 input, textarea, select {
   font-family: inherit;

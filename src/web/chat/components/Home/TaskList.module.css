@@ -30,3 +30,49 @@
   text-align: center;
   background: var(--color-token-bg-primary);
 }
+
+.loadingMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px;
+  min-height: 60px;
+}
+
+.loadingSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-token-text-secondary);
+  font-size: 14px;
+  background: linear-gradient(90deg, 
+    var(--color-token-text-secondary) 0%, 
+    var(--color-token-text-secondary) 50%, 
+    var(--color-token-text-tertiary) 50%, 
+    var(--color-token-text-tertiary) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+
+.endMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px;
+  color: var(--color-token-text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -38,7 +38,6 @@ program
   .option('--offset <number>', 'Number of results to skip', '0')
   .option('--json', 'Output as JSON')
   .option('--format <type>', 'Display format: compact, table, detailed', 'compact')
-  .option('--show-cost', 'Show cost information')
   .option('--show-model', 'Show model information')
   .option('--no-summary', 'Hide conversation summaries')
   .action(listCommand);

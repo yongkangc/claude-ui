@@ -7,7 +7,6 @@ interface ConversationMetadata {
   summary: string;
   projectPath: string;
   model: string;
-  totalCost: number;
   totalDuration: number;
 }
 
@@ -56,7 +55,6 @@ describe('CLI Get Command', () => {
     summary: 'Build a React component with TypeScript',
     projectPath: '/Users/test/project/web',
     model: 'claude-opus-4-20250514',
-    totalCost: 0.0525,
     totalDuration: 5500
   });
 
@@ -92,7 +90,6 @@ describe('CLI Get Command', () => {
       },
       timestamp: '2024-01-01T10:00:05Z',
       sessionId: 'session-123',
-      costUSD: 0.025,
       durationMs: 2500
     },
     {
@@ -115,7 +112,6 @@ describe('CLI Get Command', () => {
       },
       timestamp: '2024-01-01T10:02:03Z',
       sessionId: 'session-123',
-      costUSD: 0.0275,
       durationMs: 3000
     }
   ];
@@ -140,7 +136,7 @@ describe('CLI Get Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith('Project Path: /Users/test/project/web');
       expect(consoleSpy.log).toHaveBeenCalledWith('Model: claude-opus-4-20250514');
       expect(consoleSpy.log).toHaveBeenCalledWith('Messages: 4');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Total Cost: $0.0525');
+      // Total cost display has been removed
       expect(consoleSpy.log).toHaveBeenCalledWith('Total Duration: 5.50s');
       expect(consoleSpy.log).toHaveBeenCalledWith('\nMessages:');
       expect(consoleSpy.log).toHaveBeenCalledWith('-'.repeat(50));
@@ -177,7 +173,7 @@ describe('CLI Get Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('[2] ASSISTANT'));
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('I\'ll help you create a TypeScript React button component'));
       expect(consoleSpy.log).toHaveBeenCalledWith('[Tool: Write]');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Cost: $0.0250');
+      // Individual message cost display has been removed
 
       // Check subsequent messages
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('[3] USER'));
@@ -185,7 +181,7 @@ describe('CLI Get Command', () => {
 
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('[4] ASSISTANT'));
       expect(consoleSpy.log).toHaveBeenCalledWith('Certainly! I\'ll update the button component to include proper click event handling with TypeScript types.');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Cost: $0.0275');
+      // Individual message cost display has been removed
     });
 
     it('should truncate long message content', async () => {
@@ -290,8 +286,7 @@ describe('CLI Get Command', () => {
           type: 'assistant',
           message: { id: 'msg_1', role: 'assistant', content: 'Answer' },
           timestamp: '2024-01-01T10:00:01Z',
-          sessionId: 'session-123',
-          costUSD: 0.015
+          sessionId: 'session-123'
         }
       ];
 
@@ -305,10 +300,9 @@ describe('CLI Get Command', () => {
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('[1] USER'));
       expect(consoleSpy.log).toHaveBeenCalledWith('Question');
 
-      // Assistant message should show cost
+      // Assistant message should not show cost
       expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('[2] ASSISTANT'));
       expect(consoleSpy.log).toHaveBeenCalledWith('Answer');
-      expect(consoleSpy.log).toHaveBeenCalledWith('Cost: $0.0150');
     });
   });
 
@@ -404,8 +398,8 @@ describe('CLI Get Command', () => {
         type: 'assistant',
         message: { id: 'msg_1', role: 'assistant', content: 'Quick response' },
         timestamp: '2024-01-01T10:00:00Z',
-        sessionId: 'session-123',
-        costUSD: 0.0001
+        sessionId: 'session-123'
+        // costUSD field has been removed
       };
 
       mockReader.getConversationMetadata.mockResolvedValue(createSampleMetadata());
@@ -415,7 +409,7 @@ describe('CLI Get Command', () => {
       
       await getCommand(sessionId, {});
 
-      expect(consoleSpy.log).toHaveBeenCalledWith('Cost: $0.0001');
+      // Cost display has been removed
     });
 
     it('should handle zero costs', async () => {
@@ -424,8 +418,8 @@ describe('CLI Get Command', () => {
         type: 'assistant',
         message: { id: 'msg_1', role: 'assistant', content: 'Free response' },
         timestamp: '2024-01-01T10:00:00Z',
-        sessionId: 'session-123',
-        costUSD: 0
+        sessionId: 'session-123'
+        // costUSD field has been removed
       };
 
       mockReader.getConversationMetadata.mockResolvedValue(createSampleMetadata());
@@ -435,8 +429,7 @@ describe('CLI Get Command', () => {
       
       await getCommand(sessionId, {});
 
-      // Zero cost should not be displayed due to falsy check (if (msg.costUSD))
-      expect(consoleSpy.log).not.toHaveBeenCalledWith('Cost: $0.0000');
+      // Cost field has been removed entirely
       expect(consoleSpy.log).toHaveBeenCalledWith('Free response');
     });
 
