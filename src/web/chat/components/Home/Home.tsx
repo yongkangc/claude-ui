@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useConversations } from '../../contexts/ConversationsContext';
+import { api } from '../../services/api';
 import { Header } from './Header';
 import { Composer } from './Composer';
 import { TaskTabs } from './TaskTabs';
@@ -7,6 +9,7 @@ import { TaskList } from './TaskList';
 import styles from './Home.module.css';
 
 export function Home() {
+  const navigate = useNavigate();
   const { 
     conversations, 
     loading, 
@@ -17,6 +20,7 @@ export function Home() {
     loadMoreConversations 
   } = useConversations();
   const [activeTab, setActiveTab] = useState<'tasks' | 'archive'>('tasks');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -27,10 +31,24 @@ export function Home() {
     ? conversations[0].projectPath 
     : undefined;
 
-  const handleComposerSubmit = (text: string, workingDirectory: string, branch: string, model: string) => {
-    // Mock submission - will be implemented later
-    console.log('New task:', { text, workingDirectory, branch, model });
-    alert('Task submission will be implemented soon');
+  const handleComposerSubmit = async (text: string, workingDirectory: string, branch: string, model: string) => {
+    setIsSubmitting(true);
+    
+    try {
+      const response = await api.startConversation({
+        workingDirectory,
+        initialPrompt: text,
+        model: model === 'default' ? undefined : model,
+      });
+      
+      // Navigate to the conversation page
+      navigate(`/c/${response.sessionId}`);
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      // You might want to show an error message to the user here
+      alert(`Failed to start conversation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -47,6 +65,7 @@ export function Home() {
                 <Composer 
                   workingDirectory={recentWorkingDirectory}
                   onSubmit={handleComposerSubmit}
+                  isSubmitting={isSubmitting}
                 />
               </div>
 

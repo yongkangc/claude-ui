@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 8px 8px;
   border: none;
   background: transparent;
   color: var(--color-token-text-secondary);
@@ -48,9 +48,7 @@
   left: -8px;
   width: 320px;
   max-height: 280px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--color-token-bg-primary);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -61,8 +59,7 @@
 }
 
 [data-theme="dark"] .dropdown {
-  background: rgba(48, 48, 48, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-token-border-default);
 }
 
 @media (min-width: 768px) {
@@ -102,17 +99,22 @@
 }
 
 .addButton {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: var(--color-button-primary);
   color: var(--color-button-primary-text);
   border: none;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 50%;
   cursor: pointer;
-  transition: opacity 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .addButton:hover:not(:disabled) {
+  transform: scale(1.05);
   opacity: 0.9;
 }
 

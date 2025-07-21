@@ -32,7 +32,6 @@
   width: 100%;
   max-width: 48rem; /* md:w-3xl equivalent */
   height: 100%;
-  overflow: hidden;
 }
 
 .inputSection {

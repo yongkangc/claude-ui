@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import styles from './DirectorySelector.module.css';
 
 interface RecentDirectory {
@@ -100,8 +100,9 @@ export function DirectorySelector({
                 className={styles.addButton}
                 onClick={handleAddPath}
                 disabled={!inputValue.trim()}
+                aria-label="Add directory"
               >
-                Add
+                <Plus size={16} />
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Mic } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2 } from 'lucide-react';
 import { DirectorySelector } from './DirectorySelector';
 import { useConversations } from '../../contexts/ConversationsContext';
 import styles from './Composer.module.css';
@@ -7,13 +7,13 @@ import styles from './Composer.module.css';
 interface ComposerProps {
   workingDirectory?: string;
   onSubmit?: (text: string, workingDirectory: string, branch: string, model: string) => void;
+  isSubmitting?: boolean;
 }
 
-export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
+export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false }: ComposerProps) {
   const [text, setText] = useState('');
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
-  const [selectedBranch, setSelectedBranch] = useState('main');
-  const [selectedModel, setSelectedModel] = useState('1x');
+  const [selectedModel, setSelectedModel] = useState('default');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { recentDirectories, getMostRecentWorkingDirectory } = useConversations();
 
@@ -30,15 +30,17 @@ export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() && onSubmit && selectedDirectory !== 'Select directory') {
-      onSubmit(text.trim(), selectedDirectory, selectedBranch, selectedModel);
+      onSubmit(text.trim(), selectedDirectory, 'main', selectedModel);
       setText('');
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e as any);
+    if (e.key === 'Enter') {
+      if (!e.shiftKey || (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSubmit(e as any);
+      }
     }
   };
 
@@ -66,6 +68,7 @@ export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
               }}
               onKeyDown={handleKeyDown}
               rows={1}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -79,41 +82,43 @@ export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
                   onDirectorySelect={setSelectedDirectory}
                 />
 
-                {/* Branch Selector */}
+                {/* Model Selector */}
                 <button
                   type="button"
                   className={styles.actionButton}
-                  aria-label="Search for your branch"
+                  aria-label="Select AI model"
+                  onClick={() => {
+                    // Toggle between models for now
+                    const models = ['default', 'opus', 'sonnet'];
+                    const currentIndex = models.indexOf(selectedModel);
+                    const nextIndex = (currentIndex + 1) % models.length;
+                    setSelectedModel(models[nextIndex]);
+                  }}
                 >
                   <span className={styles.buttonText}>
-                    <span className={styles.buttonLabel}>{selectedBranch}</span>
+                    <span className={styles.buttonLabel}>{selectedModel}</span>
                   </span>
                   <ChevronDown size={14} />
                 </button>
               </div>
-
-              {/* Model Selector */}
-              <button
-                type="button"
-                className={styles.actionButton}
-                aria-label="Open versions number selector"
-              >
-                <span className={styles.buttonText}>
-                  <span className={styles.buttonLabel}>{selectedModel}</span>
-                </span>
-                <ChevronDown size={14} />
-              </button>
             </div>
           </div>
 
-          {/* Voice Input Button */}
+          {/* Dynamic Action Button */}
           <div className={styles.voiceButton}>
             <button
-              type="button"
+              type={text.trim() ? "submit" : "button"}
               className={styles.iconButton}
-              aria-label="Dictate button"
+              aria-label={text.trim() ? "Send message" : "Dictate button"}
+              disabled={isSubmitting || (text.trim() && selectedDirectory === 'Select directory')}
             >
-              <Mic size={18} />
+              {isSubmitting ? (
+                <Loader2 size={18} className={styles.spinning} />
+              ) : text.trim() ? (
+                <Send size={18} />
+              ) : (
+                <Mic size={18} />
+              )}
             </button>
           </div>
         </div>
