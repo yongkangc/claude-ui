@@ -1,0 +1,209 @@
+.container {
+  position: relative;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-token-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover {
+  background: var(--color-token-bg-tertiary);
+}
+
+.buttonText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+}
+
+.buttonLabel {
+  display: block;
+  max-width: 128px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .buttonLabel {
+    max-width: 160px;
+  }
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -8px;
+  width: 320px;
+  max-height: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .dropdown {
+  background: rgba(48, 48, 48, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 768px) {
+  .dropdown {
+    max-height: 360px;
+  }
+}
+
+/* Input section */
+.inputSection {
+  background: rgb(0 0 0 / 5%);
+  padding: 6px 8px;
+}
+
+[data-theme="dark"] .inputSection {
+  background: rgb(255 255 255 / 5%);
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.addButton {
+  padding: 6px 12px;
+  background: var(--color-button-primary);
+  color: var(--color-button-primary-text);
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.1s ease;
+}
+
+.addButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.addButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Separator */
+.separator {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+[data-theme="dark"] .separator {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Directory list */
+.directoryList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.directoryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  gap: 16px;
+}
+
+.directoryItem:hover {
+  background: rgb(0 0 0 / 5%);
+}
+
+[data-theme="dark"] .directoryItem:hover {
+  background: rgb(255 255 255 / 5%);
+}
+
+.directoryItem.selected {
+  background: rgb(0 0 0 / 5%);
+}
+
+[data-theme="dark"] .directoryItem.selected {
+  background: rgb(255 255 255 / 5%);
+}
+
+.directoryContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.directoryInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.directoryName {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font-size: 14px;
+  width: 100%;
+}
+
+.directoryText {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}

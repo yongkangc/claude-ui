@@ -12,7 +12,6 @@
   border: 1px solid var(--color-token-border-light);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-short);
-  overflow: hidden;
   cursor: text;
 }
 
@@ -65,6 +64,7 @@
   right: 60px;
   display: flex;
   align-items: center;
+  overflow: visible;
 }
 
 .actionButtons {

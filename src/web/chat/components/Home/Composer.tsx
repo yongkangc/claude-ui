@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Mic } from 'lucide-react';
+import { DirectorySelector } from './DirectorySelector';
+import { useConversations } from '../../contexts/ConversationsContext';
 import styles from './Composer.module.css';
 
 interface ComposerProps {
@@ -13,10 +15,21 @@ export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [selectedModel, setSelectedModel] = useState('1x');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { recentDirectories, getMostRecentWorkingDirectory } = useConversations();
+
+  // Auto-select most recent directory on mount
+  useEffect(() => {
+    if (!workingDirectory && Object.keys(recentDirectories).length > 0) {
+      const mostRecent = getMostRecentWorkingDirectory();
+      if (mostRecent) {
+        setSelectedDirectory(mostRecent);
+      }
+    }
+  }, [workingDirectory, recentDirectories, getMostRecentWorkingDirectory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim() && onSubmit) {
+    if (text.trim() && onSubmit && selectedDirectory !== 'Select directory') {
       onSubmit(text.trim(), selectedDirectory, selectedBranch, selectedModel);
       setText('');
     }
@@ -60,20 +73,11 @@ export function Composer({ workingDirectory = '', onSubmit }: ComposerProps) {
             <div className={styles.actionButtons}>
               <div className={styles.actionGroup}>
                 {/* Working Directory Selector */}
-                <button
-                  type="button"
-                  className={styles.actionButton}
-                  aria-label="View all code environments"
-                >
-                  <span className={styles.buttonText}>
-                    <span className={styles.buttonLabel}>
-                      {selectedDirectory.length > 20 
-                        ? `...${selectedDirectory.slice(-20)}` 
-                        : selectedDirectory}
-                    </span>
-                  </span>
-                  <ChevronDown size={14} />
-                </button>
+                <DirectorySelector
+                  selectedDirectory={selectedDirectory}
+                  recentDirectories={recentDirectories}
+                  onDirectorySelect={setSelectedDirectory}
+                />
 
                 {/* Branch Selector */}
                 <button

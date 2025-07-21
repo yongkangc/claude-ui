@@ -2,12 +2,18 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { api } from '../services/api';
 import type { ConversationSummary } from '../types';
 
+interface RecentDirectory {
+  lastDate: string;
+  shortname: string;
+}
+
 interface ConversationsContextType {
   conversations: ConversationSummary[];
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   error: string | null;
+  recentDirectories: Record<string, RecentDirectory>;
   loadConversations: () => Promise<void>;
   loadMoreConversations: () => Promise<void>;
   getMostRecentWorkingDirectory: () => string | null;
@@ -24,6 +30,28 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recentDirectories, setRecentDirectories] = useState<Record<string, RecentDirectory>>({});
+
+  const updateRecentDirectories = (convs: ConversationSummary[]) => {
+    const newDirectories: Record<string, RecentDirectory> = { ...recentDirectories };
+    
+    convs.forEach(conv => {
+      if (conv.projectPath) {
+        const pathParts = conv.projectPath.split('/');
+        const shortname = pathParts[pathParts.length - 1] || conv.projectPath;
+        
+        if (!newDirectories[conv.projectPath] || 
+            new Date(conv.updatedAt) > new Date(newDirectories[conv.projectPath].lastDate)) {
+          newDirectories[conv.projectPath] = {
+            lastDate: conv.updatedAt,
+            shortname
+          };
+        }
+      }
+    });
+    
+    setRecentDirectories(newDirectories);
+  };
 
   const loadConversations = async () => {
     setLoading(true);
@@ -36,6 +64,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         order: 'desc'
       });
       setConversations(data.conversations);
+      updateRecentDirectories(data.conversations);
       setHasMore(data.conversations.length === INITIAL_LIMIT);
     } catch (err) {
       setError('Failed to load conversations');
@@ -62,6 +91,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         setHasMore(false);
       } else {
         setConversations(prev => [...prev, ...data.conversations]);
+        updateRecentDirectories(data.conversations);
         setHasMore(data.conversations.length === LOAD_MORE_LIMIT);
       }
     } catch (err) {
@@ -95,6 +125,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         loadingMore, 
         hasMore, 
         error, 
+        recentDirectories,
         loadConversations, 
         loadMoreConversations, 
         getMostRecentWorkingDirectory 
