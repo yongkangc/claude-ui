@@ -36,7 +36,7 @@ export class JsonFileManager<T> {
 
       const content = await fs.promises.readFile(this.filePath, 'utf-8');
       const data = JSON.parse(content);
-      this.logger.debug('Successfully read JSON file', { filePath: this.filePath });
+      // this.logger.debug('Successfully read JSON file', { filePath: this.filePath });
       return data;
     } catch (error) {
       this.logger.error('Failed to read JSON file', { filePath: this.filePath, error });

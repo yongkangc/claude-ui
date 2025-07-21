@@ -105,7 +105,7 @@ export class SessionInfoService {
    * Returns default values if session doesn't exist
    */
   async getSessionInfo(sessionId: string): Promise<SessionInfo> {
-    this.logger.debug('Getting session info', { sessionId });
+    // this.logger.debug('Getting session info', { sessionId });
 
     try {
       const data = await this.jsonManager.read();
@@ -125,7 +125,7 @@ export class SessionInfoService {
         version: 1
       };
 
-      this.logger.debug('Using default session info', { sessionId, sessionInfo: defaultSessionInfo });
+      // this.logger.debug('Using default session info', { sessionId, sessionInfo: defaultSessionInfo });
       return defaultSessionInfo;
     } catch (error) {
       this.logger.error('Failed to get session info', { sessionId, error });

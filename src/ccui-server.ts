@@ -310,7 +310,7 @@ export class CCUIServer {
       const requestId = Math.random().toString(36).substring(7);
       (req as any).requestId = requestId;
       
-      this.logger.info('Incoming request', { 
+      this.logger.debug('Incoming request', { 
         method: req.method, 
         url: req.url,
         requestId,
