@@ -169,21 +169,22 @@
   height: 36px;
   padding: 0;
   border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
   border-radius: 50%;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .iconButton:hover:not(:disabled) {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  opacity: 0.9;
 }
 
 .iconButton:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  background: transparent;
+  color: var(--color-text-secondary);
+  opacity: 1;
 }
 
 /* Mobile adjustments */
