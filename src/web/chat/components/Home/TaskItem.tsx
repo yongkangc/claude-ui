@@ -7,6 +7,7 @@ interface TaskItemProps {
   title: string;
   timestamp: string;
   projectPath: string;
+  recentDirectories: Record<string, { lastDate: string; shortname: string }>;
   status: 'ongoing' | 'completed' | 'error';
   onClick: () => void;
   onCancel?: () => void;
@@ -17,6 +18,7 @@ export function TaskItem({
   title, 
   timestamp, 
   projectPath, 
+  recentDirectories,
   status, 
   onClick,
   onCancel 
@@ -56,7 +58,9 @@ export function TaskItem({
               </span>
               <span className={styles.separator}>·</span>
               <span className={styles.projectPath}>
-                {projectPath || 'No project'}
+                {projectPath 
+                  ? (recentDirectories[projectPath]?.shortname || projectPath.split('/').pop() || projectPath)
+                  : 'No project'}
               </span>
             </div>
           </div>

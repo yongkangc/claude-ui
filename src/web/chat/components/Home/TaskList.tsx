@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { TaskItem } from './TaskItem';
 import styles from './TaskList.module.css';
 import type { ConversationSummary } from '../../types';
+import { useConversations } from '../../contexts/ConversationsContext';
 
 interface TaskListProps {
   conversations: ConversationSummary[];
@@ -26,6 +27,7 @@ export function TaskList({
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const { recentDirectories } = useConversations();
 
   // Filter conversations based on active tab
   // For now, we'll show all conversations in "Tasks" and none in "Archive"
@@ -105,6 +107,7 @@ export function TaskList({
           title={conversation.summary}
           timestamp={conversation.updatedAt}
           projectPath={conversation.projectPath}
+          recentDirectories={recentDirectories}
           status={conversation.status}
           onClick={() => handleTaskClick(conversation.sessionId)}
           onCancel={
