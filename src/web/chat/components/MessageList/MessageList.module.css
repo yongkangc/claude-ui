@@ -80,7 +80,7 @@
 .messageDivider {
   height: 1px;
   background-color: var(--color-border-light);
-  margin: var(--spacing-lg) 0;
+  margin: calc(var(--spacing-lg) / 3) 0;
   width: 100%;
 }
 
@@ -89,13 +89,13 @@
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  margin: var(--spacing-sm) 0;
+  margin: calc(var(--spacing-sm) / 3) 0;
 }
 
 .userMessageContent {
   position: relative;
-  background-color: var(--color-bg-tertiary);
-  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: 12px;
   padding: var(--spacing-sm) var(--spacing-md);
   max-width: 80%;
   min-width: 100px;
@@ -143,7 +143,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 4px 0;
+  margin: calc(4px / 3) 0;
 }
 
 .assistantBlock {
@@ -159,22 +159,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   position: relative;
 }
 
 .timelineDot {
-  width: 6px;
-  height: 6px;
-  background-color: var(--color-border);
+  width: 9px;
+  height: 9px;
+  background-color: var(--color-text-primary);
   border-radius: 50%;
+  margin-top: 14px;
 }
 
 .timelineConnector {
   position: absolute;
   left: 7px;
-  top: 20px;
-  bottom: -12px;
+  top: 30px;
+  bottom: 0px;
   width: 1px;
   background-color: var(--color-border);
 }
@@ -183,7 +184,7 @@
   flex: 1;
   font-size: 14px;
   line-height: 1.6;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
 }
 
 /* Tool Use Blocks */
@@ -196,7 +197,8 @@
 
 .toolUseLabel {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 .codeBlock {
@@ -212,8 +214,10 @@
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
-  overflow-x: auto;
-  white-space: pre;
+  max-height: calc(10 * 1.6 * 12px);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .toolResult {
@@ -229,7 +233,8 @@
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
-  overflow-x: auto;
+  max-height: calc(10 * 1.6 * 12px);
+  overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -272,7 +277,7 @@
 }
 
 .searchResultPill:hover {
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
 }
 
@@ -321,17 +326,19 @@
 .assistantContent ul, .assistantContent ol { margin: 0.5em 0; padding-left: 2em; }
 .assistantContent li { margin: 0.25em 0; }
 .assistantContent code { 
-  background-color: var(--color-bg-tertiary); 
+  background-color: var(--color-bg-secondary); 
   padding: 0.1em 0.3em; 
   border-radius: var(--radius-xs); 
   font-family: var(--font-mono); 
   font-size: 0.9em; 
 }
 .assistantContent pre { 
-  background-color: var(--color-bg-tertiary); 
+  background-color: var(--color-bg-secondary); 
   padding: var(--spacing-sm); 
   border-radius: var(--radius-sm); 
   overflow-x: auto; 
+  white-space: pre-wrap;
+  word-wrap: break-word;
   margin: 0.5em 0; 
 }
 .assistantContent pre code { 

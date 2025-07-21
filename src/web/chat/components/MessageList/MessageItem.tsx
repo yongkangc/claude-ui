@@ -106,7 +106,7 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
                 </div>
                 <div className={styles.toolUseContent}>
                   <div className={styles.toolUseLabel}>
-                    {isWebSearch ? 'Searched the web' : 'Analyzed'}
+                    {isWebSearch ? 'Searched the web' : block.name}
                   </div>
                   
                   {isWebSearch && block.input?.query && (
