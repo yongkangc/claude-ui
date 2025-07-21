@@ -62,16 +62,16 @@ CCUI includes an integrated MCP server that handles tool permission requests fro
 ## Development Commands
 
 ```bash
-# Development server with hot reloading (uses tsx)
+# Development server with hot reloading (backend + integrated frontend on port 3001)
 npm run dev
 
-# Development server with Vite for React UI
-npm run dev:vite
+# Development server with separate Vite dev server (frontend on port 3000)
+npm run dev:web
 
-# Build TypeScript to JavaScript with path alias resolution
+# Build everything (frontend + backend with path alias resolution)
 npm run build
 
-# Build React frontend for production
+# Build React frontend for production only
 npm run build:web
 
 # Run the CLI after building
@@ -79,6 +79,15 @@ npm run cli
 
 # Run all tests
 npm test
+
+# Run tests with debug logging
+npm run test:debug
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
 
 # Run unit tests only
 npm run unit-tests
@@ -101,9 +110,9 @@ npm run typecheck
 
 The backend follows a service-oriented architecture with these key components:
 
-- **CCUIServer** (`src/ccui-server.ts`) - Main Express server that coordinates all components
+- **CCUIServer** (`src/ccui-server.ts`) - Main Express server with vite-express integration for single-port architecture
 - **ClaudeProcessManager** (`src/services/claude-process-manager.ts`) - Manages Claude CLI process lifecycle with MCP integration
-- **StreamManager** (`src/services/stream-manager.ts`) - Handles client streaming connections  
+- **StreamManager** (`src/services/stream-manager.ts`) - Handles client streaming connections via newline-delimited JSON (not SSE)
 - **ClaudeHistoryReader** (`src/services/claude-history-reader.ts`) - Reads conversation history from ~/.claude and provides working directory lookup
 - **ConversationStatusTracker** (`src/services/conversation-status-tracker.ts`) - Tracks conversation status based on active streams
 - **JsonLinesParser** (`src/services/json-lines-parser.ts`) - Parses JSONL streams from Claude CLI
@@ -115,7 +124,18 @@ The backend follows a service-oriented architecture with these key components:
 - **SessionInfoService** (`src/services/session-info-service.ts`) - Manages session metadata including custom names using JsonFileManager for fast local storage
 - **JsonFileManager** (`src/services/json-file-manager.ts`) - Custom zero-dependency JSON file persistence with atomic writes and file locking
 
+### Frontend Architecture
+
+The React-based web UI provides the primary interface:
+
+- **Single-Port Integration** - Both frontend and backend served on port 3001 via vite-express
+- **Tool Rendering System** (`src/web/chat/components/ToolRendering/`) - Specialized components for rendering each tool type (Bash, Edit, Read, etc.)
+- **Real-time Streaming** - Custom hooks for managing JSONL streams from backend
+- **Message Management** - Immutable message handling with conversation-level streaming status
+- **TUI-inspired Design** - CSS Modules with theme system and mobile responsiveness
+
 > For detailed service architecture and implementation patterns, see `src/services/CLAUDE.md`
+> For web UI architecture and component patterns, see `src/web/CLAUDE.md`
 
 [... rest of the existing content remains unchanged ...]
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Check, Code, Globe, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
+import { ToolUseRenderer } from '../ToolRendering/ToolUseRenderer';
 import type { ChatMessage } from '../../types';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import styles from './MessageList.module.css';
@@ -94,9 +95,8 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
 
           if (block.type === 'tool_use') {
             const toolResult = toolResults[block.id];
-            const hasResult = toolResult?.status === 'completed';
             
-            // Check if this is a web search tool
+            // Check if this is a web search tool for icon selection
             const isWebSearch = block.name === 'WebSearch' || block.name === 'WebFetch';
             
             return (
@@ -105,41 +105,11 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
                   {isWebSearch ? <Globe size={15} /> : <Settings size={15} />}
                 </div>
                 <div className={styles.toolUseContent}>
-                  <div className={styles.toolUseLabel}>
-                    {isWebSearch ? 'Searched the web' : block.name}
-                  </div>
-                  
-                  {isWebSearch ? (
-                    <>
-                      {block.input?.query && (
-                        <div className={styles.searchQuery}>
-                          <Globe size={12} />
-                          <span>{block.input.query}</span>
-                        </div>
-                      )}
-                      
-                      {hasResult && toolResult?.result && (
-                        <div className={styles.searchResults}>
-                          {/* Parse and display search results as pills */}
-                          {renderSearchResults(toolResult.result)}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className={styles.toolUseBlock}>
-                      <div className={styles.codeBlock}>
-                        <pre>
-{`> ${block.name}
-${JSON.stringify(block.input, null, 2)}${hasResult && toolResult?.result ? `
-
-< Result
-${typeof toolResult.result === 'string' 
-  ? toolResult.result 
-  : JSON.stringify(toolResult.result, null, 2)}` : ''}`}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
+                  <ToolUseRenderer
+                    toolUse={block}
+                    toolResult={toolResult}
+                    workingDirectory={message.workingDirectory}
+                  />
                 </div>
               </div>
             );
@@ -195,35 +165,3 @@ ${typeof toolResult.result === 'string'
   return null;
 }
 
-// Helper function to render search results
-function renderSearchResults(result: any): React.ReactNode {
-  // This is a simplified version - you would need to parse the actual search results
-  // For now, returning placeholder pills
-  const placeholderSites = [
-    { domain: 'blog.sina.com.cn', url: 'https://blog.sina.com.cn' },
-    { domain: 'wikipedia.org', url: 'https://wikipedia.org' },
-    { domain: 'stackoverflow.com', url: 'https://stackoverflow.com' }
-  ];
-
-  return (
-    <div className={styles.searchResultPills}>
-      {placeholderSites.map((site, index) => (
-        <a
-          key={index}
-          href={site.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.searchResultPill}
-        >
-          <img 
-            src={`https://www.google.com/s2/favicons?domain=${site.domain}&sz=32`} 
-            alt=""
-            width={12}
-            height={12}
-          />
-          <span>{site.domain}</span>
-        </a>
-      ))}
-    </div>
-  );
-}

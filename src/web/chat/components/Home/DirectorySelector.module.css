@@ -106,8 +106,8 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  background: var(--color-button-primary-text);
-  color: var(--color-token-bg-primary);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -117,6 +117,8 @@
 .addButton:hover:not(:disabled) {
   transform: scale(1.05);
   opacity: 0.9;
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
 }
 
 .addButton:disabled {

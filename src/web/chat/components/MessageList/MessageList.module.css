@@ -80,7 +80,7 @@
 .messageDivider {
   height: 1px;
   background-color: var(--color-border-light);
-  margin: var(--spacing-lg) 0;
+  margin: var(--spacing-sm) 0;
   width: 100%;
 }
 

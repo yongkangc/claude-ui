@@ -37,6 +37,7 @@ export interface ChatMessage {
   type: 'user' | 'assistant' | 'system' | 'error';
   content: string | ContentBlock[];
   timestamp: string;
+  workingDirectory?: string; // Working directory when the message was created
   // isStreaming removed
 }
 

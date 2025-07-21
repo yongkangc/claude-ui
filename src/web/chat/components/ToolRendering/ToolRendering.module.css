@@ -1,0 +1,273 @@
+/* Tool Label Styles */
+.toolLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Tool Content Styles */
+.toolContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.toolSummary {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolSummary:hover {
+  color: var(--color-text-primary);
+}
+
+.expandable {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.chevron {
+  transition: transform var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+/* Code Block Styles */
+.codeBlock {
+  background-color: #1a1a1a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: var(--spacing-xs);
+}
+
+.codeBlock pre {
+  margin: 0;
+  padding: var(--spacing-md);
+  color: #e8e8e8;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.scrollableCode {
+  max-height: calc(10 * 1.6 * 12px);
+  overflow: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.scrollableCode::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Error Styles */
+.errorContent {
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-error);
+}
+
+.errorCode {
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid var(--color-error);
+}
+
+.errorCode pre {
+  color: var(--color-error);
+}
+
+/* Diff Styles */
+.diffContainer {
+  background-color: #1a1a1a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: var(--spacing-xs);
+}
+
+.diffLine {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.diffLineRemove {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.diffLineAdd {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+/* Todo List Styles */
+.todoList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.todoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.todoCheckbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.todoContent {
+  color: var(--color-text-primary);
+}
+
+.todoCompleted {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+/* Collapsible Container */
+.collapsibleContainer {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-xs);
+}
+
+.collapsibleHeader {
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 500;
+}
+
+.collapsibleHeader:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.collapsibleContent {
+  padding: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Plan Content */
+.planContent {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+  border-left: 3px solid var(--color-accent);
+}
+
+.planContent p {
+  margin: 0.5em 0;
+}
+
+.planContent ul, .planContent ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.planContent li {
+  margin: 0.25em 0;
+}
+
+.planContent h1, .planContent h2, .planContent h3, .planContent h4, .planContent h5, .planContent h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+/* Loading/Pending States */
+.pendingContent {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.loadingSpinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top: 2px solid var(--color-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: var(--spacing-xs);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Web Search Pills */
+.searchResultPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.searchResultPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background-color: var(--color-bg-secondary);
+  border-radius: 24px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.searchResultPill:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.searchResultPill img {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* JSON Viewer Override for Tools */
+.jsonContent {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.jsonContent pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

@@ -227,6 +227,7 @@ function convertToChatlMessages(details: ConversationDetailsResponse): ChatMessa
         type: msg.type as 'user' | 'assistant' | 'system',
         content: content,
         timestamp: msg.timestamp,
+        workingDirectory: msg.cwd, // Add working directory from backend message
       };
     });
 }

@@ -22,6 +22,7 @@ interface UseConversationMessagesOptions {
 export function useConversationMessages(options: UseConversationMessagesOptions = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [toolResults, setToolResults] = useState<Record<string, ToolResult>>({});
+  const [currentWorkingDirectory, setCurrentWorkingDirectory] = useState<string | undefined>();
 
   // Clear messages
   const clearMessages = useCallback(() => {
@@ -30,6 +31,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       return [];
     });
     setToolResults({});
+    setCurrentWorkingDirectory(undefined);
   }, []);
 
   // Add a message
@@ -68,6 +70,12 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     switch (event.type) {
       case 'connected':
         // Stream connected
+        break;
+      
+      case 'system_init':
+        // Capture working directory from system init
+        console.debug('[useConversationMessages] System init event, working directory:', event.cwd);
+        setCurrentWorkingDirectory(event.cwd);
         break;
 
       case 'user':
@@ -112,6 +120,7 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           type: 'assistant',
           content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
           timestamp: new Date().toISOString(),
+          workingDirectory: currentWorkingDirectory,
         };
         
         addMessage(assistantMessage);
@@ -153,6 +162,17 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${newMessages.length} (reason: Loading conversation from API)`);
       return newMessages;
     });
+
+    // Extract the working directory from the loaded messages (use the most recent one)
+    const mostRecentWorkingDir = newMessages
+      .slice()
+      .reverse()
+      .find(msg => msg.workingDirectory)?.workingDirectory;
+    
+    if (mostRecentWorkingDir) {
+      console.debug('[useConversationMessages] Set working directory from loaded messages:', mostRecentWorkingDir);
+      setCurrentWorkingDirectory(mostRecentWorkingDir);
+    }
 
     // Build tool results from loaded messages in chronological order
     const newToolResults: Record<string, ToolResult> = {};
