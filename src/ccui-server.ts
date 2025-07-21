@@ -10,6 +10,7 @@ import { FileSystemService } from './services/file-system-service';
 import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
+import { OptimisticConversationService } from './services/optimistic-conversation-service';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -52,6 +53,7 @@ export class CCUIServer {
   private fileSystemService: FileSystemService;
   private configService: ConfigService;
   private sessionInfoService: SessionInfoService;
+  private optimisticConversationService: OptimisticConversationService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -88,12 +90,14 @@ export class CCUIServer {
     this.mcpConfigGenerator = new MCPConfigGenerator();
     this.fileSystemService = new FileSystemService();
     this.sessionInfoService = SessionInfoService.getInstance();
+    this.optimisticConversationService = new OptimisticConversationService(this.statusTracker);
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
     this.setupRoutes();
     this.setupProcessManagerIntegration();
     this.setupPermissionTrackerIntegration();
+    this.processManager.setOptimisticConversationService(this.optimisticConversationService);
   }
 
   /**
@@ -544,44 +548,8 @@ export class CCUIServer {
         });
 
         // Get all active sessions and add optimistic conversations for those not in history
-        const activeSessionIds = this.statusTracker.getActiveSessionIds();
         const existingSessionIds = new Set(conversationsWithStatus.map(c => c.sessionId));
-        
-        const optimisticConversations = activeSessionIds
-          .filter(sessionId => !existingSessionIds.has(sessionId))
-          .map(sessionId => {
-            const context = this.statusTracker.getConversationContext(sessionId);
-            const streamingId = this.statusTracker.getStreamingId(sessionId);
-            
-            if (context && streamingId) {
-              // Create optimistic conversation entry
-              const optimisticConversation = {
-                sessionId,
-                projectPath: context.workingDirectory,
-                summary: '', // No summary for active conversation
-                custom_name: '', // No custom name yet
-                createdAt: context.timestamp,
-                updatedAt: context.timestamp,
-                messageCount: 1, // At least the initial user message
-                totalDuration: 0, // No duration yet
-                model: context.model,
-                status: 'ongoing' as const,
-                streamingId
-              };
-              
-              this.logger.debug('Created optimistic conversation', {
-                sessionId,
-                streamingId,
-                workingDirectory: context.workingDirectory,
-                model: context.model
-              });
-              
-              return optimisticConversation;
-            }
-            
-            return null;
-          })
-          .filter((conversation): conversation is NonNullable<typeof conversation> => conversation !== null); // Remove null entries
+        const optimisticConversations = this.optimisticConversationService.getOptimisticConversations(existingSessionIds);
 
         // Combine history conversations with optimistic ones
         const allConversations = [...conversationsWithStatus, ...optimisticConversations];
@@ -650,49 +618,16 @@ export class CCUIServer {
         } catch (historyError) {
           // If not found in history, check if it's an active session
           if (historyError instanceof CCUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
-            const isActive = this.statusTracker.isSessionActive(sessionId);
-            const context = this.statusTracker.getConversationContext(sessionId);
+            const optimisticDetails = this.optimisticConversationService.getOptimisticConversationDetails(sessionId);
             
-            this.logger.debug('Checking for active session after history not found', {
-              sessionId,
-              isActive,
-              hasContext: !!context,
-              requestId
-            });
-            
-            if (isActive && context) {
-              // Create optimistic response for active session
-              const optimisticMessage: ConversationMessage = {
-                uuid: `optimistic-${sessionId}-user`,
-                type: 'user',
-                message: {
-                  role: 'user',
-                  content: context.initialPrompt
-                },
-                timestamp: context.timestamp,
-                sessionId: sessionId,
-                cwd: context.workingDirectory
-              };
-              
-              const response: ConversationDetailsResponse = {
-                messages: [optimisticMessage],
-                summary: '', // No summary for active conversation
-                projectPath: context.workingDirectory,
-                metadata: {
-                  totalDuration: 0,
-                  model: context.model
-                }
-              };
-              
+            if (optimisticDetails) {
               this.logger.debug('Conversation details created for active session', {
                 requestId,
                 sessionId,
-                isActive: true,
-                hasContext: true,
-                workingDirectory: context.workingDirectory
+                projectPath: optimisticDetails.projectPath
               });
               
-              res.json(response);
+              res.json(optimisticDetails);
             } else {
               // Not found in history and not active
               throw historyError;
@@ -897,6 +832,9 @@ export class CCUIServer {
       this.logger.debug('Unregistering session from status tracker', { streamingId });
       this.statusTracker.unregisterActiveSession(streamingId);
       
+      // Clean up optimistic context
+      this.optimisticConversationService.cleanupOptimisticContext(streamingId);
+      
       // Clean up permissions for this streaming session
       const removedCount = this.permissionTracker.removePermissionsByStreamingId(streamingId);
       if (removedCount > 0) {
@@ -921,6 +859,9 @@ export class CCUIServer {
       // Unregister session from status tracker on error
       this.logger.debug('Unregistering session from status tracker due to error', { streamingId });
       this.statusTracker.unregisterActiveSession(streamingId);
+      
+      // Clean up optimistic context on error
+      this.optimisticConversationService.cleanupOptimisticContext(streamingId);
       
       const errorEvent: StreamEvent = {
         type: 'error' as const,

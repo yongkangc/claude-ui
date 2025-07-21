@@ -7,6 +7,7 @@ import { JsonLinesParser } from './json-lines-parser';
 import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
 import { ConversationStatusTracker } from './conversation-status-tracker';
+import { OptimisticConversationService } from './optimistic-conversation-service';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -22,6 +23,7 @@ export class ClaudeProcessManager extends EventEmitter {
   private historyReader: ClaudeHistoryReader;
   private mcpConfigPath?: string;
   private statusTracker: ConversationStatusTracker;
+  private optimisticConversationService?: OptimisticConversationService;
 
   constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
     super();
@@ -38,6 +40,14 @@ export class ClaudeProcessManager extends EventEmitter {
   setMCPConfigPath(path: string): void {
     this.mcpConfigPath = path;
     this.logger.debug('MCP config path set', { path });
+  }
+
+  /**
+   * Set the optimistic conversation service
+   */
+  setOptimisticConversationService(service: OptimisticConversationService): void {
+    this.optimisticConversationService = service;
+    this.logger.debug('Optimistic conversation service set');
   }
 
 
@@ -369,18 +379,32 @@ export class ClaudeProcessManager extends EventEmitter {
         // Register active session immediately when we have the session_id
         // Include optimistic context if available
         const config = this.conversationConfigs.get(streamingId);
-        const optimisticContext = config ? {
-          initialPrompt: config.initialPrompt || '',
-          workingDirectory: config.workingDirectory || process.cwd(),
-          model: config.model
-        } : undefined;
         
-        this.statusTracker.registerActiveSession(streamingId, systemInitMessage.session_id, optimisticContext);
-        this.logger.debug('Registered active session with status tracker', {
-          streamingId,
-          claudeSessionId: systemInitMessage.session_id,
-          hasOptimisticContext: !!optimisticContext
-        });
+        if (this.optimisticConversationService && config) {
+          const optimisticContext = {
+            initialPrompt: config.initialPrompt || '',
+            workingDirectory: config.workingDirectory || process.cwd(),
+            model: config.model,
+            timestamp: new Date().toISOString()
+          };
+          
+          this.optimisticConversationService.registerOptimisticContext(
+            streamingId, 
+            systemInitMessage.session_id, 
+            optimisticContext
+          );
+          this.logger.debug('Registered optimistic context', {
+            streamingId,
+            claudeSessionId: systemInitMessage.session_id
+          });
+        } else {
+          // Fallback to old behavior if service not set
+          this.statusTracker.registerActiveSession(streamingId, systemInitMessage.session_id);
+          this.logger.debug('Registered active session with status tracker (no optimistic service)', {
+            streamingId,
+            claudeSessionId: systemInitMessage.session_id
+          });
+        }
 
         resolve(systemInitMessage);
       };
