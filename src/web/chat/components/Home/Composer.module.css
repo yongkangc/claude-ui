@@ -59,14 +59,13 @@
 
 .footerActions {
   position: absolute;
-  bottom: 14%;
+  bottom: 8px;
   left: calc(2.5 * var(--spacing));
   right: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: visible;
-  transform: translateY(50%);
 }
 
 .actionButtons {
@@ -124,12 +123,11 @@
 .voiceButton {
   position: absolute;
   right: 10px;
-  bottom: 14%;
+  bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transform: translateY(50%);
 }
 
 .iconButton {
@@ -188,7 +186,6 @@
   .footerActions {
     left: 10px;
     right: 50px;
-    bottom: 14%;
-    transform: translateY(50%);
+    bottom: 8px;
   }
 }
