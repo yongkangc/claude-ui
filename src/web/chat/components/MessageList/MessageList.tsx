@@ -62,7 +62,9 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
                 isLastInGroup={messageIndex === group.messages.length - 1}
               />
             ))}
-            {groupIndex < messageGroups.length - 1 && (
+            {groupIndex < messageGroups.length - 1 && 
+             group.type === 'user' && 
+             messageGroups[groupIndex + 1].type === 'assistant' && (
               <div className={styles.messageDivider} />
             )}
           </div>

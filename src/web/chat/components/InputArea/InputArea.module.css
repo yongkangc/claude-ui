@@ -1,9 +1,12 @@
 .container {
   position: sticky;
   bottom: 0;
-  background-color: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border-light);
+  background-color: rgba(255, 255, 255, 0.8);
   z-index: 10;
+}
+
+[data-theme="dark"] .container {
+  background-color: rgba(30, 30, 30, 0.8);
 }
 
 .composerWrapper {
@@ -23,34 +26,52 @@
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
   border-radius: 28px;
-  box-shadow: var(--shadow-short);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: all var(--transition-fast);
+  cursor: text;
 }
 
 .composerInner:focus-within {
   box-shadow: 0 0 0 2px var(--color-accent);
 }
 
-.composerInner.focused {
-  background-color: var(--color-bg-secondary);
+[data-theme="dark"] .composerInner.expanded {
+  background-color: #303030;
 }
 
-.inputSection {
+.inputWrapper {
+  position: relative;
   display: flex;
   align-items: flex-end;
+  width: 100%;
   min-height: 56px;
-  padding: 0 20px;
   transition: min-height var(--transition-fast);
 }
 
-.focused .inputSection {
-  min-height: 80px;
+.composerInner.expanded .inputWrapper {
+  min-height: 73px;
+}
+
+.textAreaContainer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  margin: 0 20px;
+  min-height: 56px;
+  transition: min-height var(--transition-fast);
+}
+
+.composerInner.expanded .textAreaContainer {
+  min-height: 73px;
 }
 
 .textarea {
   flex: 1;
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
@@ -62,6 +83,11 @@
   padding: 16px 60px 16px 0;
   max-height: 200px;
   overflow-y: auto;
+  transition: all var(--transition-fast);
+}
+
+.composerInner.expanded .textarea {
+  min-height: 120px;
 }
 
 .textarea::placeholder {
@@ -76,91 +102,86 @@
 .footerActions {
   position: absolute;
   bottom: 10px;
-  left: 10px;
+  left: 20px;
+  right: 60px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  justify-content: flex-start;
   opacity: 0;
   animation: fadeIn var(--transition-fast) forwards;
 }
 
-.versionButton {
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.actionButton {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px 6px 10px;
-  background-color: var(--color-bg-secondary);
+  gap: 4px;
+  padding: 6px 10px;
+  background-color: transparent;
   border: none;
   border-radius: 20px;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.versionButton:hover {
+.actionButton:hover {
   background-color: var(--color-bg-tertiary);
 }
 
-.versionButton svg:first-child {
+.buttonText {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.actionButton svg:first-child {
   color: var(--color-accent);
 }
 
-.versionButton svg:last-child {
+.actionButton svg:last-child {
   opacity: 0.6;
   margin-left: -2px;
 }
 
-.submitActions {
+.voiceButton {
   position: absolute;
-  bottom: 10px;
   right: 10px;
+  bottom: 10px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  opacity: 0;
-  animation: fadeIn var(--transition-fast) forwards;
+  justify-content: center;
 }
 
-.sendButton,
-.stopButton {
+.iconButton {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
+  padding: 0;
   border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
   border-radius: 50%;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.sendButton {
-  background-color: var(--color-accent);
-  color: white;
-}
-
-.sendButton:hover:not(:disabled) {
-  background-color: var(--color-accent-hover);
-  transform: scale(1.05);
-}
-
-.sendButton:disabled {
+.iconButton:hover:not(:disabled) {
   background-color: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
+  color: var(--color-text-primary);
+}
+
+.iconButton:disabled {
   cursor: not-allowed;
-}
-
-.stopButton {
-  background-color: var(--color-error);
-  color: white;
-}
-
-.stopButton:hover {
-  background-color: var(--color-error);
-  opacity: 0.9;
-  transform: scale(1.05);
+  opacity: 0.5;
 }
 
 /* Mobile adjustments */
@@ -169,42 +190,46 @@
     padding: var(--spacing-sm);
   }
   
-  .inputSection {
-    padding: 0 16px;
+  .textAreaContainer {
+    margin: 0 16px;
   }
   
   .textarea {
     padding: 12px 50px 12px 0;
   }
   
-  .versionButton span {
+  .buttonText {
     display: none;
   }
   
-  .versionButton {
+  .actionButton {
     padding: 6px;
+  }
+  
+  .footerActions {
+    left: 10px;
+    right: 50px;
   }
 }
 
 /* Focus styles for accessibility */
-.sendButton:focus-visible,
-.stopButton:focus-visible,
-.versionButton:focus-visible {
+.iconButton:focus-visible,
+.actionButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Dark mode specific adjustments */
 [data-theme="dark"] .composerInner {
-  background-color: #303030;
+  background-color: var(--color-bg-primary);
 }
 
-[data-theme="dark"] .versionButton {
+[data-theme="dark"] .actionButton {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .actionButton:hover {
   background-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .versionButton:hover {
-  background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Animations */

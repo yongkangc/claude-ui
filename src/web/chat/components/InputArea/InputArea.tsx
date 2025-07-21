@@ -28,6 +28,10 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
     const handleClickOutside = (event: MouseEvent) => {
       if (composerRef.current && !composerRef.current.contains(event.target as Node)) {
         setIsFocused(false);
+        // Reset textarea height when clicking outside
+        if (textareaRef.current && !message.trim()) {
+          textareaRef.current.style.height = 'auto';
+        }
       }
     };
 
@@ -65,7 +69,7 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
         <form className={styles.composer} onSubmit={handleSubmit}>
           <div 
             ref={composerRef}
-            className={`${styles.composerInner} ${isFocused || message.trim() ? styles.expanded : ''}`}
+            className={`${styles.composerInner} ${isFocused ? styles.expanded : ''}`}
             onClick={() => textareaRef.current?.focus()}
           >
             <div className={styles.inputWrapper}>
@@ -77,13 +81,20 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setIsFocused(true)}
+                  onBlur={() => {
+                    setIsFocused(false);
+                    // Reset textarea height when losing focus
+                    if (textareaRef.current && !message.trim()) {
+                      textareaRef.current.style.height = 'auto';
+                    }
+                  }}
                   placeholder={placeholder}
                   disabled={isLoading}
                   rows={1}
                 />
               </div>
               
-              {(isFocused || message.trim() || isLoading) && (
+              {isFocused && (
                 <div className={styles.footerActions}>
                   <div className={styles.actionButtons}>
                     <button 
