@@ -2,9 +2,9 @@ import { EventEmitter } from 'events';
 import { createLogger, type Logger } from './logger';
 
 /**
- * Context data stored for active conversations
+ * Context data stored for active conversations that have not yet been written to local directories
  */
-export interface ConversationContext {
+export interface OptimisticConversationContext {
   initialPrompt: string;
   workingDirectory: string;
   model: string;
@@ -21,9 +21,7 @@ export class ConversationStatusTracker extends EventEmitter {
   // Maps CCUI streaming ID -> Claude session ID (reverse lookup)
   private streamingToSession: Map<string, string> = new Map();
   // Maps Claude session ID -> conversation context for active sessions
-  private sessionContext: Map<string, ConversationContext> = new Map();
-  // Temporary storage for context before session ID is known (maps streaming ID -> context)
-  private pendingContext: Map<string, ConversationContext> = new Map();
+  private sessionContext: Map<string, OptimisticConversationContext> = new Map();
   private logger: Logger;
 
   constructor() {
@@ -32,10 +30,10 @@ export class ConversationStatusTracker extends EventEmitter {
   }
 
   /**
-   * Register a new active streaming session
+   * Register a new active streaming session with optional optimistic context
    * This is called when we extract the session_id from the first stream message
    */
-  registerActiveSession(streamingId: string, claudeSessionId: string): void {
+  registerActiveSession(streamingId: string, claudeSessionId: string, optimisticContext?: { initialPrompt: string; workingDirectory: string; model?: string }): void {
     this.logger.debug('Registering active session', { 
       streamingId, 
       claudeSessionId 
@@ -68,68 +66,34 @@ export class ConversationStatusTracker extends EventEmitter {
     this.sessionToStreaming.set(claudeSessionId, streamingId);
     this.streamingToSession.set(streamingId, claudeSessionId);
 
-    // Check if we have pending context for this streaming ID
-    const pendingContext = this.pendingContext.get(streamingId);
-    if (pendingContext) {
-      this.logger.debug('Transferring pending context to session', {
-        streamingId,
+    // If optimistic context is provided, store it immediately
+    if (optimisticContext) {
+      const context: OptimisticConversationContext = {
+        initialPrompt: optimisticContext.initialPrompt,
+        workingDirectory: optimisticContext.workingDirectory,
+        model: optimisticContext.model || 'default',
+        timestamp: new Date().toISOString()
+      };
+      this.sessionContext.set(claudeSessionId, context);
+      
+      this.logger.debug('Stored optimistic conversation context', {
         claudeSessionId,
-        hasInitialPrompt: !!pendingContext.initialPrompt
+        hasInitialPrompt: !!context.initialPrompt,
+        workingDirectory: context.workingDirectory,
+        model: context.model
       });
-      this.sessionContext.set(claudeSessionId, pendingContext);
-      this.pendingContext.delete(streamingId);
     }
 
     this.logger.info('Active session registered', { 
       streamingId, 
       claudeSessionId,
       totalActiveSessions: this.sessionToStreaming.size,
-      hadPendingContext: !!pendingContext
+      hasOptimisticContext: !!optimisticContext
     });
 
     this.emit('session-started', { streamingId, claudeSessionId });
   }
 
-  /**
-   * Register conversation context for an active session
-   * This should be called when starting a new conversation
-   */
-  registerConversationContext(claudeSessionId: string, context: ConversationContext): void {
-    this.logger.debug('Registering conversation context', {
-      claudeSessionId,
-      hasInitialPrompt: !!context.initialPrompt,
-      workingDirectory: context.workingDirectory,
-      model: context.model
-    });
-
-    this.sessionContext.set(claudeSessionId, context);
-
-    this.logger.info('Conversation context registered', {
-      claudeSessionId,
-      contextTimestamp: context.timestamp
-    });
-  }
-
-  /**
-   * Register pending conversation context using streaming ID
-   * This is used when we start a conversation but don't yet have the Claude session ID
-   */
-  registerPendingContext(streamingId: string, context: ConversationContext): void {
-    this.logger.debug('Registering pending conversation context', {
-      streamingId,
-      hasInitialPrompt: !!context.initialPrompt,
-      workingDirectory: context.workingDirectory,
-      model: context.model
-    });
-
-    this.pendingContext.set(streamingId, context);
-
-    this.logger.info('Pending conversation context registered', {
-      streamingId,
-      contextTimestamp: context.timestamp,
-      pendingCount: this.pendingContext.size
-    });
-  }
 
   /**
    * Unregister an active streaming session when it ends
@@ -158,17 +122,12 @@ export class ConversationStatusTracker extends EventEmitter {
       this.logger.warn('Attempted to unregister unknown streaming session', { streamingId });
     }
     
-    // Also clean up any pending context
-    if (this.pendingContext.has(streamingId)) {
-      this.logger.debug('Removing pending context for streaming ID', { streamingId });
-      this.pendingContext.delete(streamingId);
-    }
   }
 
   /**
    * Get conversation context for an active session
    */
-  getConversationContext(claudeSessionId: string): ConversationContext | undefined {
+  getConversationContext(claudeSessionId: string): OptimisticConversationContext | undefined {
     const context = this.sessionContext.get(claudeSessionId);
     this.logger.debug('Getting conversation context', {
       claudeSessionId,
@@ -260,7 +219,6 @@ export class ConversationStatusTracker extends EventEmitter {
     this.sessionToStreaming.clear();
     this.streamingToSession.clear();
     this.sessionContext.clear();
-    this.pendingContext.clear();
   }
 
   /**

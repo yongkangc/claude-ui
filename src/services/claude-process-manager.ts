@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'fs';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
+import { ConversationStatusTracker } from './conversation-status-tracker';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -14,15 +15,18 @@ export class ClaudeProcessManager extends EventEmitter {
   private processes: Map<string, ChildProcess> = new Map();
   private outputBuffers: Map<string, string> = new Map();
   private timeouts: Map<string, NodeJS.Timeout[]> = new Map();
+  private conversationConfigs: Map<string, ConversationConfig> = new Map();
   private claudeExecutablePath: string;
   private logger: Logger;
   private envOverrides: Record<string, string | undefined>;
   private historyReader: ClaudeHistoryReader;
   private mcpConfigPath?: string;
+  private statusTracker: ConversationStatusTracker;
 
-  constructor(historyReader: ClaudeHistoryReader, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
+  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
     super();
     this.historyReader = historyReader;
+    this.statusTracker = statusTracker;
     this.claudeExecutablePath = claudeExecutablePath || 'claude';
     this.logger = createLogger('ClaudeProcessManager');
     this.envOverrides = envOverrides || {};
@@ -142,28 +146,27 @@ export class ClaudeProcessManager extends EventEmitter {
    * Stop a conversation
    */
   async stopConversation(streamingId: string): Promise<boolean> {
-    const sessionLogger = this.logger.child({ streamingId });
-    sessionLogger.debug('Stopping conversation');
+    this.logger.debug('Stopping conversation', { streamingId });
     const process = this.processes.get(streamingId);
     if (!process) {
-      sessionLogger.warn('No process found for conversation');
+      this.logger.warn('No process found for conversation', { streamingId });
       return false;
     }
 
     try {
       // Wait a bit for graceful shutdown
-      sessionLogger.debug('Waiting for graceful shutdown');
+      this.logger.debug('Waiting for graceful shutdown', { streamingId });
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Force kill if still running
       if (!process.killed) {
-        sessionLogger.debug('Process still running, sending SIGTERM', { pid: process.pid });
+        this.logger.debug('Process still running, sending SIGTERM', { streamingId, pid: process.pid });
         process.kill('SIGTERM');
         
         // If SIGTERM doesn't work, use SIGKILL
         const killTimeout = setTimeout(() => {
           if (!process.killed) {
-            sessionLogger.warn('Process not responding to SIGTERM, sending SIGKILL', { pid: process.pid });
+            this.logger.warn('Process not responding to SIGTERM, sending SIGKILL', { streamingId, pid: process.pid });
             process.kill('SIGKILL');
           }
         }, 5000);
@@ -184,11 +187,12 @@ export class ClaudeProcessManager extends EventEmitter {
       // Clean up
       this.processes.delete(streamingId);
       this.outputBuffers.delete(streamingId);
+      this.conversationConfigs.delete(streamingId);
       
-      sessionLogger.info('Stopped and cleaned up process');
+      this.logger.info('Stopped and cleaned up process', { streamingId });
       return true;
     } catch (error) {
-      sessionLogger.error('Error stopping conversation', error);
+      this.logger.error('Error stopping conversation', error, { streamingId });
       return false;
     }
   }
@@ -216,8 +220,7 @@ export class ClaudeProcessManager extends EventEmitter {
    * This should always be the first message in the stream
    */
   async waitForSystemInit(streamingId: string): Promise<SystemInitMessage> {
-    const sessionLogger = this.logger.child({ streamingId });
-    sessionLogger.debug('Waiting for system init message');
+    this.logger.debug('Waiting for system init message', { streamingId });
 
     return new Promise<SystemInitMessage>((resolve, reject) => {
       let isResolved = false;
@@ -228,7 +231,8 @@ export class ClaudeProcessManager extends EventEmitter {
         if (!isResolved) {
           isResolved = true;
           cleanup();
-          sessionLogger.error('Timeout waiting for system init message', {
+          this.logger.error('Timeout waiting for system init message', {
+            streamingId,
             stderrOutput: stderrOutput || '(no stderr output)'
           });
           
@@ -264,7 +268,8 @@ export class ClaudeProcessManager extends EventEmitter {
         isResolved = true;
         cleanup();
         
-        sessionLogger.error('Claude process exited before system init message', {
+        this.logger.error('Claude process exited before system init message', {
+          streamingId,
           exitCode: code,
           stderrOutput: stderrOutput || '(no stderr output)'
         });
@@ -295,7 +300,8 @@ export class ClaudeProcessManager extends EventEmitter {
 
         // Capture stderr output for error context
         stderrOutput += error;
-        sessionLogger.debug('Captured stderr output during system init wait', {
+        this.logger.debug('Captured stderr output during system init wait', {
+          streamingId,
           errorLength: error.length,
           totalStderrLength: stderrOutput.length
         });
@@ -314,7 +320,8 @@ export class ClaudeProcessManager extends EventEmitter {
         isResolved = true;
         cleanup();
 
-        sessionLogger.debug('Received first message from Claude CLI', {
+        this.logger.debug('Received first message from Claude CLI', {
+          streamingId,
           messageType: message?.type,
           messageSubtype: 'subtype' in message ? message.subtype : undefined,
           hasSessionId: 'session_id' in message ? !!message.session_id : false
@@ -322,7 +329,8 @@ export class ClaudeProcessManager extends EventEmitter {
 
         // Validate that the first message is a system init message
         if (!message || message.type !== 'system' || !('subtype' in message) || message.subtype !== 'init') {
-          sessionLogger.error('First message is not system init', {
+          this.logger.error('First message is not system init', {
+            streamingId,
             actualType: message?.type,
             actualSubtype: 'subtype' in message ? message.subtype : undefined,
             expectedType: 'system',
@@ -340,7 +348,8 @@ export class ClaudeProcessManager extends EventEmitter {
         const missingFields = requiredFields.filter(field => systemInitMessage[field] === undefined);
         
         if (missingFields.length > 0) {
-          sessionLogger.error('System init message missing required fields', {
+          this.logger.error('System init message missing required fields', {
+            streamingId,
             missingFields,
             availableFields: Object.keys(systemInitMessage)
           });
@@ -348,12 +357,29 @@ export class ClaudeProcessManager extends EventEmitter {
           return;
         }
 
-        sessionLogger.info('Successfully received valid system init message', {
+        this.logger.info('Successfully received valid system init message', {
+          streamingId,
           sessionId: systemInitMessage.session_id,
           cwd: systemInitMessage.cwd,
           model: systemInitMessage.model,
           toolCount: systemInitMessage.tools?.length || 0,
           mcpServerCount: systemInitMessage.mcp_servers?.length || 0
+        });
+
+        // Register active session immediately when we have the session_id
+        // Include optimistic context if available
+        const config = this.conversationConfigs.get(streamingId);
+        const optimisticContext = config ? {
+          initialPrompt: config.initialPrompt || '',
+          workingDirectory: config.workingDirectory || process.cwd(),
+          model: config.model
+        } : undefined;
+        
+        this.statusTracker.registerActiveSession(streamingId, systemInitMessage.session_id, optimisticContext);
+        this.logger.debug('Registered active session with status tracker', {
+          streamingId,
+          claudeSessionId: systemInitMessage.session_id,
+          hasOptimisticContext: !!optimisticContext
         });
 
         resolve(systemInitMessage);
@@ -379,17 +405,23 @@ export class ClaudeProcessManager extends EventEmitter {
     errorPrefix: string
   ): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     const streamingId = uuidv4(); // CCUI's internal streaming identifier
-    const sessionLogger = this.logger.child({ streamingId, ...loggerContext });
+    
+    // Store config for use in waitForSystemInit
+    this.conversationConfigs.set(streamingId, config);
     
     try {
-      sessionLogger.debug(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation`, { 
+      this.logger.debug(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation`, { 
+        streamingId,
         operation,
         configKeys: Object.keys(config),
-        argCount: args.length 
+        argCount: args.length,
+        ...loggerContext
       });
-      sessionLogger.debug(`Built Claude ${operation} args`, { 
+      this.logger.debug(`Built Claude ${operation} args`, { 
+        streamingId,
         args,
-        argsString: args.join(' ') 
+        argsString: args.join(' '),
+        ...loggerContext
       });
       
       // Set up system init promise before spawning process
@@ -398,6 +430,7 @@ export class ClaudeProcessManager extends EventEmitter {
       // Add streamingId to environment for MCP server to use
       // Filter out debugging-related environment variables that would cause 
       // the VSCode debugger to attach to the Claude CLI child process
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { NODE_OPTIONS, VSCODE_INSPECTOR_OPTIONS, ...cleanEnv } = spawnConfig.env;
       
       const envWithStreamingId = {
@@ -410,7 +443,7 @@ export class ClaudeProcessManager extends EventEmitter {
       const process = this.spawnProcess(
         { ...spawnConfig, env: envWithStreamingId }, 
         args, 
-        sessionLogger
+        streamingId
       );
       
       this.processes.set(streamingId, process);
@@ -425,10 +458,10 @@ export class ClaudeProcessManager extends EventEmitter {
       });
       
       // Wait a bit to see if spawn fails immediately
-      sessionLogger.debug('Waiting for spawn validation');
+      this.logger.debug('Waiting for spawn validation', { streamingId, ...loggerContext });
       const delayPromise = new Promise<string>(resolve => {
         setTimeout(() => {
-          sessionLogger.debug('Spawn validation period passed, process appears stable');
+          this.logger.debug('Spawn validation period passed, process appears stable', { streamingId, ...loggerContext });
           this.removeAllListeners('spawn-error');
           resolve(streamingId);
         }, 100);
@@ -437,23 +470,26 @@ export class ClaudeProcessManager extends EventEmitter {
       await Promise.race([spawnErrorPromise, delayPromise]);
       
       // Now wait for the system init message
-      sessionLogger.debug('Process spawned successfully, waiting for system init message');
+      this.logger.debug('Process spawned successfully, waiting for system init message', { streamingId, ...loggerContext });
       const systemInit = await systemInitPromise;
       
-      sessionLogger.info(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
+      this.logger.info(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
         streamingId,
         sessionId: systemInit.session_id,
         model: systemInit.model,
         cwd: systemInit.cwd,
-        processCount: this.processes.size
+        processCount: this.processes.size,
+        ...loggerContext
       });
       
       return { streamingId, systemInit };
     } catch (error) {
-      sessionLogger.error(`Error ${operation} conversation`, error, {
+      this.logger.error(`Error ${operation} conversation`, error, {
+        streamingId,
         errorName: error instanceof Error ? error.name : 'Unknown',
         errorMessage: error instanceof Error ? error.message : String(error),
-        errorCode: error instanceof CCUIError ? error.code : undefined
+        errorCode: error instanceof CCUIError ? error.code : undefined,
+        ...loggerContext
       });
       
       // Clean up any resources if process fails
@@ -464,6 +500,7 @@ export class ClaudeProcessManager extends EventEmitter {
       }
       this.processes.delete(streamingId);
       this.outputBuffers.delete(streamingId);
+      this.conversationConfigs.delete(streamingId);
       
       if (error instanceof CCUIError) {
         throw error;
@@ -571,7 +608,7 @@ export class ClaudeProcessManager extends EventEmitter {
   private spawnProcess(
     spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
     args: string[],
-    sessionLogger: Logger
+    streamingId: string
   ): ChildProcess {
     const { executablePath, cwd, env } = spawnConfig;
     
@@ -579,7 +616,8 @@ export class ClaudeProcessManager extends EventEmitter {
     const mcpConfigIndex = args.indexOf('--mcp-config');
     if (mcpConfigIndex !== -1 && mcpConfigIndex + 1 < args.length) {
       const mcpConfigPath = args[mcpConfigIndex + 1];
-      sessionLogger.info('MCP config specified', { 
+      this.logger.info('MCP config specified', { 
+        streamingId,
         mcpConfigPath,
         exists: existsSync(mcpConfigPath)
       });
@@ -587,15 +625,17 @@ export class ClaudeProcessManager extends EventEmitter {
       // Try to read and log the MCP config content
       try {
         const mcpConfigContent = readFileSync(mcpConfigPath, 'utf-8');
-        sessionLogger.debug('MCP config content', { 
+        this.logger.debug('MCP config content', { 
+          streamingId,
           mcpConfig: JSON.parse(mcpConfigContent) 
         });
       } catch (error) {
-        sessionLogger.error('Failed to read MCP config', { error });
+        this.logger.error('Failed to read MCP config', { streamingId, error });
       }
     }
     
-    sessionLogger.debug('Spawning Claude process', { 
+    this.logger.debug('Spawning Claude process', { 
+      streamingId,
       executablePath, 
       args, 
       cwd,
@@ -605,7 +645,8 @@ export class ClaudeProcessManager extends EventEmitter {
     });
     
     try {
-      sessionLogger.debug('Calling spawn() with stdio configuration', {
+      this.logger.debug('Calling spawn() with stdio configuration', {
+        streamingId,
         stdin: 'inherit',
         stdout: 'pipe', 
         stderr: 'pipe'
@@ -613,7 +654,8 @@ export class ClaudeProcessManager extends EventEmitter {
       
       // Log the exact command for debugging
       const fullCommand = `${executablePath} ${args.join(' ')}`;
-      sessionLogger.info('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
+      this.logger.info('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
+        streamingId,
         fullCommand,
         executablePath,
         args,
@@ -632,7 +674,8 @@ export class ClaudeProcessManager extends EventEmitter {
       
       // Handle spawn errors (like ENOENT when claude is not found)
       claudeProcess.on('error', (error: Error & NodeJS.ErrnoException) => {
-        sessionLogger.error('Claude process spawn error', error, {
+        this.logger.error('Claude process spawn error', error, {
+          streamingId,
           errorCode: error.code,
           errorErrno: error.errno,
           errorSyscall: error.syscall,
@@ -641,7 +684,8 @@ export class ClaudeProcessManager extends EventEmitter {
         });
         // Emit error event instead of throwing synchronously in callback
         if (error.code === 'ENOENT') {
-          sessionLogger.error('Claude executable not found', {
+          this.logger.error('Claude executable not found', {
+            streamingId,
             attemptedPath: executablePath,
             PATH: env.PATH
           });
@@ -652,7 +696,8 @@ export class ClaudeProcessManager extends EventEmitter {
       });
       
       if (!claudeProcess.pid) {
-        sessionLogger.error('Failed to spawn Claude process - no PID assigned', {
+        this.logger.error('Failed to spawn Claude process - no PID assigned', {
+          streamingId,
           killed: claudeProcess.killed,
           exitCode: claudeProcess.exitCode,
           signalCode: claudeProcess.signalCode
@@ -660,14 +705,15 @@ export class ClaudeProcessManager extends EventEmitter {
         throw new Error('Failed to spawn Claude process - no PID assigned');
       }
       
-      sessionLogger.info('Claude process spawned successfully', { 
+      this.logger.info('Claude process spawned successfully', { 
+        streamingId,
         pid: claudeProcess.pid,
         spawnfile: claudeProcess.spawnfile,
         spawnargs: claudeProcess.spawnargs
       });
       return claudeProcess;
     } catch (error) {
-      sessionLogger.error('Error in spawnProcess', error);
+      this.logger.error('Error in spawnProcess', error, { streamingId });
       if (error instanceof CCUIError) {
         throw error;
       }
@@ -676,8 +722,7 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   private setupProcessHandlers(streamingId: string, process: ChildProcess): void {
-    const sessionLogger = this.logger.child({ streamingId, pid: process.pid });
-    sessionLogger.debug('Setting up process handlers');
+    this.logger.debug('Setting up process handlers', { streamingId, pid: process.pid });
     
     // Create JSONL parser for Claude output
     const parser = new JsonLinesParser();
@@ -687,13 +732,14 @@ export class ClaudeProcessManager extends EventEmitter {
 
     // Handle stdout - pipe through JSONL parser
     if (process.stdout) {
-      sessionLogger.debug('Setting up stdout handler');
+      this.logger.debug('Setting up stdout handler', { streamingId });
       process.stdout.setEncoding('utf8');
       process.stdout.pipe(parser);
 
       // Handle parsed JSONL messages from Claude
       parser.on('data', (message) => {
-        sessionLogger.debug('Received Claude message', { 
+        this.logger.debug('Received Claude message', { 
+          streamingId,
           messageType: message?.type,
           hasContent: !!message?.content,
           contentLength: message?.content?.length,
@@ -704,7 +750,8 @@ export class ClaudeProcessManager extends EventEmitter {
       });
 
       parser.on('error', (error) => {
-        sessionLogger.error('Parser error', error, {
+        this.logger.error('Parser error', error, {
+          streamingId,
           errorType: error.name,
           errorMessage: error.message,
           bufferState: this.outputBuffers.get(streamingId)?.length || 0
@@ -712,12 +759,12 @@ export class ClaudeProcessManager extends EventEmitter {
         this.handleProcessError(streamingId, error);
       });
     } else {
-      sessionLogger.warn('No stdout stream available');
+      this.logger.warn('No stdout stream available', { streamingId });
     }
 
     // Handle stderr output
     if (process.stderr) {
-      sessionLogger.debug('Setting up stderr handler');
+      this.logger.debug('Setting up stderr handler', { streamingId });
       process.stderr.setEncoding('utf8');
       let stderrBuffer = '';
       
@@ -726,7 +773,8 @@ export class ClaudeProcessManager extends EventEmitter {
         stderrBuffer += stderrContent;
         
         // ALWAYS log stderr content at error level for visibility
-        sessionLogger.error('Process stderr output received', { 
+        this.logger.error('Process stderr output received', { 
+          streamingId,
           stderr: stderrContent,
           dataLength: stderrContent.length,
           fullStderr: stderrBuffer,
@@ -743,12 +791,13 @@ export class ClaudeProcessManager extends EventEmitter {
         this.emit('process-error', { streamingId, error: stderrContent });
       });
     } else {
-      sessionLogger.warn('No stderr stream available');
+      this.logger.warn('No stderr stream available', { streamingId });
     }
 
     // Handle process termination
     process.on('close', (code, signal) => {
-      sessionLogger.info('Process closed', { 
+      this.logger.info('Process closed', { 
+        streamingId,
         exitCode: code,
         signal: signal,
         wasKilled: process.killed
@@ -757,13 +806,14 @@ export class ClaudeProcessManager extends EventEmitter {
     });
 
     process.on('error', (error) => {
-      sessionLogger.error('Process error', error);
+      this.logger.error('Process error', error, { streamingId });
       this.handleProcessError(streamingId, error);
     });
 
     // Handle process exit
     process.on('exit', (code, signal) => {
-      sessionLogger.error('Process exited', { 
+      this.logger.error('Process exited', { 
+        streamingId,
         exitCode: code,
         signal: signal,
         normalExit: code === 0,
@@ -806,6 +856,7 @@ export class ClaudeProcessManager extends EventEmitter {
     
     this.processes.delete(streamingId);
     this.outputBuffers.delete(streamingId);
+    this.conversationConfigs.delete(streamingId);
     this.emit('process-closed', { streamingId, code });
   }
 

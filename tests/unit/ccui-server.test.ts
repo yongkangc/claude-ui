@@ -82,8 +82,6 @@ describe('CCUIServer', () => {
     mockStatusTracker = {
       registerActiveSession: jest.fn(),
       unregisterActiveSession: jest.fn(),
-      registerConversationContext: jest.fn(),
-      registerPendingContext: jest.fn(),
       getConversationContext: jest.fn(),
       getConversationStatus: jest.fn(),
       isSessionActive: jest.fn(),
@@ -799,7 +797,7 @@ describe('CCUIServer', () => {
         expect(response.status).toBeGreaterThanOrEqual(400);
       });
 
-      it('should return synthetic response for active session not in history', async () => {
+      it('should return optimistic response for active session not in history', async () => {
         const sessionId = 'active-session-123';
         const mockContext = {
           initialPrompt: 'Hello Claude!',
@@ -822,7 +820,7 @@ describe('CCUIServer', () => {
 
         expect(response.body).toEqual({
           messages: [{
-            uuid: `synthetic-${sessionId}-user`,
+            uuid: `optimistic-${sessionId}-user`,
             type: 'user',
             message: {
               role: 'user',
@@ -1036,7 +1034,7 @@ describe('CCUIServer', () => {
     });
 
     describe('POST /api/conversations/start', () => {
-      it('should start conversation and register pending context', async () => {
+      it('should start conversation successfully', async () => {
         const mockSystemInit = {
           type: 'system',
           subtype: 'init',
@@ -1051,9 +1049,6 @@ describe('CCUIServer', () => {
 
         jest.spyOn((server as any).processManager, 'startConversation')
           .mockResolvedValue({ streamingId: 'stream-123', systemInit: mockSystemInit });
-        
-        // Spy on the status tracker method
-        jest.spyOn((server as any).statusTracker, 'registerPendingContext');
 
         const response = await request(app)
           .post('/api/conversations/start')
@@ -1067,14 +1062,6 @@ describe('CCUIServer', () => {
         expect((server as any).processManager.startConversation).toHaveBeenCalledWith({
           workingDirectory: '/test/project',
           initialPrompt: 'Hello Claude!'
-        });
-
-        // Verify pending context was registered
-        expect((server as any).statusTracker.registerPendingContext).toHaveBeenCalledWith('stream-123', {
-          initialPrompt: 'Hello Claude!',
-          workingDirectory: '/test/project',
-          model: 'claude-3-5-sonnet',
-          timestamp: expect.any(String)
         });
 
         // Verify response

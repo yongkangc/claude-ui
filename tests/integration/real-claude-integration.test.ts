@@ -1,5 +1,6 @@
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
+import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -38,8 +39,10 @@ describe('Real Claude CLI Integration', () => {
     // Replace the ProcessManager with one that uses fake HOME
     const claudePath = 'node_modules/.bin/claude';
     
+    const statusTracker = new ConversationStatusTracker();
     const newProcessManager = new ClaudeProcessManager(
       historyReader,
+      statusTracker,
       claudePath,
       { HOME: tempHomeDir }
     );

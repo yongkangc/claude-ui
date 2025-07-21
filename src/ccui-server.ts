@@ -3,7 +3,7 @@ import cors from 'cors';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
-import { ConversationStatusTracker, ConversationContext } from './services/conversation-status-tracker';
+import { ConversationStatusTracker } from './services/conversation-status-tracker';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
@@ -81,9 +81,9 @@ export class CCUIServer {
     // Initialize services
     this.logger.debug('Initializing services');
     this.historyReader = new ClaudeHistoryReader();
-    this.processManager = new ClaudeProcessManager(this.historyReader);
-    this.streamManager = new StreamManager();
     this.statusTracker = new ConversationStatusTracker();
+    this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker);
+    this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
     this.fileSystemService = new FileSystemService();
@@ -429,15 +429,6 @@ export class CCUIServer {
           cwd: systemInit.cwd
         });
 
-        // Register pending context for when we receive the session ID
-        const context: ConversationContext = {
-          initialPrompt: req.body.initialPrompt,
-          workingDirectory: req.body.workingDirectory,
-          model: systemInit.model,
-          timestamp: new Date().toISOString()
-        };
-        this.statusTracker.registerPendingContext(streamingId, context);
-        
         res.json({ 
           streamingId,
           streamUrl: `/api/stream/${streamingId}`,
@@ -617,10 +608,17 @@ export class CCUIServer {
             const isActive = this.statusTracker.isSessionActive(sessionId);
             const context = this.statusTracker.getConversationContext(sessionId);
             
+            this.logger.debug('Checking for active session after history not found', {
+              sessionId,
+              isActive,
+              hasContext: !!context,
+              requestId
+            });
+            
             if (isActive && context) {
-              // Create synthetic response for active session
-              const syntheticMessage: ConversationMessage = {
-                uuid: `synthetic-${sessionId}-user`,
+              // Create optimistic response for active session
+              const optimisticMessage: ConversationMessage = {
+                uuid: `optimistic-${sessionId}-user`,
                 type: 'user',
                 message: {
                   role: 'user',
@@ -632,7 +630,7 @@ export class CCUIServer {
               };
               
               const response: ConversationDetailsResponse = {
-                messages: [syntheticMessage],
+                messages: [optimisticMessage],
                 summary: '', // No summary for active conversation
                 projectPath: context.workingDirectory,
                 metadata: {
@@ -822,16 +820,6 @@ export class CCUIServer {
         contentLength: message?.content?.length || 0,
         messageKeys: message ? Object.keys(message) : []
       });
-      
-      // Extract session ID from stream message and register with status tracker
-      if (message && message.session_id) {
-        const claudeSessionId = message.session_id;
-        this.logger.debug('Registering active session with status tracker', {
-          streamingId,
-          claudeSessionId
-        });
-        this.statusTracker.registerActiveSession(streamingId, claudeSessionId);
-      }
       
       // Skip broadcasting system init messages as they're now included in API response
       if (message && message.type === 'system' && message.subtype === 'init') {
