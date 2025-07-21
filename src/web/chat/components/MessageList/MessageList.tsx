@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MessageItem } from './MessageItem';
 import type { ChatMessage } from '../../types';
 import styles from './MessageList.module.css';
@@ -13,8 +13,20 @@ export interface MessageListProps {
 export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults = {}, isLoading, isStreaming }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousMessageCount = useRef(0);
   
   console.debug('[MessageList] Rendering with', messages.length, 'messages, isLoading:', isLoading, 'isStreaming:', isStreaming, 'toolResults:', Object.keys(toolResults).length);
+
+  // Auto-scroll to bottom when messages are first loaded (navigation to conversation)
+  useEffect(() => {
+    // Only scroll if we're going from 0 messages to some messages (initial load)
+    if (previousMessageCount.current === 0 && messages.length > 0 && containerRef.current) {
+      // Scroll to bottom without animation
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      console.debug('[MessageList] Auto-scrolled to bottom on initial load');
+    }
+    previousMessageCount.current = messages.length;
+  }, [messages.length]);
 
   // Filter out user messages that only contain tool_result blocks
   const displayMessages = messages.filter(message => {
