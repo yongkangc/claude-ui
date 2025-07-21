@@ -63,9 +63,10 @@ export function DirectorySelector({
     }
   };
 
-  const displayText = selectedDirectory.length > 20 
-    ? `...${selectedDirectory.slice(-20)}` 
-    : selectedDirectory;
+  // Get shortname for display
+  const displayText = selectedDirectory === 'Select directory' 
+    ? selectedDirectory
+    : recentDirectories[selectedDirectory]?.shortname || selectedDirectory.split('/').pop() || selectedDirectory;
 
   return (
     <div className={styles.container} ref={dropdownRef}>

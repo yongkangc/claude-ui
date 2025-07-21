@@ -19,13 +19,13 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
 
   // Auto-select most recent directory on mount
   useEffect(() => {
-    if (!workingDirectory && Object.keys(recentDirectories).length > 0) {
+    if ((!workingDirectory || selectedDirectory === 'Select directory') && Object.keys(recentDirectories).length > 0) {
       const mostRecent = getMostRecentWorkingDirectory();
       if (mostRecent) {
         setSelectedDirectory(mostRecent);
       }
     }
-  }, [workingDirectory, recentDirectories, getMostRecentWorkingDirectory]);
+  }, [workingDirectory, selectedDirectory, recentDirectories, getMostRecentWorkingDirectory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
