@@ -109,35 +109,36 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
                     {isWebSearch ? 'Searched the web' : block.name}
                   </div>
                   
-                  {isWebSearch && block.input?.query && (
-                    <div className={styles.searchQuery}>
-                      <Globe size={12} />
-                      <span>{block.input.query}</span>
-                    </div>
-                  )}
-                  
-                  {!isWebSearch && (
-                    <div className={styles.codeBlock}>
-                      <pre>{JSON.stringify(block.input, null, 2)}</pre>
-                    </div>
-                  )}
-                  
-                  {hasResult && toolResult?.result && (
+                  {isWebSearch ? (
                     <>
-                      {isWebSearch ? (
+                      {block.input?.query && (
+                        <div className={styles.searchQuery}>
+                          <Globe size={12} />
+                          <span>{block.input.query}</span>
+                        </div>
+                      )}
+                      
+                      {hasResult && toolResult?.result && (
                         <div className={styles.searchResults}>
                           {/* Parse and display search results as pills */}
                           {renderSearchResults(toolResult.result)}
                         </div>
-                      ) : (
-                        <div className={styles.toolResult}>
-                          <pre>{typeof toolResult.result === 'string' 
-                            ? toolResult.result 
-                            : JSON.stringify(toolResult.result, null, 2)
-                          }</pre>
-                        </div>
                       )}
                     </>
+                  ) : (
+                    <div className={styles.toolUseBlock}>
+                      <div className={styles.codeBlock}>
+                        <pre>
+{`> ${block.name}
+${JSON.stringify(block.input, null, 2)}${hasResult && toolResult?.result ? `
+
+< Result
+${typeof toolResult.result === 'string' 
+  ? toolResult.result 
+  : JSON.stringify(toolResult.result, null, 2)}` : ''}`}
+                        </pre>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

@@ -3,17 +3,19 @@
   bottom: 0;
   background-color: rgba(255, 255, 255, 0.8);
   z-index: 10;
+  /* Add semi-transparent fade border */
 }
 
 [data-theme="dark"] .container {
   background-color: rgba(30, 30, 30, 0.8);
+  background-image: linear-gradient(to bottom, transparent, rgba(30, 30, 30, 0.8) 12px);
 }
 
 .composerWrapper {
   width: 100%;
   display: flex;
   justify-content: center;
-  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-lg);
+  padding: 0 var(--spacing-sm) var(--spacing-lg);
 }
 
 .composer {
@@ -80,7 +82,7 @@
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text-primary);
-  padding: 16px 60px 16px 0;
+  padding: 10px 60px 6px 0;
   max-height: 200px;
   overflow-y: auto;
   transition: all var(--transition-fast);

@@ -80,7 +80,7 @@
 .messageDivider {
   height: 1px;
   background-color: var(--color-border-light);
-  margin: calc(var(--spacing-lg) / 3) 0;
+  margin: var(--spacing-lg) 0;
   width: 100%;
 }
 
@@ -99,7 +99,6 @@
   padding: var(--spacing-sm) var(--spacing-md);
   max-width: 80%;
   min-width: 100px;
-  group: user-message;
 }
 
 .userMessageText {
@@ -218,25 +217,12 @@
   overflow: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
-.toolResult {
-  background-color: #1a1a1a;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.toolResult pre {
-  margin: 0;
-  padding: var(--spacing-md);
-  color: #e8e8e8;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.6;
-  max-height: calc(10 * 1.6 * 12px);
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+.codeBlock pre::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Search Blocks */
