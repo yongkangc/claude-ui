@@ -27,6 +27,17 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
     return true;
   });
 
+  // Group consecutive messages by type to create message groups
+  const messageGroups: Array<{type: 'user' | 'assistant' | 'error' | 'system', messages: ChatMessage[]}> = [];
+  displayMessages.forEach((message) => {
+    const lastGroup = messageGroups[messageGroups.length - 1];
+    if (lastGroup && lastGroup.type === message.type) {
+      lastGroup.messages.push(message);
+    } else {
+      messageGroups.push({ type: message.type, messages: [message] });
+    }
+  });
+
   if (displayMessages.length === 0 && !isLoading) {
     return (
       <div className={styles.container}>
@@ -40,8 +51,21 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.messageList}>
-        {displayMessages.map((message) => (
-          <MessageItem key={message.messageId} message={message} toolResults={toolResults} />
+        {messageGroups.map((group, groupIndex) => (
+          <div key={`group-${groupIndex}`} className={styles.messageGroup}>
+            {group.messages.map((message, messageIndex) => (
+              <MessageItem 
+                key={message.messageId} 
+                message={message} 
+                toolResults={toolResults}
+                isFirstInGroup={messageIndex === 0}
+                isLastInGroup={messageIndex === group.messages.length - 1}
+              />
+            ))}
+            {groupIndex < messageGroups.length - 1 && (
+              <div className={styles.messageDivider} />
+            )}
+          </div>
         ))}
         
         {isLoading && (

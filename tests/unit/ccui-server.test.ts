@@ -23,9 +23,13 @@ import request from 'supertest';
 import { TestHelpers } from '../utils/test-helpers';
 import * as path from 'path';
 
-// Mock child_process only for execSync calls
+// Mock child_process for execSync and exec calls
 jest.mock('child_process', () => ({
-  execSync: jest.fn()
+  execSync: jest.fn(),
+  exec: jest.fn((cmd, callback) => {
+    // Default mock implementation for exec
+    callback(null, '', '');
+  })
 }));
 
 const MockedClaudeProcessManager = ClaudeProcessManager as jest.MockedClass<typeof ClaudeProcessManager>;
@@ -60,6 +64,10 @@ describe('CCUIServer', () => {
       stopConversation: jest.fn(),
       getActiveSessions: jest.fn(),
       isSessionActive: jest.fn(),
+      setMCPConfigPath: jest.fn(),
+      setStreamManager: jest.fn(),
+      setPermissionTracker: jest.fn(),
+      setOptimisticConversationService: jest.fn(),
       on: jest.fn(),
       emit: jest.fn()
     } as any;
@@ -109,6 +117,9 @@ describe('CCUIServer', () => {
   });
 
   afterEach(async () => {
+    // Reset execSync mock to prevent interference between tests
+    mockExecSync.mockReset();
+    
     // Clean up any running servers to prevent hanging handles
     await Promise.allSettled(
       runningServers.map(async (server) => {
@@ -701,13 +712,18 @@ describe('CCUIServer', () => {
       });
 
       it('should handle missing Claude CLI gracefully', async () => {
+        // Create a new server instance to test Claude CLI not found scenario
+        const testPort = 9000 + Math.floor(Math.random() * 1000);
+        
+        // Mock execSync before creating the server
         mockExecSync.mockImplementation(() => {
           throw new Error('Command not found');
         });
-
-        jest.spyOn((server as any).processManager, 'getActiveSessions').mockReturnValue([]);
-
-        const response = await request(app)
+        
+        const testServer = createTestServer({ port: testPort });
+        await testServer.start();
+        
+        const response = await request((testServer as any).app)
           .get('/api/system/status')
           .expect(200);
 
@@ -717,6 +733,8 @@ describe('CCUIServer', () => {
           configPath: expect.any(String),
           activeConversations: 0
         });
+        
+        await testServer.stop();
       });
 
       it('should handle system status error', async () => {
@@ -1260,5 +1278,6 @@ describe('CCUIServer', () => {
     // Force clear any remaining timers
     jest.clearAllTimers();
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 });

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Square } from 'lucide-react';
+import { Send, Square, Zap, ChevronDown } from 'lucide-react';
 import styles from './InputArea.module.css';
 
 interface InputAreaProps {
@@ -44,41 +44,59 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
   };
 
   return (
-    <form className={styles.container} onSubmit={handleSubmit}>
-      <div className={styles.inputWrapper}>
-        <textarea
-          ref={textareaRef}
-          className={styles.textarea}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={isLoading}
-          rows={1}
-        />
-        
-        <div className={styles.actions}>
-          {isLoading ? (
-            <button
-              type="button"
-              className={styles.stopButton}
-              onClick={() => onStop?.()}
-              title="Stop generation"
-            >
-              <Square size={18} />
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className={styles.sendButton}
-              disabled={!message.trim()}
-              title="Send message (Enter)"
-            >
-              <Send size={18} />
-            </button>
-          )}
-        </div>
+    <div className={styles.container}>
+      <div className={styles.composerWrapper}>
+        <form className={styles.composer} onSubmit={handleSubmit}>
+          <div className={styles.composerInner}>
+            <div className={styles.inputSection}>
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                disabled={isLoading}
+                rows={1}
+              />
+            </div>
+            
+            <div className={styles.footerActions}>
+              <button 
+                type="button" 
+                className={styles.versionButton}
+                title="Model version selector"
+              >
+                <Zap size={16} />
+                <span>1x</span>
+                <ChevronDown size={16} />
+              </button>
+            </div>
+            
+            <div className={styles.submitActions}>
+              {isLoading ? (
+                <button
+                  type="button"
+                  className={styles.stopButton}
+                  onClick={() => onStop?.()}
+                  title="Stop generation"
+                >
+                  <Square size={16} />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className={styles.sendButton}
+                  disabled={!message.trim()}
+                  title="Send message (Enter)"
+                >
+                  <Send size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 }

@@ -1,0 +1,87 @@
+import { Router } from 'express';
+import { SystemStatusResponse, CCUIError } from '@/types';
+import { ClaudeProcessManager } from '@/services/claude-process-manager';
+import { ClaudeHistoryReader } from '@/services/claude-history-reader';
+import { createLogger, type Logger } from '@/services/logger';
+import { execSync } from 'child_process';
+
+export function createSystemRoutes(
+  processManager: ClaudeProcessManager,
+  historyReader: ClaudeHistoryReader
+): Router {
+  const router = Router();
+  const logger = createLogger('SystemRoutes');
+
+  // Health check
+  router.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
+  // Hello endpoint
+  router.get('/hello', (req, res) => {
+    res.json({ message: 'Hello from CCUI!' });
+  });
+
+  // Get system status
+  router.get('/status', async (req, res, next) => {
+    const requestId = (req as any).requestId;
+    logger.debug('Get system status request', { requestId });
+    
+    try {
+      const systemStatus = await getSystemStatus(processManager, historyReader, logger);
+      
+      logger.debug('System status retrieved', {
+        requestId,
+        ...systemStatus
+      });
+      
+      res.json(systemStatus);
+    } catch (error) {
+      logger.debug('Get system status failed', {
+        requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+/**
+ * Get system status including Claude version and active conversations
+ */
+async function getSystemStatus(
+  processManager: ClaudeProcessManager,
+  historyReader: ClaudeHistoryReader,
+  logger: Logger
+): Promise<SystemStatusResponse> {
+  try {
+    // Get Claude version
+    let claudeVersion = 'unknown';
+    let claudePath = 'unknown';
+    
+    try {
+      claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
+      claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim();
+      logger.debug('Claude version info retrieved', {
+        version: claudeVersion,
+        path: claudePath
+      });
+    } catch (error) {
+      logger.warn('Failed to get Claude version information', { 
+        error: error instanceof Error ? error.message : String(error),
+        errorCode: (error as any).code
+      });
+    }
+    
+    return {
+      claudeVersion,
+      claudePath,
+      configPath: historyReader.homePath,
+      activeConversations: processManager.getActiveSessions().length
+    };
+  } catch (error) {
+    throw new CCUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
+  }
+}

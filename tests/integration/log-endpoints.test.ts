@@ -265,10 +265,13 @@ describe('Log Endpoints Integration', () => {
     it('should include CORS headers for log endpoints', async () => {
       const response = await request(app)
         .get('/api/logs/recent')
+        .set('Origin', 'http://localhost:3000')
         .expect(200);
 
       // CORS should be enabled for API endpoints
       expect(response.headers).toHaveProperty('access-control-allow-origin');
+      expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+      expect(response.headers).toHaveProperty('access-control-allow-credentials', 'true');
     });
 
     it('should set proper content type for log streaming', async () => {

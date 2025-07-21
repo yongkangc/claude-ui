@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
 import { InputArea } from '../InputArea/InputArea';
+import { ConversationHeader } from '../ConversationHeader/ConversationHeader';
 import { api } from '../../services/api';
 import { useStreaming, useConversationMessages } from '../../hooks';
 import type { ChatMessage, ConversationDetailsResponse, ConversationMessage } from '../../types';
@@ -14,6 +15,7 @@ export function ConversationView() {
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState<string>('Conversation');
 
   // Use shared conversation messages hook
   const {
@@ -83,6 +85,12 @@ export function ConversationView() {
         
         // Always load fresh messages from backend
         setAllMessages(chatMessages);
+        
+        // Set conversation title from first user message
+        const firstUserMessage = chatMessages.find(msg => msg.type === 'user');
+        if (firstUserMessage && typeof firstUserMessage.content === 'string') {
+          setConversationTitle(firstUserMessage.content.slice(0, 100));
+        }
         
         // Check if this conversation has an active stream
         const conversationsResponse = await api.getConversations({ limit: 100 });
@@ -162,6 +170,16 @@ export function ConversationView() {
 
   return (
     <div className={styles.container}>
+      <ConversationHeader 
+        title={conversationTitle}
+        subtitle={{
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          repo: 'ccui',
+          branch: 'main',
+          changes: { additions: 2, deletions: 3 }
+        }}
+      />
+      
       {error && (
         <div className={styles.error}>
           {error}
