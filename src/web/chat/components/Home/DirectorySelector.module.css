@@ -106,8 +106,8 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  background: var(--color-button-primary);
-  color: var(--color-button-primary-text);
+  background: var(--color-button-primary-text);
+  color: var(--color-token-bg-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -120,7 +120,8 @@
 }
 
 .addButton:disabled {
-  opacity: 0.5;
+  background: transparent;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
 }
 
@@ -140,6 +141,13 @@
   flex: 1;
   overflow-y: auto;
   padding: 6px;
+  /* Hide scrollbar while maintaining scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.directoryList::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .directoryItem {

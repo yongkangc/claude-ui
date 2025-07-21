@@ -21,8 +21,8 @@ interface ConversationsContextType {
 
 const ConversationsContext = createContext<ConversationsContextType | undefined>(undefined);
 
-const INITIAL_LIMIT = 10;
-const LOAD_MORE_LIMIT = 10;
+const INITIAL_LIMIT = 20;
+const LOAD_MORE_LIMIT = 40;
 
 export function ConversationsProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);

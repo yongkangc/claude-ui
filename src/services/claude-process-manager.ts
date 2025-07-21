@@ -396,8 +396,12 @@ export class ClaudeProcessManager extends EventEmitter {
       const systemInitPromise = this.waitForSystemInit(streamingId);
       
       // Add streamingId to environment for MCP server to use
+      // Filter out debugging-related environment variables that would cause 
+      // the VSCode debugger to attach to the Claude CLI child process
+      const { NODE_OPTIONS, VSCODE_INSPECTOR_OPTIONS, ...cleanEnv } = spawnConfig.env;
+      
       const envWithStreamingId = {
-        ...spawnConfig.env,
+        ...cleanEnv,
         CCUI_STREAMING_ID: streamingId,
         PWD: spawnConfig.cwd,
         INIT_CWD: spawnConfig.cwd
