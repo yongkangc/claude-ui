@@ -1,4 +1,5 @@
 import React from 'react';
+import { CodeHighlight } from '../../CodeHighlight';
 import styles from '../ToolRendering.module.css';
 
 interface BashToolProps {
@@ -13,13 +14,30 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
     return <div className={styles.toolContent} />;
   }
 
+  const command = input?.command || '';
+  const displayContent = result || 'Command completed';
+  
+  // For bash output, we'll use 'bash' highlighting for the command part
+  // and plain text for the output
+  const fullDisplay = command && result ? `$ ${command}\n${displayContent}` : displayContent;
+  
   return (
     <div className={styles.toolContent}>
-      <div className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}>
-        <div className={styles.scrollableCode}>
-          <pre>{result || 'Command completed'}</pre>
+      {isError ? (
+        <div className={`${styles.codeBlock} ${styles.errorCode}`}>
+          <div className={styles.scrollableCode}>
+            <pre>{displayContent}</pre>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className={styles.scrollableCode}>
+          <CodeHighlight
+            code={fullDisplay}
+            language="bash"
+            className={styles.codeBlock}
+          />
+        </div>
+      )}
     </div>
   );
 }

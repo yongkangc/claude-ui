@@ -3,6 +3,7 @@ import { Copy, Check, Code, Globe, Settings, FileText, Edit, Terminal, Search, L
 import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import { ToolUseRenderer } from '../ToolRendering/ToolUseRenderer';
+import { CodeHighlight } from '../CodeHighlight';
 import type { ChatMessage } from '../../types';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import styles from './MessageList.module.css';
@@ -48,6 +49,30 @@ function getToolIcon(toolName: string) {
       return <Settings size={15} />;
   }
 }
+
+// Custom components for ReactMarkdown
+const markdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : 'text';
+    
+    if (!inline && match) {
+      return (
+        <CodeHighlight
+          code={String(children).replace(/\n$/, '')}
+          language={language}
+          className={styles.codeBlock}
+        />
+      );
+    }
+    
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  }
+};
 
 export function MessageItem({ 
   message, 
@@ -112,7 +137,7 @@ export function MessageItem({
               <div className={styles.timelineDot} />
             </div>
             <div className={styles.assistantContent}>
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
             </div>
           </div>
         );
@@ -130,7 +155,7 @@ export function MessageItem({
                   <div className={styles.timelineDot} />
                 </div>
                 <div className={styles.assistantContent}>
-                  <ReactMarkdown>{block.text}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{block.text}</ReactMarkdown>
                 </div>
               </div>
             );
@@ -143,7 +168,7 @@ export function MessageItem({
                   <div className={styles.timelineDot} />
                 </div>
                 <div className={styles.thinkingContent}>
-                  <ReactMarkdown>{block.thinking}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{block.thinking}</ReactMarkdown>
                 </div>
               </div>
             );

@@ -1,0 +1,115 @@
+.codeBlock {
+  background-color: #f8f8f8;
+  color: #333333;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  border: 1px solid #e1e4e8;
+}
+
+.codeContent {
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.line {
+  display: table-row;
+}
+
+.lineNumber {
+  display: table-cell;
+  text-align: right;
+  padding-right: 1rem;
+  user-select: none;
+  opacity: 0.5;
+  min-width: 2rem;
+}
+
+.lineContent {
+  display: table-cell;
+  width: 100%;
+}
+
+/* Override prism-react-renderer theme colors for Xcode-like aesthetic */
+.codeBlock {
+  background-color: #f8f8f8 !important;
+}
+
+/* Custom theme adjustments for Xcode-like colors */
+.codeBlock :global(.token.comment),
+.codeBlock :global(.token.prolog),
+.codeBlock :global(.token.doctype),
+.codeBlock :global(.token.cdata) {
+  color: #008000;
+  font-style: italic;
+}
+
+.codeBlock :global(.token.punctuation) {
+  color: #000000;
+}
+
+.codeBlock :global(.token.property),
+.codeBlock :global(.token.tag),
+.codeBlock :global(.token.boolean),
+.codeBlock :global(.token.number),
+.codeBlock :global(.token.constant),
+.codeBlock :global(.token.symbol),
+.codeBlock :global(.token.deleted) {
+  color: #1C00CF;
+}
+
+.codeBlock :global(.token.selector),
+.codeBlock :global(.token.attr-name),
+.codeBlock :global(.token.string),
+.codeBlock :global(.token.char),
+.codeBlock :global(.token.builtin),
+.codeBlock :global(.token.inserted) {
+  color: #C41A16;
+}
+
+.codeBlock :global(.token.operator),
+.codeBlock :global(.token.entity),
+.codeBlock :global(.token.url),
+.codeBlock :global(.language-css .token.string),
+.codeBlock :global(.style .token.string) {
+  color: #000000;
+}
+
+.codeBlock :global(.token.atrule),
+.codeBlock :global(.token.attr-value),
+.codeBlock :global(.token.keyword) {
+  color: #AA0D91;
+  font-weight: bold;
+}
+
+.codeBlock :global(.token.function),
+.codeBlock :global(.token.class-name) {
+  color: #5C2699;
+}
+
+.codeBlock :global(.token.regex),
+.codeBlock :global(.token.important),
+.codeBlock :global(.token.variable) {
+  color: #0E0EFF;
+}
+
+/* Bash/Shell specific styling */
+.codeBlock :global(.language-bash .token.function) {
+  color: #5C2699;
+}
+
+.codeBlock :global(.language-bash .token.keyword) {
+  color: #AA0D91;
+  font-weight: bold;
+}
+
+/* JSON specific styling */
+.codeBlock :global(.language-json .token.property) {
+  color: #5C2699;
+}

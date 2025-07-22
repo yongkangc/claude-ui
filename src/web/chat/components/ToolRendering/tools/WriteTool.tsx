@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CornerDownRight } from 'lucide-react';
 import { formatFilePath } from '../../../utils/tool-utils';
+import { detectLanguageFromPath } from '../../../utils/language-detection';
+import { CodeHighlight } from '../../CodeHighlight';
 import styles from '../ToolRendering.module.css';
 
 interface WriteToolProps {
@@ -38,6 +40,7 @@ export function WriteTool({ input, result, isError, isPending, workingDirectory 
   const filePath = input?.file_path || '';
   const formattedPath = formatFilePath(filePath, workingDirectory);
   const content = input?.content || '';
+  const language = detectLanguageFromPath(filePath);
 
   return (
     <div className={styles.toolContent}>
@@ -53,9 +56,11 @@ export function WriteTool({ input, result, isError, isPending, workingDirectory 
       </div>
       
       {isExpanded && content && (
-        <div className={styles.codeBlock}>
-          <pre>{content}</pre>
-        </div>
+        <CodeHighlight
+          code={content}
+          language={language}
+          className={styles.codeBlock}
+        />
       )}
     </div>
   );

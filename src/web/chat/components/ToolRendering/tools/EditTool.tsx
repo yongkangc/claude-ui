@@ -1,5 +1,7 @@
 import React from 'react';
 import { formatDiffLines } from '../../../utils/tool-utils';
+import { detectLanguageFromPath } from '../../../utils/language-detection';
+import { CodeHighlight } from '../../CodeHighlight';
 import styles from '../ToolRendering.module.css';
 
 interface EditToolProps {
@@ -8,9 +10,10 @@ interface EditToolProps {
   isError: boolean;
   isPending: boolean;
   isMultiEdit?: boolean;
+  workingDirectory?: string;
 }
 
-export function EditTool({ input, result, isError, isPending, isMultiEdit = false }: EditToolProps) {
+export function EditTool({ input, result, isError, isPending, isMultiEdit = false, workingDirectory }: EditToolProps) {
   if (isPending) {
     return (
       <div className={styles.toolContent}>
@@ -89,11 +92,22 @@ export function EditTool({ input, result, isError, isPending, isMultiEdit = fals
   }
 
   // Fallback if we can't parse the edit
+  const filePath = input?.file_path || '';
+  const language = detectLanguageFromPath(filePath);
+  
   return (
     <div className={styles.toolContent}>
-      <div className={styles.codeBlock}>
-        <pre>{result || 'Edit completed successfully'}</pre>
-      </div>
+      {result ? (
+        <CodeHighlight
+          code={result}
+          language={language}
+          className={styles.codeBlock}
+        />
+      ) : (
+        <div className={styles.codeBlock}>
+          <pre>Edit completed successfully</pre>
+        </div>
+      )}
     </div>
   );
 }

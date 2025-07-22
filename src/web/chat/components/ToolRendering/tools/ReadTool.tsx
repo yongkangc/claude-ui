@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CornerDownRight } from 'lucide-react';
 import { countLines } from '../../../utils/tool-utils';
+import { detectLanguageFromPath } from '../../../utils/language-detection';
+import { CodeHighlight } from '../../CodeHighlight';
 import styles from '../ToolRendering.module.css';
 
 interface ReadToolProps {
@@ -11,7 +13,7 @@ interface ReadToolProps {
   workingDirectory?: string;
 }
 
-export function ReadTool({ input, result, isError, isPending }: ReadToolProps) {
+export function ReadTool({ input, result, isError, isPending, workingDirectory }: ReadToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
@@ -36,6 +38,8 @@ export function ReadTool({ input, result, isError, isPending }: ReadToolProps) {
   }
 
   const lineCount = countLines(result);
+  const filePath = input?.file_path || '';
+  const language = detectLanguageFromPath(filePath);
 
   return (
     <div className={styles.toolContent}>
@@ -51,9 +55,12 @@ export function ReadTool({ input, result, isError, isPending }: ReadToolProps) {
       </div>
       
       {isExpanded && result && (
-        <div className={styles.codeBlock}>
-          <pre>{result}</pre>
-        </div>
+        <CodeHighlight
+          code={result}
+          language={language}
+          showLineNumbers={true}
+          className={styles.codeBlock}
+        />
       )}
     </div>
   );

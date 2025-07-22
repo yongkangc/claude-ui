@@ -81,6 +81,7 @@ export function ToolContent({
           isError={isError}
           isPending={isPending}
           isMultiEdit={toolName === 'MultiEdit'}
+          workingDirectory={workingDirectory}
         />
       );
     
