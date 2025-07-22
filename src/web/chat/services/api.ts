@@ -5,6 +5,7 @@ import type {
   ResumeConversationRequest,
   ConversationDetailsResponse,
   ApiError,
+  WorkingDirectoriesResponse,
 } from '../types';
 
 class ApiService {
@@ -87,6 +88,10 @@ class ApiService {
 
   getStreamUrl(streamingId: string): string {
     return `/api/stream/${streamingId}`;
+  }
+
+  async getWorkingDirectories(): Promise<WorkingDirectoriesResponse> {
+    return this.apiCall('/api/working-directories');
   }
 }
 

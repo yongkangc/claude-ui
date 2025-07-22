@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../services/api';
-import type { ConversationSummary } from '../types';
+import type { ConversationSummary, WorkingDirectory } from '../types';
 
 interface RecentDirectory {
   lastDate: string;
@@ -32,19 +32,45 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [recentDirectories, setRecentDirectories] = useState<Record<string, RecentDirectory>>({});
 
-  const updateRecentDirectories = (convs: ConversationSummary[]) => {
-    const newDirectories: Record<string, RecentDirectory> = { ...recentDirectories };
+  const loadWorkingDirectories = async (): Promise<Record<string, RecentDirectory> | null> => {
+    try {
+      const response = await api.getWorkingDirectories();
+      const directories: Record<string, RecentDirectory> = {};
+      
+      response.directories.forEach(dir => {
+        directories[dir.path] = {
+          lastDate: dir.lastDate,
+          shortname: dir.shortname
+        };
+      });
+      
+      return directories;
+    } catch (err) {
+      console.error('Failed to load working directories from API:', err);
+      return null;
+    }
+  };
+
+  const updateRecentDirectories = (convs: ConversationSummary[], apiDirectories?: Record<string, RecentDirectory> | null) => {
+    const newDirectories: Record<string, RecentDirectory> = {};
     
+    // First, add API directories if available
+    if (apiDirectories) {
+      Object.assign(newDirectories, apiDirectories);
+    }
+    
+    // Then, process conversations and merge with API data
     convs.forEach(conv => {
       if (conv.projectPath) {
         const pathParts = conv.projectPath.split('/');
         const shortname = pathParts[pathParts.length - 1] || conv.projectPath;
         
+        // If API didn't provide this directory, or if conversation is more recent
         if (!newDirectories[conv.projectPath] || 
             new Date(conv.updatedAt) > new Date(newDirectories[conv.projectPath].lastDate)) {
           newDirectories[conv.projectPath] = {
             lastDate: conv.updatedAt,
-            shortname
+            shortname: apiDirectories?.[conv.projectPath]?.shortname || shortname
           };
         }
       }
@@ -57,14 +83,19 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getConversations({ 
-        limit: INITIAL_LIMIT,
-        offset: 0,
-        sortBy: 'updated',
-        order: 'desc'
-      });
+      // Load working directories from API in parallel with conversations
+      const [data, apiDirectories] = await Promise.all([
+        api.getConversations({ 
+          limit: INITIAL_LIMIT,
+          offset: 0,
+          sortBy: 'updated',
+          order: 'desc'
+        }),
+        loadWorkingDirectories()
+      ]);
+      
       setConversations(data.conversations);
-      updateRecentDirectories(data.conversations);
+      updateRecentDirectories(data.conversations, apiDirectories);
       setHasMore(data.conversations.length === INITIAL_LIMIT);
     } catch (err) {
       setError('Failed to load conversations');
@@ -91,7 +122,8 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         setHasMore(false);
       } else {
         setConversations(prev => [...prev, ...data.conversations]);
-        updateRecentDirectories(data.conversations);
+        // When loading more, we don't need to fetch API directories again
+        updateRecentDirectories([...conversations, ...data.conversations]);
         setHasMore(data.conversations.length === LOAD_MORE_LIMIT);
       }
     } catch (err) {

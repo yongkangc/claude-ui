@@ -59,3 +59,16 @@ export interface ApiError {
   error: string;
   code?: string;
 }
+
+// Working directories types
+export interface WorkingDirectory {
+  path: string;              // Full absolute path
+  shortname: string;         // Smart suffix
+  lastDate: string;          // ISO timestamp
+  conversationCount: number; // Total conversations
+}
+
+export interface WorkingDirectoriesResponse {
+  directories: WorkingDirectory[];
+  totalCount: number;
+}
