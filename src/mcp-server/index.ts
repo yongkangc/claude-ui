@@ -74,21 +74,105 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       throw new Error(`Failed to notify CCUI server: ${errorText}`);
     }
 
-    // For now, always approve with the original input
-    const approvalResponse = {
-      behavior: 'allow',
-      updatedInput: input,
-    };
+    // Get the permission request ID from the notification response
+    const notificationData = await response.json() as { success: boolean; id: string };
+    const permissionRequestId = notificationData.id;
 
-    logger.debug('MCP Permission approved automatically', { tool_name });
+    logger.debug('Permission request created', { permissionRequestId, streamingId: CCUI_STREAMING_ID });
 
-    // Return the JSON-stringified response as required by Claude
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(approvalResponse),
-      }],
-    };
+    // Poll for permission decision
+    const POLL_INTERVAL = 1000; // 1 second
+    const TIMEOUT = 10 * 60 * 1000; // 10 minutes
+    const startTime = Date.now();
+
+    while (true) {
+      // Check timeout
+      if (Date.now() - startTime > TIMEOUT) {
+        logger.warn('Permission request timed out', { tool_name, permissionRequestId });
+        const timeoutResponse = {
+          behavior: 'deny',
+          message: 'Permission request timed out after 10 minutes',
+        };
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(timeoutResponse),
+          }],
+        };
+      }
+
+      // Poll for permission status
+      const pollResponse = await fetch(
+        `${CCUI_SERVER_URL}/api/permissions?streamingId=${CCUI_STREAMING_ID}&status=pending`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!pollResponse.ok) {
+        logger.error('Failed to poll permission status', { status: pollResponse.status });
+        throw new Error(`Failed to poll permission status: ${pollResponse.status}`);
+      }
+
+      const { permissions } = await pollResponse.json() as { permissions: Array<any> };
+      const permission = permissions.find((p: any) => p.id === permissionRequestId);
+
+      if (!permission) {
+        // Permission has been processed (no longer pending)
+        // Fetch all permissions to find our specific one
+        const allPermissionsResponse = await fetch(
+          `${CCUI_SERVER_URL}/api/permissions?streamingId=${CCUI_STREAMING_ID}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!allPermissionsResponse.ok) {
+          logger.error('Failed to fetch all permissions', { status: allPermissionsResponse.status });
+          throw new Error(`Failed to fetch all permissions: ${allPermissionsResponse.status}`);
+        }
+
+        const { permissions: allPermissions } = await allPermissionsResponse.json() as { permissions: Array<any> };
+        const processedPermission = allPermissions.find((p: any) => p.id === permissionRequestId);
+
+        if (processedPermission) {
+          if (processedPermission.status === 'approved') {
+            logger.debug('Permission approved', { tool_name, permissionRequestId });
+            const approvalResponse = {
+              behavior: 'allow',
+              updatedInput: processedPermission.modifiedInput || input,
+            };
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(approvalResponse),
+              }],
+            };
+          } else if (processedPermission.status === 'denied') {
+            logger.debug('Permission denied', { tool_name, permissionRequestId });
+            const denyResponse = {
+              behavior: 'deny',
+              message: processedPermission.denyReason || 'Permission denied by user',
+            };
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(denyResponse),
+              }],
+            };
+          }
+        }
+      }
+
+      // Wait before next poll
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+    }
   } catch (error) {
     logger.error('Error processing permission request', { error });
     

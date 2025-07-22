@@ -431,17 +431,16 @@ interface PermissionNotifyResponse {
 }
 ```
 
-#### Future: `POST /api/permissions/:requestId`
+#### `POST /api/permissions/:requestId/decision`
 
-*Note: This endpoint is planned but not yet implemented. Currently all permissions are auto-approved.*
-
-Approve or deny a permission request.
+Approve or deny a permission request. The MCP server polls this endpoint to check for decisions.
 
 **Request Body:**
 ```typescript
 interface PermissionDecisionRequest {
   action: 'approve' | 'deny';  // User's decision
   modifiedInput?: any;         // Optional: user can modify tool parameters before approval
+  denyReason?: string;         // Optional: reason for denial (if action is 'deny')
 }
 ```
 
@@ -449,8 +448,18 @@ interface PermissionDecisionRequest {
 ```typescript
 interface PermissionDecisionResponse {
   success: boolean;            // Whether decision was recorded
+  message?: string;            // Success/error message
 }
 ```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid action (must be 'approve' or 'deny')
+- `404 Not Found`: Permission request not found or already processed
+
+**Notes:**
+- The MCP server polls for decisions every second
+- Decisions have a 10-minute timeout - after which they are automatically denied
+- Once a decision is made, the permission request status is updated and the MCP server is notified
 
 ### System Management
 
@@ -1340,12 +1349,13 @@ function handlePermissionRequest(request) {
   const userDecision = await showPermissionDialog(toolName, toolInput);
   
   // Send decision back to server
-  await fetch(`/api/permissions/${id}`, {
+  await fetch(`/api/permissions/${id}/decision`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       action: userDecision.approved ? 'approve' : 'deny',
-      modifiedInput: userDecision.modifiedInput
+      modifiedInput: userDecision.modifiedInput,
+      denyReason: userDecision.denyReason
     })
   });
 }

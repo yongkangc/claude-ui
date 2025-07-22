@@ -151,6 +151,12 @@ export interface ConversationDetailsResponse {
 export interface PermissionDecisionRequest {
   action: 'approve' | 'deny';
   modifiedInput?: Record<string, any>;
+  denyReason?: string;
+}
+
+export interface PermissionDecisionResponse {
+  success: boolean;
+  message?: string;
 }
 
 export interface SystemStatusResponse {
