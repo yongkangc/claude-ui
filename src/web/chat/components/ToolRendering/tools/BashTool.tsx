@@ -17,10 +17,6 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
   const command = input?.command || '';
   const displayContent = result || 'Command completed';
   
-  // For bash output, we'll use 'bash' highlighting for the command part
-  // and plain text for the output
-  const fullDisplay = command && result ? `$ ${command}\n${displayContent}` : displayContent;
-  
   return (
     <div className={styles.toolContent}>
       {isError ? (
@@ -31,11 +27,18 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
         </div>
       ) : (
         <div className={styles.scrollableCode}>
-          <CodeHighlight
-            code={fullDisplay}
-            language="bash"
-            className={styles.codeBlock}
-          />
+          {command && (
+            <CodeHighlight
+              code={`$ ${command}`}
+              language="bash"
+              className={`${styles.codeBlock} ${result ? styles.bashCommand : ''}`}
+            />
+          )}
+          {result && (
+            <div className={`${styles.codeBlock} ${styles.bashOutput}`}>
+              <pre>{displayContent}</pre>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -78,6 +78,32 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Bash Output Styles */
+.bashCommand {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.bashOutput {
+  background-color: #1a1a1a;
+  border-radius: var(--radius-md);
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.bashOutput pre {
+  margin: 0;
+  padding: var(--spacing-md);
+  color: #e8e8e8;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* Error Styles */
 .errorContent {
   color: var(--color-error);
