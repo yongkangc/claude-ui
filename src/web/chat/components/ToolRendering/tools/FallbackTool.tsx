@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { CornerDownRight } from 'lucide-react';
 import styles from '../ToolRendering.module.css';
 
 interface FallbackToolProps {
@@ -34,7 +34,7 @@ export function FallbackTool({ toolName, input, result, isError, isPending }: Fa
         className={`${styles.toolSummary} ${styles.expandable}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <ChevronRight 
+        <CornerDownRight 
           size={12} 
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
         />

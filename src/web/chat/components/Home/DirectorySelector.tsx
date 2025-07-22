@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus, Laptop } from 'lucide-react';
 import styles from './DirectorySelector.module.css';
 
 interface RecentDirectory {
@@ -76,6 +76,7 @@ export function DirectorySelector({
         onClick={() => setIsOpen(!isOpen)}
         aria-label="View all code environments"
       >
+        <Laptop size={14} />
         <span className={styles.buttonText}>
           <span className={styles.buttonLabel}>{displayText}</span>
         </span>

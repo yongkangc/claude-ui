@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { CornerDownRight } from 'lucide-react';
 import { countLines, extractFileCount } from '../../../utils/tool-utils';
 import styles from '../ToolRendering.module.css';
 
@@ -53,7 +53,7 @@ export function SearchTool({ input, result, isError, isPending, toolType }: Sear
         className={`${styles.toolSummary} ${styles.expandable}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <ChevronRight 
+        <CornerDownRight 
           size={12} 
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
         />

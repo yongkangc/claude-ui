@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { StopCircle } from 'lucide-react';
 import styles from './TaskItem.module.css';
 
 interface TaskItemProps {
@@ -67,18 +67,18 @@ export function TaskItem({
           
           {status === 'ongoing' && (
             <div className={styles.statusSection}>
-              <span className={styles.statusText}>Starting container</span>
+              <span className={styles.statusText}>Running</span>
               <button
-                className={styles.cancelButton}
+                className={styles.stopButton}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onCancel?.();
                 }}
-                aria-label="Cancel task"
+                aria-label="Stop task"
                 type="button"
               >
-                <X size={12} />
+                <StopCircle size={24} />
               </button>
             </div>
           )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Globe } from 'lucide-react';
+import { CornerDownRight, Globe } from 'lucide-react';
 import { extractDomain } from '../../../utils/tool-utils';
 import styles from '../ToolRendering.module.css';
 
@@ -71,7 +71,7 @@ export function WebTool({ input, result, isError, isPending, toolType }: WebTool
         className={`${styles.toolSummary} ${styles.expandable}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <ChevronRight 
+        <CornerDownRight 
           size={12} 
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
         />

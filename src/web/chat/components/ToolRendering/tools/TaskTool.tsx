@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, CornerDownRight } from 'lucide-react';
 import type { ChatMessage } from '../../../types';
 import { MessageItem } from '../../MessageList/MessageItem';
 import styles from '../ToolRendering.module.css';
@@ -78,7 +78,7 @@ export function TaskTool({
       {!isPending && (
         <div className={styles.toolContent}>
           <div className={styles.toolSummary}>
-            ✓ Task completed
+            <CornerDownRight size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Task completed
           </div>
         </div>
       )}

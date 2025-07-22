@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Mic, Send, Loader2 } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles } from 'lucide-react';
 import { DirectorySelector } from './DirectorySelector';
 import { useConversations } from '../../contexts/ConversationsContext';
 import styles from './Composer.module.css';
@@ -95,6 +95,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
                     setSelectedModel(models[nextIndex]);
                   }}
                 >
+                  <Sparkles size={14} />
                   <span className={styles.buttonText}>
                     <span className={styles.buttonLabel}>{selectedModel}</span>
                   </span>
@@ -110,7 +111,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
               type={text.trim() ? "submit" : "button"}
               className={styles.iconButton}
               aria-label={text.trim() ? "Send message" : "Dictate button"}
-              disabled={isSubmitting || (text.trim() && selectedDirectory === 'Select directory')}
+              disabled={isSubmitting || (!!text.trim() && selectedDirectory === 'Select directory')}
             >
               {isSubmitting ? (
                 <Loader2 size={18} className={styles.spinning} />

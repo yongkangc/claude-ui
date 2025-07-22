@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { CornerDownRight } from 'lucide-react';
 import { countLines } from '../../../utils/tool-utils';
 import styles from '../ToolRendering.module.css';
 
@@ -43,7 +43,7 @@ export function ReadTool({ input, result, isError, isPending }: ReadToolProps) {
         className={`${styles.toolSummary} ${styles.expandable}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <ChevronRight 
+        <CornerDownRight 
           size={12} 
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
         />
