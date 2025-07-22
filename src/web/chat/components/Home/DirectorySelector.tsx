@@ -21,7 +21,10 @@ export function DirectorySelector({
 }: DirectorySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const directoryRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Convert recentDirectories to sorted array
   const sortedDirectories: RecentDirectory[] = Object.entries(recentDirectories)
@@ -31,6 +34,13 @@ export function DirectorySelector({
       lastDate: data.lastDate
     }))
     .sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+
+  // Filter directories based on input value
+  const filteredDirectories = inputValue.trim() 
+    ? sortedDirectories.filter(dir => 
+        dir.path.toLowerCase().includes(inputValue.toLowerCase())
+      )
+    : sortedDirectories;
 
   // Handle click outside
   useEffect(() => {
@@ -49,6 +59,26 @@ export function DirectorySelector({
     };
   }, [isOpen]);
 
+  // Handle focus management
+  useEffect(() => {
+    if (focusedIndex >= 0 && focusedIndex < directoryRefs.current.length) {
+      directoryRefs.current[focusedIndex]?.focus();
+    } else if (focusedIndex === -1 && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [focusedIndex]);
+
+  // Reset focused index when dropdown closes or filter changes
+  useEffect(() => {
+    if (!isOpen) {
+      setFocusedIndex(-1);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    setFocusedIndex(-1);
+  }, [inputValue]);
+
   const handleAddPath = () => {
     if (inputValue.trim()) {
       onDirectorySelect(inputValue.trim());
@@ -60,6 +90,37 @@ export function DirectorySelector({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddPath();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (filteredDirectories.length > 0) {
+        setFocusedIndex(0);
+      }
+    }
+  };
+
+  const handleDirectoryListKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (focusedIndex > 0) {
+        setFocusedIndex(focusedIndex - 1);
+      } else if (focusedIndex === 0) {
+        setFocusedIndex(-1);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (focusedIndex < filteredDirectories.length - 1) {
+        setFocusedIndex(focusedIndex + 1);
+      }
+    } else if (e.key === 'Enter' && focusedIndex >= 0) {
+      e.preventDefault();
+      const dir = filteredDirectories[focusedIndex];
+      if (dir) {
+        onDirectorySelect(dir.path);
+        setIsOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
     }
   };
 
@@ -89,6 +150,7 @@ export function DirectorySelector({
           <div className={styles.inputSection}>
             <div className={styles.inputWrapper}>
               <input
+                ref={inputRef}
                 type="text"
                 className={styles.input}
                 placeholder="Enter directory path..."
@@ -113,18 +175,20 @@ export function DirectorySelector({
           <div className={styles.separator} />
 
           {/* Directory list */}
-          <div className={styles.directoryList}>
-            {sortedDirectories.map((dir) => (
+          <div className={styles.directoryList} onKeyDown={handleDirectoryListKeyDown}>
+            {filteredDirectories.map((dir, index) => (
               <button
                 key={dir.path}
+                ref={(el) => { directoryRefs.current[index] = el; }}
                 type="button"
                 className={`${styles.directoryItem} ${
                   selectedDirectory === dir.path ? styles.selected : ''
-                }`}
+                } ${focusedIndex === index ? styles.focused : ''}`}
                 onClick={() => {
                   onDirectorySelect(dir.path);
                   setIsOpen(false);
                 }}
+                tabIndex={-1}
               >
                 <div className={styles.directoryContent}>
                   <div className={styles.directoryInfo}>
