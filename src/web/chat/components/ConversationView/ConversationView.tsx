@@ -59,15 +59,20 @@ export function ConversationView() {
 
   // Clear messages and streaming when navigating away or sessionId changes
   useEffect(() => {
+    // Check if we're navigating from another conversation
+    const isFromConversation = location.state?.fromConversation === true;
+    
     // Clear streamingId when sessionId changes
     setStreamingId(null);
     
     return () => {
-      // Clear messages and streaming on cleanup
-      clearMessages();
+      // Only clear messages if not navigating to another conversation
+      if (!isFromConversation) {
+        clearMessages();
+      }
       setStreamingId(null);
     };
-  }, [sessionId, clearMessages]);
+  }, [sessionId, clearMessages, location.state]);
 
   // Load conversation history
   useEffect(() => {
@@ -191,6 +196,7 @@ export function ConversationView() {
         toolResults={toolResults} 
         isLoading={isLoading}
         isStreaming={!!streamingId}
+        preserveScroll={!!location.state?.fromConversation}
       />
 
       <InputArea
