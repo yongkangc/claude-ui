@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request } from 'express';
 import { 
   StartConversationRequest,
   StartConversationResponse,
@@ -14,7 +14,7 @@ import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import { SessionInfoService } from '@/services/session-info-service';
 import { OptimisticConversationService } from '@/services/optimistic-conversation-service';
-import { createLogger, type Logger } from '@/services/logger';
+import { createLogger } from '@/services/logger';
 
 export function createConversationRoutes(
   processManager: ClaudeProcessManager,

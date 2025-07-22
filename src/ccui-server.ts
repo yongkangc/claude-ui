@@ -10,6 +10,7 @@ import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
 import { OptimisticConversationService } from './services/optimistic-conversation-service';
+import { WorkingDirectoriesService } from './services/working-directories-service';
 import { 
   StreamEvent,
   CCUIError,
@@ -22,6 +23,7 @@ import { createPermissionRoutes } from './routes/permission.routes';
 import { createFileSystemRoutes } from './routes/filesystem.routes';
 import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
+import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
@@ -48,6 +50,7 @@ export class CCUIServer {
   private configService: ConfigService;
   private sessionInfoService: SessionInfoService;
   private optimisticConversationService: OptimisticConversationService;
+  private workingDirectoriesService: WorkingDirectoriesService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -85,6 +88,7 @@ export class CCUIServer {
     this.fileSystemService = new FileSystemService();
     this.sessionInfoService = SessionInfoService.getInstance();
     this.optimisticConversationService = new OptimisticConversationService(this.statusTracker);
+    this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
@@ -331,6 +335,7 @@ export class CCUIServer {
     this.app.use('/api/filesystem', createFileSystemRoutes(this.fileSystemService));
     this.app.use('/api/logs', createLogRoutes());
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
+    this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     
     // ViteExpress handles React app routing automatically
     

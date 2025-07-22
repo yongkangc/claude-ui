@@ -262,3 +262,16 @@ export interface SessionRenameResponse {
   sessionId: string;
   customName: string;
 }
+
+// Working directories API types
+export interface WorkingDirectory {
+  path: string;              // Full absolute path (e.g., "/home/user/projects/myapp")
+  shortname: string;         // Smart suffix (e.g., "myapp" or "projects/myapp")
+  lastDate: string;          // ISO timestamp of most recent conversation
+  conversationCount: number; // Total conversations in this directory
+}
+
+export interface WorkingDirectoriesResponse {
+  directories: WorkingDirectory[];
+  totalCount: number;
+}

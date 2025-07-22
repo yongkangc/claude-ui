@@ -280,6 +280,60 @@ interface SessionRenameRequest {
 }
 ```
 
+### Working Directories
+
+#### `GET /api/working-directories`
+
+Get all unique working directories from conversation history with computed smart suffixes.
+
+**Response:**
+```typescript
+interface WorkingDirectoriesResponse {
+  directories: WorkingDirectory[];  // Array of directories sorted by lastDate (newest first)
+  totalCount: number;              // Total number of unique directories
+}
+
+interface WorkingDirectory {
+  path: string;              // Full absolute path (e.g., "/home/user/projects/myapp")
+  shortname: string;         // Smart suffix (e.g., "myapp" or "projects/myapp")
+  lastDate: string;          // ISO timestamp of most recent conversation
+  conversationCount: number; // Total conversations in this directory
+}
+```
+
+**Smart Suffix Algorithm:**
+The `shortname` field provides the shortest unique suffix for each directory path:
+- For unique last segments: uses just the last segment (e.g., `/home/user/web` → `web`)
+- For conflicting paths: includes parent segments until unique (e.g., `/home/alice/project` and `/home/bob/project` → `alice/project` and `bob/project`)
+- For single directory: uses the last segment only
+
+**Example Response:**
+```json
+{
+  "directories": [
+    {
+      "path": "/home/user/repos/ccui",
+      "shortname": "ccui",
+      "lastDate": "2025-01-22T10:30:00Z",
+      "conversationCount": 15
+    },
+    {
+      "path": "/home/alice/projects/web",
+      "shortname": "alice/projects/web",
+      "lastDate": "2025-01-21T14:20:00Z",
+      "conversationCount": 8
+    },
+    {
+      "path": "/home/bob/projects/web",
+      "shortname": "bob/projects/web",
+      "lastDate": "2025-01-20T09:15:00Z",
+      "conversationCount": 3
+    }
+  ],
+  "totalCount": 3
+}
+```
+
 **Example Request:**
 ```javascript
 const response = await fetch('/api/conversations/claude-session-12345/rename', {

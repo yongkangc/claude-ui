@@ -23,6 +23,7 @@ function ConsoleApp() {
     permissions: true,
     listDir: true,
     readFile: true,
+    workingDirs: true,
   });
 
   // Form states
@@ -53,6 +54,9 @@ function ConsoleApp() {
 
   // Result states
   const [results, setResults] = useState<Record<string, any>>({});
+  
+  // Working directories state
+  const [workingDirectories, setWorkingDirectories] = useState<any[]>([]);
   const [streamResult, setStreamResult] = useState<JSX.Element[]>([]);
 
   const streamResultRef = useRef<HTMLDivElement>(null);
@@ -72,6 +76,19 @@ function ConsoleApp() {
       setAvailableSessions(data.conversations || []);
     } catch (e) {
       // Silently fail
+    }
+  };
+
+  const getWorkingDirectories = async () => {
+    try {
+      const response = await fetch('/api/working-directories');
+      const data = await response.json();
+      showJson('workingDirsResult', data);
+      if (data.directories) {
+        setWorkingDirectories(data.directories);
+      }
+    } catch (e: any) {
+      showJson('workingDirsResult', { error: e.message });
     }
   };
 
@@ -412,6 +429,41 @@ function ConsoleApp() {
             <div id="statusResult" className="json-viewer-container">
               {results.statusResult && <JsonViewer data={results.statusResult} resultId="statusResult" />}
             </div>
+          </div>
+        </div>
+
+        {/* Working Directories */}
+        <div className="section">
+          <div className={`endpoint collapsible ${collapsed.workingDirs ? 'collapsed' : ''}`} onClick={() => toggleCollapse('workingDirs')}>
+            GET /api/working-directories
+          </div>
+          <div className="collapsible-content">
+            <button onClick={getWorkingDirectories}>Get Working Directories</button>
+            <div id="workingDirsResult" className="json-viewer-container">
+              {results.workingDirsResult && <JsonViewer data={results.workingDirsResult} resultId="workingDirsResult" />}
+            </div>
+            {workingDirectories.length > 0 && (
+              <div className="working-dirs-list" style={{ marginTop: '10px' }}>
+                <h4 style={{ margin: '5px 0' }}>Quick Select:</h4>
+                {workingDirectories.map((dir: any, index: number) => (
+                  <div key={index} style={{ marginBottom: '5px' }}>
+                    <button 
+                      style={{ fontSize: '12px', padding: '2px 5px', marginRight: '5px' }}
+                      onClick={() => {
+                        setWorkingDir(dir.path);
+                        setListPath(dir.path);
+                      }}
+                      title={dir.path}
+                    >
+                      {dir.shortname}
+                    </button>
+                    <span style={{ fontSize: '11px', color: '#666' }}>
+                      ({dir.conversationCount} convs, {new Date(dir.lastDate).toLocaleDateString()})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         

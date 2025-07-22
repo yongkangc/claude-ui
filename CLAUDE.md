@@ -79,3 +79,7 @@ npx jest -t "test name"                                    # Run test by name pa
 - Test logs are silenced by default, use `npm run test:debug` for verbose output
 - Check `~/.ccui/config.json` for server configuration
 - MCP configuration is in `config/mcp-config.json`
+
+## Workflow Guidelines
+
+- Always update cc-workfiles/knowledge/API.md and tests if make any changes to api endpoint.
