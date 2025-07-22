@@ -162,22 +162,18 @@
   position: relative;
 }
 
-.loadingCircle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border: 2px solid transparent;
-  border-top: 2px solid black;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.timelineIconLoading {
+  animation: blink 1s steps(2, start) infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  50.01%, 100% {
+    opacity: 0;
+  }
 }
 
 .timelineDot {
@@ -298,6 +294,24 @@
   width: 12px;
   height: 12px;
   border-radius: 2px;
+}
+
+/* Streaming Indicator */
+.streamingIndicator {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.streamingDot {
+  width: 9px;
+  height: 9px;
+  background-color: var(--color-text-primary);
+  border-radius: 50%;
+  margin-left: 3.5px;
+  margin-top: 6px;
+  animation: blink 1s steps(2, start) infinite;
 }
 
 /* Error Messages */

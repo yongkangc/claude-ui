@@ -144,9 +144,8 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
             
             return (
               <div key={blockId} className={styles.assistantBlock}>
-                <div className={styles.timelineIcon}>
+                <div className={`${styles.timelineIcon} ${isLoading ? styles.timelineIconLoading : ''}`}>
                   {getToolIcon(block.name)}
-                  {isLoading && <div className={styles.loadingCircle} />}
                 </div>
                 <div className={styles.toolUseContent}>
                   <ToolUseRenderer

@@ -74,9 +74,12 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
                 isLastInGroup={messageIndex === group.messages.length - 1}
               />
             ))}
-            {groupIndex < messageGroups.length - 1 && 
-             group.type === 'user' && 
-             messageGroups[groupIndex + 1].type === 'assistant' && (
+            {((groupIndex < messageGroups.length - 1 && 
+              group.type === 'user' && 
+              messageGroups[groupIndex + 1].type === 'assistant') ||
+             (group.type === 'user' && 
+              groupIndex === messageGroups.length - 1 && 
+              isStreaming)) && (
               <div className={styles.messageDivider} />
             )}
           </div>
@@ -90,6 +93,12 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
               <span></span>
             </div>
             <span>Connecting to Claude...</span>
+          </div>
+        )}
+        
+        {!isLoading && isStreaming && messageGroups.length > 0 && (
+          <div className={styles.streamingIndicator}>
+            <div className={styles.streamingDot} />
           </div>
         )}
         
