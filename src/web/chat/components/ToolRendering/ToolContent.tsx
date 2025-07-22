@@ -3,6 +3,7 @@ import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/mes
 import type { ChatMessage } from '../../types';
 import { ReadTool } from './tools/ReadTool';
 import { EditTool } from './tools/EditTool';
+import { WriteTool } from './tools/WriteTool';
 import { BashTool } from './tools/BashTool';
 import { SearchTool } from './tools/SearchTool';
 import { TodoTool } from './tools/TodoTool';
@@ -80,6 +81,17 @@ export function ToolContent({
           isError={isError}
           isPending={isPending}
           isMultiEdit={toolName === 'MultiEdit'}
+        />
+      );
+    
+    case 'Write':
+      return (
+        <WriteTool
+          input={toolInput}
+          result={resultContent}
+          isError={isError}
+          isPending={isPending}
+          workingDirectory={workingDirectory}
         />
       );
     

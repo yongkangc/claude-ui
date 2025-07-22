@@ -18,10 +18,15 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
   const composerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Auto-resize textarea
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    // Auto-resize textarea only when there's content
+    if (textareaRef.current && message.trim()) {
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const currentHeight = parseInt(textareaRef.current.style.height) || 80;
+      
+      // Only update if height actually needs to change
+      if (Math.abs(scrollHeight - currentHeight) > 5) {
+        textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
+      }
     }
   }, [message]);
 
@@ -30,9 +35,9 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
     const handleClickOutside = (event: MouseEvent) => {
       if (composerRef.current && !composerRef.current.contains(event.target as Node)) {
         setIsFocused(false);
-        // Reset textarea height when clicking outside
+        // Let CSS handle the height transition
         if (textareaRef.current && !message.trim()) {
-          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = '';
         }
       }
     };
@@ -52,9 +57,9 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
     onSubmit(trimmedMessage);
     setMessage('');
     
-    // Reset textarea height
+    // Reset textarea height - CSS will handle the transition
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '';
     }
   };
 
@@ -99,9 +104,9 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => {
                       setIsFocused(false);
-                      // Reset textarea height when losing focus
+                      // Let CSS handle the transition
                       if (textareaRef.current && !message.trim()) {
-                        textareaRef.current.style.height = 'auto';
+                        textareaRef.current.style.height = '';
                       }
                     }}
                     placeholder={placeholder}

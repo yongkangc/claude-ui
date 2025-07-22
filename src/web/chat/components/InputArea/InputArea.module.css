@@ -32,7 +32,9 @@
   border-radius: 28px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: all var(--transition-fast);
+  transition: box-shadow 300ms ease,
+              border-color 300ms ease,
+              background-color 300ms ease;
   cursor: text;
 }
 
@@ -50,7 +52,7 @@
   align-items: flex-end;
   width: 100%;
   min-height: 56px;
-  transition: min-height var(--transition-fast);
+  transition: min-height 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .composerInner.expanded .inputWrapper {
@@ -64,7 +66,7 @@
   align-items: flex-start;
   margin: 0 20px;
   min-height: 56px;
-  transition: min-height var(--transition-fast);
+  transition: min-height 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .composerInner.expanded .textAreaContainer {
@@ -85,11 +87,18 @@
   padding: 10px 60px 6px 0;
   max-height: 200px;
   overflow-y: auto;
-  transition: all var(--transition-fast);
+  height: 24px; /* Initial height - 1 line */
+  transition: height 400ms cubic-bezier(0.25, 0.1, 0.25, 1),
+              padding 400ms cubic-bezier(0.25, 0.1, 0.25, 1),
+              opacity var(--transition-fast) ease;
+}
+
+.textarea:focus {
+  height: 80px; /* Expanded height on focus */
 }
 
 .composerInner.expanded .textarea {
-  min-height: 120px;
+  padding-top: 16px;
 }
 
 .textarea::placeholder {
@@ -110,7 +119,7 @@
   align-items: center;
   justify-content: flex-start;
   opacity: 0;
-  animation: fadeIn var(--transition-fast) forwards;
+  animation: fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
 .actionButtons {
@@ -347,10 +356,19 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Additional smooth transitions for focus state */
+.composerInner:focus-within {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+[data-theme="dark"] .composerInner:focus-within {
+  box-shadow: 0 0 0 2px var(--color-accent);
 }

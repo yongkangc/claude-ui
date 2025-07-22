@@ -9,9 +9,10 @@
   display: flex;
   flex-direction: column;
   padding: var(--spacing-lg) 0;
-  max-width: 48rem;
+  max-width: min(48rem, 100vw);
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .empty {
@@ -73,6 +74,7 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: 0 var(--spacing-md);
+  box-sizing: border-box;
 }
 
 .messageDivider {
@@ -196,6 +198,9 @@
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text-primary);
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Thinking Blocks */
@@ -213,6 +218,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .toolUseLabel {
@@ -225,6 +233,8 @@
   background-color: #1a1a1a;
   border-radius: var(--radius-md);
   overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .codeBlock pre {
@@ -521,4 +531,51 @@
     var(--color-accent) 0%, 
     var(--color-border) 50%, 
     var(--color-border) 100%);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .messageList {
+    padding: var(--spacing-md) 0;
+  }
+  
+  .messageGroup {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .userMessageContent {
+    max-width: 90%;
+    min-width: 0;
+  }
+  
+  .assistantContent,
+  .thinkingContent,
+  .toolUseContent {
+    font-size: 13px;
+  }
+  
+  .codeBlock pre {
+    font-size: 11px;
+    padding: var(--spacing-sm);
+  }
+  
+  .empty,
+  .loadingMessage {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .messageList {
+    padding: var(--spacing-sm) 0;
+  }
+  
+  .messageGroup {
+    padding: 0 var(--spacing-xs);
+  }
+  
+  .userMessageContent {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
 }
