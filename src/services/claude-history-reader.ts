@@ -4,6 +4,7 @@ import * as os from 'os';
 import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
 import { createLogger, type Logger } from './logger';
 import { SessionInfoService } from './session-info-service';
+import { ConversationCache, ConversationChain } from './conversation-cache';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface RawJsonEntry {
@@ -22,23 +23,6 @@ interface RawJsonEntry {
   leafUuid?: string;
 }
 
-interface ConversationChain {
-  sessionId: string;
-  messages: ConversationMessage[];
-  projectPath: string;
-  summary: string;
-  createdAt: string;
-  updatedAt: string;
-  totalDuration: number;
-  model: string;
-}
-
-interface ConversationCache {
-  data: ConversationChain[];
-  fileModTimes: Map<string, number>; // filepath -> mtime in ms
-  lastCacheTime: number;
-}
-
 /**
  * Reads conversation history from Claude's local storage
  */
@@ -46,12 +30,13 @@ export class ClaudeHistoryReader {
   private claudeHomePath: string;
   private logger: Logger;
   private sessionInfoService: SessionInfoService;
-  private conversationCache: ConversationCache | null = null;
+  private conversationCache: ConversationCache;
   
   constructor() {
     this.claudeHomePath = path.join(os.homedir(), '.claude');
     this.logger = createLogger('ClaudeHistoryReader');
     this.sessionInfoService = SessionInfoService.getInstance();
+    this.conversationCache = new ConversationCache();
   }
 
   get homePath(): string {
@@ -62,8 +47,7 @@ export class ClaudeHistoryReader {
    * Clear the conversation cache to force a refresh on next read
    */
   clearCache(): void {
-    this.conversationCache = null;
-    this.logger.info('Conversation cache cleared');
+    this.conversationCache.clear();
   }
 
   /**
@@ -201,8 +185,11 @@ export class ClaudeHistoryReader {
     const modTimes = new Map<string, number>();
     const projectsPath = path.join(this.claudeHomePath, 'projects');
     
+    this.logger.debug('Getting file modification times', { projectsPath });
+    
     try {
       const projects = await this.readDirectory(projectsPath);
+      this.logger.debug('Found projects', { projectCount: projects.length });
       
       for (const project of projects) {
         const projectPath = path.join(projectsPath, project);
@@ -211,18 +198,35 @@ export class ClaudeHistoryReader {
         if (!stats.isDirectory()) continue;
         
         const files = await this.readDirectory(projectPath);
-        for (const file of files) {
-          if (!file.endsWith('.jsonl')) continue;
-          
+        const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
+        
+        if (jsonlFiles.length > 0) {
+          this.logger.debug('Processing project directory', { 
+            project, 
+            jsonlFileCount: jsonlFiles.length 
+          });
+        }
+        
+        for (const file of jsonlFiles) {
           const filePath = path.join(projectPath, file);
           try {
             const fileStats = await fs.stat(filePath);
             modTimes.set(filePath, fileStats.mtimeMs);
+            this.logger.debug('Recorded file modification time', {
+              filePath,
+              mtime: new Date(fileStats.mtimeMs).toISOString(),
+              size: fileStats.size
+            });
           } catch (error) {
             this.logger.warn('Failed to stat file', { filePath, error });
           }
         }
       }
+      
+      this.logger.debug('File modification times collection complete', {
+        totalFiles: modTimes.size,
+        projects: projects.length
+      });
     } catch (error) {
       this.logger.error('Error getting file modification times', error);
     }
@@ -230,49 +234,24 @@ export class ClaudeHistoryReader {
     return modTimes;
   }
 
-  /**
-   * Check if the cache is still valid by comparing file modification times
-   */
-  private async isCacheValid(): Promise<boolean> {
-    if (!this.conversationCache) return false;
-    
-    const currentModTimes = await this.getFileModificationTimes();
-    
-    // Check if any file has been modified
-    for (const [filePath, currentMtime] of currentModTimes) {
-      const cachedMtime = this.conversationCache.fileModTimes.get(filePath);
-      if (!cachedMtime || cachedMtime < currentMtime) {
-        this.logger.debug('Cache invalidated: file modified', { filePath });
-        return false;
-      }
-    }
-    
-    // Check if any files were removed
-    for (const [filePath] of this.conversationCache.fileModTimes) {
-      if (!currentModTimes.has(filePath)) {
-        this.logger.debug('Cache invalidated: file removed', { filePath });
-        return false;
-      }
-    }
-    
-    // Check if any new files were added
-    if (currentModTimes.size !== this.conversationCache.fileModTimes.size) {
-      this.logger.debug('Cache invalidated: file count changed');
-      return false;
-    }
-    
-    return true;
-  }
 
   /**
    * Parse all conversations from all JSONL files (uncached version)
    */
   private async parseAllConversationsUncached(): Promise<ConversationChain[]> {
+    const startTime = Date.now();
     const projectsPath = path.join(this.claudeHomePath, 'projects');
     const projects = await this.readDirectory(projectsPath);
     
+    this.logger.debug('Starting uncached conversation parsing', {
+      projectsPath,
+      projectCount: projects.length
+    });
+    
     // Collect all JSON entries from all files with source tracking
     const allEntries: (RawJsonEntry & { sourceProject: string })[] = [];
+    let filesProcessed = 0;
+    let entriesFound = 0;
     
     for (const project of projects) {
       const projectPath = path.join(projectsPath, project);
@@ -281,11 +260,19 @@ export class ClaudeHistoryReader {
       if (!stats.isDirectory()) continue;
       
       const files = await this.readDirectory(projectPath);
-      for (const file of files) {
-        if (!file.endsWith('.jsonl')) continue;
-        
+      const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
+      
+      for (const file of jsonlFiles) {
         const filePath = path.join(projectPath, file);
         const entries = await this.parseJsonlFile(filePath);
+        
+        if (entries.length > 0) {
+          this.logger.debug('Parsed JSONL file', {
+            filePath,
+            entryCount: entries.length,
+            project
+          });
+        }
         
         // Add source project tracking to each entry
         const entriesWithSource = entries.map(entry => ({
@@ -294,14 +281,29 @@ export class ClaudeHistoryReader {
         }));
         
         allEntries.push(...entriesWithSource);
+        filesProcessed++;
+        entriesFound += entries.length;
       }
     }
     
+    this.logger.debug('All files parsed', {
+      filesProcessed,
+      totalEntries: entriesFound,
+      elapsedMs: Date.now() - startTime
+    });
+    
     // Group entries by sessionId
     const sessionGroups = this.groupEntriesBySession(allEntries);
+    this.logger.debug('Entries grouped by session', {
+      sessionCount: sessionGroups.size,
+      totalEntries: allEntries.length
+    });
     
     // Process summaries
     const summaries = this.processSummaries(allEntries);
+    this.logger.debug('Summaries processed', {
+      summaryCount: summaries.size
+    });
     
     // Build conversation chains
     const conversationChains: ConversationChain[] = [];
@@ -313,6 +315,13 @@ export class ClaudeHistoryReader {
       }
     }
     
+    const totalElapsed = Date.now() - startTime;
+    this.logger.debug('Uncached parsing complete', {
+      conversationCount: conversationChains.length,
+      totalElapsedMs: totalElapsed,
+      avgTimePerConversation: conversationChains.length > 0 ? totalElapsed / conversationChains.length : 0
+    });
+    
     return conversationChains;
   }
 
@@ -320,31 +329,45 @@ export class ClaudeHistoryReader {
    * Parse all conversations from all JSONL files with caching
    */
   private async parseAllConversations(): Promise<ConversationChain[]> {
-    // Check if cache is valid
-    if (this.conversationCache && await this.isCacheValid()) {
-      this.logger.debug('Using cached conversation data');
-      return this.conversationCache.data;
+    const startTime = Date.now();
+    this.logger.debug('Starting parseAllConversations');
+    
+    // Get current file modification times
+    const currentModTimes = await this.getFileModificationTimes();
+    this.logger.debug('Retrieved file modification times', { fileCount: currentModTimes.size });
+    
+    // Check if we can use cached data
+    const cachedConversations = await this.conversationCache.getCachedConversations(currentModTimes);
+    if (cachedConversations) {
+      const elapsed = Date.now() - startTime;
+      this.logger.info('Using cached conversation data', {
+        conversationCount: cachedConversations.length,
+        elapsedMs: elapsed,
+        cacheStats: this.conversationCache.getStats()
+      });
+      return cachedConversations;
     }
     
-    // Cache is invalid or doesn't exist, parse all files
-    this.logger.info('Cache miss - parsing all conversation files');
-    const startTime = Date.now();
+    // Cache miss or invalid, parse all files
+    this.logger.info('Cache miss - parsing all conversation files', {
+      reason: 'No valid cache available',
+      fileCount: currentModTimes.size
+    });
     
+    const parseStartTime = Date.now();
     const conversations = await this.parseAllConversationsUncached();
-    const fileModTimes = await this.getFileModificationTimes();
+    const parseElapsed = Date.now() - parseStartTime;
     
-    // Update cache
-    this.conversationCache = {
-      data: conversations,
-      fileModTimes,
-      lastCacheTime: Date.now()
-    };
+    // Update cache with new data
+    this.conversationCache.updateCache(conversations, currentModTimes);
     
-    const elapsed = Date.now() - startTime;
+    const totalElapsed = Date.now() - startTime;
     this.logger.info('Conversation parsing completed', { 
       conversationCount: conversations.length,
-      fileCount: fileModTimes.size,
-      elapsedMs: elapsed 
+      fileCount: currentModTimes.size,
+      parseElapsedMs: parseElapsed,
+      totalElapsedMs: totalElapsed,
+      cacheStats: this.conversationCache.getStats()
     });
     
     return conversations;
