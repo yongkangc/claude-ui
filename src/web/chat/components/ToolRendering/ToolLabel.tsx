@@ -6,9 +6,10 @@ interface ToolLabelProps {
   toolName: string;
   toolInput: any;
   workingDirectory?: string;
+  onClick?: () => void;
 }
 
-export function ToolLabel({ toolName, toolInput, workingDirectory }: ToolLabelProps) {
+export function ToolLabel({ toolName, toolInput, workingDirectory, onClick }: ToolLabelProps) {
   console.debug('ToolLabel called with:', { toolName, toolInput, workingDirectory });
   
   const generateLabel = (): React.ReactNode => {
@@ -129,7 +130,11 @@ export function ToolLabel({ toolName, toolInput, workingDirectory }: ToolLabelPr
   };
 
   return (
-    <div className={styles.toolLabel}>
+    <div 
+      className={styles.toolLabel} 
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
       {generateLabel()}
     </div>
   );

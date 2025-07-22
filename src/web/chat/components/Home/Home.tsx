@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useConversations } from '../../contexts/ConversationsContext';
 import { api } from '../../services/api';
@@ -21,10 +21,6 @@ export function Home() {
   } = useConversations();
   const [activeTab, setActiveTab] = useState<'tasks' | 'archive'>('tasks');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
 
   // Get the most recent working directory from conversations
   const recentWorkingDirectory = conversations.length > 0 

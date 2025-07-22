@@ -6,12 +6,24 @@ import styles from './MessageList.module.css';
 export interface MessageListProps {
   messages: ChatMessage[];
   toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | any[] }>;
+  childrenMessages?: Record<string, ChatMessage[]>;
+  expandedTasks?: Set<string>;
+  onToggleTaskExpanded?: (toolUseId: string) => void;
   isLoading?: boolean;
   isStreaming?: boolean;
   preserveScroll?: boolean;
 }
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults = {}, isLoading, isStreaming, preserveScroll = false }) => {
+export const MessageList: React.FC<MessageListProps> = ({ 
+  messages, 
+  toolResults = {}, 
+  childrenMessages = {}, 
+  expandedTasks = new Set(), 
+  onToggleTaskExpanded,
+  isLoading, 
+  isStreaming, 
+  preserveScroll = false 
+}) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
@@ -91,6 +103,9 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, toolResults 
                 key={message.messageId} 
                 message={message} 
                 toolResults={toolResults}
+                childrenMessages={childrenMessages}
+                expandedTasks={expandedTasks}
+                onToggleTaskExpanded={onToggleTaskExpanded}
                 isFirstInGroup={messageIndex === 0}
                 isLastInGroup={messageIndex === group.messages.length - 1}
               />

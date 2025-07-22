@@ -492,3 +492,25 @@
 .thinkingContent a:hover { 
   text-decoration: underline; 
 }
+
+/* Nested messages for Task tool use children */
+.nestedMessages {
+  margin-left: var(--spacing-lg);
+  margin-top: var(--spacing-sm);
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--color-border);
+  position: relative;
+}
+
+.nestedMessages::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, 
+    var(--color-accent) 0%, 
+    var(--color-border) 50%, 
+    var(--color-border) 100%);
+}

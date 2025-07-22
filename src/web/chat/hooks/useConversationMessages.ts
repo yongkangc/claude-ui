@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { ChatMessage, StreamEvent } from '../types';
 import type { ContentBlock, ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
+import type { PermissionRequest } from '@/types';
 
 interface ToolResult {
   status: 'pending' | 'completed';
@@ -13,6 +14,7 @@ interface UseConversationMessagesOptions {
   onResult?: (sessionId: string) => void;
   onError?: (error: string) => void;
   onClosed?: () => void;
+  onPermissionRequest?: (permission: PermissionRequest) => void;
 }
 
 /**
@@ -23,6 +25,9 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [toolResults, setToolResults] = useState<Record<string, ToolResult>>({});
   const [currentWorkingDirectory, setCurrentWorkingDirectory] = useState<string | undefined>();
+  const [currentPermissionRequest, setCurrentPermissionRequest] = useState<PermissionRequest | null>(null);
+  const [childrenMessages, setChildrenMessages] = useState<Record<string, ChatMessage[]>>({});
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   // Clear messages
   const clearMessages = useCallback(() => {
@@ -32,6 +37,9 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     });
     setToolResults({});
     setCurrentWorkingDirectory(undefined);
+    setCurrentPermissionRequest(null);
+    setChildrenMessages({});
+    setExpandedTasks(new Set());
   }, []);
 
   // Add a message
@@ -79,15 +87,14 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
         break;
 
       case 'user':
-        // Drop user events from display but capture tool results
-        console.debug('[useConversationMessages] Processing user event from stream for tool results');
-        
-        // Extract tool results from user messages
+        // Process tool results first - if this message contains tool results, handle them and return early
         if (event.message && Array.isArray(event.message.content)) {
           const toolResultUpdates: Record<string, ToolResult> = {};
+          let hasToolResults = false;
           
           event.message.content.forEach((block) => {
             if (block.type === 'tool_result' && 'tool_use_id' in block) {
+              hasToolResults = true;
               const toolUseId = block.tool_use_id;
               let result: string | ContentBlockParam[] = '';
               
@@ -105,15 +112,44 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
             }
           });
           
-          if (Object.keys(toolResultUpdates).length > 0) {
+          if (hasToolResults) {
             setToolResults(prev => ({ ...prev, ...toolResultUpdates }));
             console.debug(`[useConversationMessages] Updated tool results:`, Object.keys(toolResultUpdates));
+            // Tool result messages should not be added as child messages - return early
+            break;
           }
+        }
+        
+        // If no tool results, check if this is a child message
+        const userParentToolUseId = event.parent_tool_use_id;
+        
+        if (userParentToolUseId) {
+          // This is a child message - create a user message and add to childrenMessages
+          const userMessage: ChatMessage = {
+            id: '',
+            messageId: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: 'user',
+            content: event.message.content,
+            timestamp: new Date().toISOString(),
+            workingDirectory: currentWorkingDirectory,
+            parentToolUseId: userParentToolUseId,
+          };
+          
+          setChildrenMessages(prev => {
+            const newChildren = { ...prev };
+            if (!newChildren[userParentToolUseId]) {
+              newChildren[userParentToolUseId] = [];
+            }
+            newChildren[userParentToolUseId] = [...newChildren[userParentToolUseId], userMessage];
+            console.debug(`[useConversationMessages] Added child user message to parent ${userParentToolUseId}`);
+            return newChildren;
+          });
         }
         break;
 
       case 'assistant':
-        // Just add the message without any special handling
+        // Check if this is a child message
+        const parentToolUseId = event.parent_tool_use_id;
         const assistantMessage: ChatMessage = {
           id: event.message.id,
           messageId: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -121,10 +157,25 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           content: Array.isArray(event.message.content) ? event.message.content : [event.message.content],
           timestamp: new Date().toISOString(),
           workingDirectory: currentWorkingDirectory,
+          parentToolUseId,
         };
         
-        addMessage(assistantMessage);
-        options.onAssistantMessage?.(assistantMessage);
+        if (parentToolUseId) {
+          // This is a child message - add to childrenMessages instead
+          setChildrenMessages(prev => {
+            const newChildren = { ...prev };
+            if (!newChildren[parentToolUseId]) {
+              newChildren[parentToolUseId] = [];
+            }
+            newChildren[parentToolUseId] = [...newChildren[parentToolUseId], assistantMessage];
+            console.debug(`[useConversationMessages] Added child message to parent ${parentToolUseId}`);
+            return newChildren;
+          });
+        } else {
+          // Regular message - add to main list
+          addMessage(assistantMessage);
+          options.onAssistantMessage?.(assistantMessage);
+        }
         break;
 
       case 'result':
@@ -152,16 +203,45 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       case 'closed':
         // Stream closed
         options.onClosed?.();
+        // Clear permission request when stream closes
+        setCurrentPermissionRequest(null);
+        break;
+
+      case 'permission_request':
+        // Handle permission request
+        console.debug('[useConversationMessages] Permission request received:', event.data);
+        setCurrentPermissionRequest(event.data);
+        options.onPermissionRequest?.(event.data);
         break;
     }
-  }, [addMessage, options]);
+  }, [addMessage, options, currentWorkingDirectory]);
 
   // Set all messages at once (for loading from API)
   const setAllMessages = useCallback((newMessages: ChatMessage[]) => {
-    setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${newMessages.length} (reason: Loading conversation from API)`);
-      return newMessages;
+    // Separate parent and child messages
+    const parentMessages: ChatMessage[] = [];
+    const newChildrenMessages: Record<string, ChatMessage[]> = {};
+    
+    newMessages.forEach(message => {
+      if (message.parentToolUseId) {
+        // This is a child message
+        if (!newChildrenMessages[message.parentToolUseId]) {
+          newChildrenMessages[message.parentToolUseId] = [];
+        }
+        newChildrenMessages[message.parentToolUseId].push(message);
+      } else {
+        // This is a parent message
+        parentMessages.push(message);
+      }
     });
+    
+    setMessages(prev => {
+      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${parentMessages.length} (reason: Loading conversation from API, filtering out ${Object.values(newChildrenMessages).flat().length} child messages)`);
+      return parentMessages;
+    });
+    
+    setChildrenMessages(newChildrenMessages);
+    console.debug(`[useConversationMessages] Loaded ${Object.keys(newChildrenMessages).length} parent tools with children`);
 
     // Extract the working directory from the loaded messages (use the most recent one)
     const mostRecentWorkingDir = newMessages
@@ -216,12 +296,29 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     console.debug(`[useConversationMessages] Built tool results from ${Object.keys(newToolResults).length} tool uses`);
   }, []);
 
+  // Toggle task expansion
+  const toggleTaskExpanded = useCallback((toolUseId: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(toolUseId)) {
+        next.delete(toolUseId);
+      } else {
+        next.add(toolUseId);
+      }
+      return next;
+    });
+  }, []);
+
   return {
     messages,
     toolResults,
+    currentPermissionRequest,
+    childrenMessages,
+    expandedTasks,
     addMessage,
     clearMessages,
     handleStreamMessage,
     setAllMessages,
+    toggleTaskExpanded,
   };
 }

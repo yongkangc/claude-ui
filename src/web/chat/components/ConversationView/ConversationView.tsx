@@ -21,10 +21,14 @@ export function ConversationView() {
   const {
     messages,
     toolResults,
+    currentPermissionRequest,
+    childrenMessages,
+    expandedTasks,
     clearMessages,
     addMessage,
     setAllMessages,
     handleStreamMessage,
+    toggleTaskExpanded,
   } = useConversationMessages({
     onResult: (newSessionId) => {
       // Navigate to the new session page if session changed
@@ -193,7 +197,10 @@ export function ConversationView() {
 
       <MessageList 
         messages={messages}
-        toolResults={toolResults} 
+        toolResults={toolResults}
+        childrenMessages={childrenMessages}
+        expandedTasks={expandedTasks}
+        onToggleTaskExpanded={toggleTaskExpanded}
         isLoading={isLoading}
         isStreaming={!!streamingId}
         preserveScroll={!!location.state?.fromConversation}
@@ -204,6 +211,7 @@ export function ConversationView() {
         onStop={handleStop}
         isLoading={isConnected}
         placeholder="Continue the conversation..."
+        permissionRequest={currentPermissionRequest}
       />
 
     </div>

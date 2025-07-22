@@ -83,3 +83,7 @@ npx jest -t "test name"                                    # Run test by name pa
 ## Workflow Guidelines
 
 - Always update cc-workfiles/knowledge/API.md and tests if make any changes to api endpoint.
+
+## Development Gotchas
+
+- Do not run npm run dev to verify frontend update

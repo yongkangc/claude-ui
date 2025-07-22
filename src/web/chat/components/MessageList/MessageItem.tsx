@@ -10,6 +10,9 @@ import styles from './MessageList.module.css';
 interface MessageItemProps {
   message: ChatMessage;
   toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | ContentBlockParam[] }>;
+  childrenMessages?: Record<string, ChatMessage[]>;
+  expandedTasks?: Set<string>;
+  onToggleTaskExpanded?: (toolUseId: string) => void;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
 }
@@ -46,7 +49,15 @@ function getToolIcon(toolName: string) {
   }
 }
 
-export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, isLastInGroup = true }: MessageItemProps) {
+export function MessageItem({ 
+  message, 
+  toolResults = {}, 
+  childrenMessages = {}, 
+  expandedTasks = new Set(), 
+  onToggleTaskExpanded,
+  isFirstInGroup = true, 
+  isLastInGroup = true 
+}: MessageItemProps) {
   const [copiedBlocks, setCopiedBlocks] = useState<Set<string>>(new Set());
 
   const copyContent = async (content: string, blockId: string) => {
@@ -151,7 +162,11 @@ export function MessageItem({ message, toolResults = {}, isFirstInGroup = true, 
                   <ToolUseRenderer
                     toolUse={block}
                     toolResult={toolResult}
+                    toolResults={toolResults}
                     workingDirectory={message.workingDirectory}
+                    childrenMessages={childrenMessages}
+                    expandedTasks={expandedTasks}
+                    onToggleTaskExpanded={onToggleTaskExpanded}
                   />
                 </div>
               </div>
