@@ -38,6 +38,7 @@ export interface ChatMessage {
   content: string | ContentBlock[];
   timestamp: string;
   workingDirectory?: string; // Working directory when the message was created
+  parentToolUseId?: string; // For nested messages from Task tool use
   // isStreaming removed
 }
 

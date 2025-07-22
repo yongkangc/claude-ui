@@ -50,11 +50,13 @@ export interface SystemInitMessage extends StreamMessage {
 export interface AssistantStreamMessage extends StreamMessage {
   type: 'assistant';
   message: Anthropic.Message;
+  parent_tool_use_id?: string;
 }
 
 export interface UserStreamMessage extends StreamMessage {
   type: 'user';
   message: Anthropic.MessageParam;
+  parent_tool_use_id?: string;
 }
 
 export interface ResultStreamMessage extends StreamMessage {

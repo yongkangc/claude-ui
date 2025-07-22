@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Square, Zap, ChevronDown, Mic } from 'lucide-react';
+import { Send, Square, Zap, ChevronDown, Mic, Check, X } from 'lucide-react';
+import type { PermissionRequest } from '@/types';
 import styles from './InputArea.module.css';
 
 interface InputAreaProps {
@@ -7,9 +8,10 @@ interface InputAreaProps {
   onStop?: () => void;
   isLoading?: boolean;
   placeholder?: string;
+  permissionRequest?: PermissionRequest | null;
 }
 
-export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "Type a message..." }: InputAreaProps) {
+export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "Type a message...", permissionRequest }: InputAreaProps) {
   const [message, setMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,29 +71,44 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
         <form className={styles.composer} onSubmit={handleSubmit}>
           <div 
             ref={composerRef}
-            className={`${styles.composerInner} ${isFocused ? styles.expanded : ''}`}
-            onClick={() => textareaRef.current?.focus()}
+            className={`${styles.composerInner} ${isFocused ? styles.expanded : ''} ${permissionRequest ? styles.permissionMode : ''}`}
+            onClick={() => !permissionRequest && textareaRef.current?.focus()}
           >
             <div className={styles.inputWrapper}>
               <div className={styles.textAreaContainer}>
-                <textarea
-                  ref={textareaRef}
-                  className={styles.textarea}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => {
-                    setIsFocused(false);
-                    // Reset textarea height when losing focus
-                    if (textareaRef.current && !message.trim()) {
-                      textareaRef.current.style.height = 'auto';
-                    }
-                  }}
-                  placeholder={placeholder}
-                  disabled={isLoading}
-                  rows={1}
-                />
+                {permissionRequest ? (
+                  <div className={styles.permissionContent}>
+                    <div className={styles.permissionHeader}>
+                      <span className={styles.permissionTitle}>Permission Required</span>
+                      <span className={styles.permissionTool}>{permissionRequest.toolName}</span>
+                    </div>
+                    <details className={styles.permissionDetails}>
+                      <summary>View Details</summary>
+                      <pre className={styles.permissionInput}>
+                        {JSON.stringify(permissionRequest.toolInput, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <textarea
+                    ref={textareaRef}
+                    className={styles.textarea}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => {
+                      setIsFocused(false);
+                      // Reset textarea height when losing focus
+                      if (textareaRef.current && !message.trim()) {
+                        textareaRef.current.style.height = 'auto';
+                      }
+                    }}
+                    placeholder={placeholder}
+                    disabled={isLoading}
+                    rows={1}
+                  />
+                )}
               </div>
               
               {isFocused && (
@@ -111,7 +128,26 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
               )}
               
               <div className={styles.voiceButton}>
-                {isLoading ? (
+                {permissionRequest ? (
+                  <div className={styles.permissionButtons}>
+                    <button
+                      type="button"
+                      className={`${styles.iconButton} ${styles.permissionButton} ${styles.approveButton}`}
+                      title="Approve (non-functional)"
+                      disabled
+                    >
+                      <Check size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.iconButton} ${styles.permissionButton} ${styles.denyButton}`}
+                      title="Deny (non-functional)"
+                      disabled
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : isLoading ? (
                   <button
                     type="button"
                     className={styles.iconButton}

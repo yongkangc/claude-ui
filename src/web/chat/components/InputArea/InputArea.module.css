@@ -235,6 +235,114 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Permission mode styles */
+.composerInner.permissionMode {
+  border: 2px solid var(--color-warning, #f59e0b);
+  background-color: var(--color-warning-bg, rgba(245, 158, 11, 0.1));
+}
+
+.permissionContent {
+  width: 100%;
+  padding: 12px 16px;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permissionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.permissionTitle {
+  font-weight: 600;
+  color: var(--color-warning, #f59e0b);
+  font-size: 14px;
+}
+
+.permissionTool {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.permissionDetails {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.permissionDetails summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.permissionDetails summary:hover {
+  color: var(--color-text-primary);
+}
+
+.permissionInput {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.permissionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.permissionButton {
+  width: 32px;
+  height: 32px;
+}
+
+.approveButton {
+  background-color: var(--color-success, #10b981);
+  color: white;
+}
+
+.approveButton:disabled {
+  background-color: var(--color-success, #10b981);
+  opacity: 0.5;
+  color: white;
+}
+
+.denyButton {
+  background-color: var(--color-error, #ef4444);
+  color: white;
+}
+
+.denyButton:disabled {
+  background-color: var(--color-error, #ef4444);
+  opacity: 0.5;
+  color: white;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .composerInner.permissionMode {
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+[data-theme="dark"] .permissionTool {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .permissionInput {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
