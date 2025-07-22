@@ -191,6 +191,7 @@
   bottom: 0px;
   width: 1px;
   background-color: var(--color-border);
+  display: none;
 }
 
 .assistantContent {
@@ -328,6 +329,7 @@
   width: 1px;
   height: 20px;
   background-color: var(--color-border);
+  display: none;
 }
 
 /* Error Messages */
