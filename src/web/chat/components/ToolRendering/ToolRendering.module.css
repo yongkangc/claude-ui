@@ -301,3 +301,73 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* Task Children Container Styles */
+.taskChildrenContainer {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+.expandButton {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  z-index: 3;
+}
+
+.expandButton:hover {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+
+.taskChildrenContent {
+  max-height: 100px;
+  padding: var(--spacing-lg) var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
+  position: relative;
+}
+
+.taskChildrenContent.autoScroll {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, black 40%, black 45%, transparent 90%);
+  mask-image: linear-gradient(180deg, transparent 0, black 40%, black 45%, transparent 90%);
+}
+
+.taskChildrenContent.fullHeight {
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.taskChildrenContent.fullHeight::-webkit-scrollbar {
+  width: 6px;
+}
+
+.taskChildrenContent.fullHeight::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.taskChildrenContent.fullHeight::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 3px;
+}
+
+.taskChildrenContent.fullHeight::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-secondary);
+}

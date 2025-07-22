@@ -133,7 +133,11 @@ export const MessageList: React.FC<MessageListProps> = ({
         
         {!isLoading && isStreaming && messageGroups.length > 0 && (
           <div className={styles.streamingIndicator}>
-            <div className={styles.streamingDot} />
+            <div className={styles.timelineIcon}>
+              <div className={styles.streamingDot} />
+              {/* Connector from last message */}
+              <div className={styles.streamingConnector} />
+            </div>
           </div>
         )}
         

@@ -3,8 +3,6 @@ import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/mes
 import type { ChatMessage } from '../../types';
 import { ToolLabel } from './ToolLabel';
 import { ToolContent } from './ToolContent';
-import { MessageItem } from '../MessageList/MessageItem';
-import styles from '../MessageList/MessageList.module.css';
 
 interface ToolUse {
   type: 'tool_use';
@@ -38,9 +36,6 @@ export function ToolUseRenderer({
   expandedTasks = new Set(),
   onToggleTaskExpanded
 }: ToolUseRendererProps) {
-  const hasChildren = toolUse.name === 'Task' && childrenMessages[toolUse.id] && childrenMessages[toolUse.id].length > 0;
-  const children = childrenMessages[toolUse.id] || [];
-  
   return (
     <>
       <ToolLabel 
@@ -48,25 +43,15 @@ export function ToolUseRenderer({
         toolInput={toolUse.input}
         workingDirectory={workingDirectory}
       />
-      {!hasChildren && (
-        <ToolContent
-          toolName={toolUse.name}
-          toolInput={toolUse.input}
-          toolResult={toolResult}
-          workingDirectory={workingDirectory}
-        />
-      )}
-      {hasChildren && (
-        <div className={styles.nestedMessages}>
-          {children.map((childMessage) => (
-            <MessageItem
-              key={childMessage.messageId}
-              message={childMessage}
-              toolResults={toolResults}
-            />
-          ))}
-        </div>
-      )}
+      <ToolContent
+        toolName={toolUse.name}
+        toolInput={toolUse.input}
+        toolResult={toolResult}
+        workingDirectory={workingDirectory}
+        toolUseId={toolUse.id}
+        childrenMessages={childrenMessages}
+        toolResults={toolResults}
+      />
     </>
   );
 }

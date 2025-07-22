@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
+import type { ChatMessage } from '../../types';
 import { ReadTool } from './tools/ReadTool';
 import { EditTool } from './tools/EditTool';
 import { BashTool } from './tools/BashTool';
@@ -21,9 +22,20 @@ interface ToolContentProps {
   toolInput: any;
   toolResult?: ToolResult;
   workingDirectory?: string;
+  toolUseId?: string;
+  childrenMessages?: Record<string, ChatMessage[]>;
+  toolResults?: Record<string, any>;
 }
 
-export function ToolContent({ toolName, toolInput, toolResult, workingDirectory }: ToolContentProps) {
+export function ToolContent({ 
+  toolName, 
+  toolInput, 
+  toolResult, 
+  workingDirectory, 
+  toolUseId, 
+  childrenMessages, 
+  toolResults
+}: ToolContentProps) {
   // Extract result content - handle both string and ContentBlockParam[] formats
   const getResultContent = (): string => {
     if (!toolResult?.result) return '';
@@ -125,6 +137,9 @@ export function ToolContent({ toolName, toolInput, toolResult, workingDirectory 
           result={resultContent}
           isError={isError}
           isPending={isPending}
+          toolUseId={toolUseId}
+          childrenMessages={childrenMessages}
+          toolResults={toolResults}
         />
       );
     

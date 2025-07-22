@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import type { ChatMessage } from '../../../types';
+import { MessageItem } from '../../MessageList/MessageItem';
 import styles from '../ToolRendering.module.css';
 
 interface TaskToolProps {
@@ -7,47 +9,79 @@ interface TaskToolProps {
   result: string;
   isError: boolean;
   isPending: boolean;
+  toolUseId?: string;
+  childrenMessages?: Record<string, ChatMessage[]>;
+  toolResults?: Record<string, any>;
 }
 
-export function TaskTool({ input, result, isError, isPending }: TaskToolProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function TaskTool({ 
+  input, 
+  result, 
+  isError, 
+  isPending, 
+  toolUseId, 
+  childrenMessages = {}, 
+  toolResults = {}
+}: TaskToolProps) {
+  const hasChildren = toolUseId && childrenMessages[toolUseId] && childrenMessages[toolUseId].length > 0;
+  const children = toolUseId ? childrenMessages[toolUseId] || [] : [];
+  const [isFullHeight, setIsFullHeight] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  if (isPending) {
-    return <div className={styles.toolContent} />;
+  // Auto-scroll to bottom when new messages arrive (only when not in full height)
+  useEffect(() => {
+    if (!isFullHeight && contentRef.current && children.length > 0) {
+      contentRef.current.scrollTo({
+        top: contentRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [children.length, isFullHeight]);
+
+  if (isError) {
+    return (
+      <div className={styles.toolContent}>
+        <div className={styles.errorContent}>
+          {result || 'Task failed'}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className={styles.toolContent}>
-      <div className={styles.collapsibleContainer}>
-        <div 
-          className={styles.collapsibleHeader}
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <ChevronRight 
-            size={12} 
-            className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
-          />
-          {input.description || 'Task'}
-        </div>
-        
-        {isExpanded && (
-          <div className={styles.collapsibleContent}>
-            {isError ? (
-              <div className={styles.errorContent}>
-                {result || 'Task failed'}
-              </div>
-            ) : result ? (
-              <div className={styles.codeBlock}>
-                <pre>{result}</pre>
-              </div>
-            ) : (
-              <div className={styles.pendingContent}>
-                Task is running...
-              </div>
-            )}
+    <>
+      {hasChildren && (
+        <div className={styles.toolContent}>
+          <div className={styles.taskChildrenContainer}>
+            <button
+              className={styles.expandButton}
+              onClick={() => setIsFullHeight(!isFullHeight)}
+              title={isFullHeight ? "Collapse height" : "Expand height"}
+            >
+              {isFullHeight ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+            <div 
+              ref={contentRef}
+              className={`${styles.taskChildrenContent} ${isFullHeight ? styles.fullHeight : styles.autoScroll}`}
+            >
+              {children.map((childMessage) => (
+                <MessageItem
+                  key={childMessage.messageId}
+                  message={childMessage}
+                  toolResults={toolResults}
+                />
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+      {!isPending && (
+        <div className={styles.toolContent}>
+          <div className={styles.toolSummary}>
+            ✓ Task completed
+          </div>
+        </div>
+      )}
+    </>
   );
 }
