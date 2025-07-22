@@ -37,7 +37,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      if (!e.shiftKey || (e.metaKey || e.ctrlKey)) {
+      if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
         handleSubmit(e as any);
       }

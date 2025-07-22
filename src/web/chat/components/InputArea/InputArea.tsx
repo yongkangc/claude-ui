@@ -59,7 +59,7 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSubmit();
     }
@@ -160,7 +160,7 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
                   <button
                     type="submit"
                     className={styles.iconButton}
-                    title="Send message (Enter)"
+                    title="Send message (Ctrl/Cmd+Enter)"
                   >
                     <Send size={18} />
                   </button>
