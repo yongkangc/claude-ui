@@ -70,3 +70,52 @@ components/
 1. Add new methods to `services/api.ts`
 2. Import backend types from `@/types/*`
 3. Handle errors consistently with existing patterns
+
+## Design System
+
+### Color Palette
+- **Backgrounds**: `--color-bg-primary/secondary/tertiary` (white to gray in light, dark grays in dark mode)
+- **Text**: `--color-text-primary/secondary/muted` (hierarchical contrast)
+- **Accent**: `#0066cc` (light) / `#4d9fff` (dark) for interactive elements
+- **Status**: Success (green), Warning (yellow), Error (red), Info (blue)
+
+### Typography
+- **UI**: System fonts (`-apple-system, BlinkMacSystemFont, 'Segoe UI'`)
+- **Code**: `'SF Mono', Monaco, 'Cascadia Code'` for technical content
+- **Sizes**: 11px-16px scale, 13px base, 1.5-1.6 line height
+
+### Spacing & Layout
+- **Scale**: 4px base unit (xs:4px, sm:8px, md:16px, lg:24px, xl:32px)
+- **Content**: Max-width 48rem for readability
+- **Borders**: 4px-28px radius scale, 28px for pill shapes
+
+### Component Patterns
+
+**Buttons**
+- Active: Text color as background, inverted text
+- Disabled: Transparent background, secondary text
+- Hover: 0.9 opacity
+- Size: 32-36px circles for primary actions
+
+**Input Areas**
+- Pill-shaped containers (28px radius)
+- Expandable with smooth transitions
+- Focus: 2px accent outline
+
+**Messages**
+- User: Right-aligned, secondary background
+- Assistant: Timeline with dots and connectors
+- Tools: Collapsible dark-background sections
+
+### States & Animation
+- **Transitions**: 150ms (fast) / 250ms (normal) ease
+- **Loading**: 3-dot bounce or shimmer effects
+- **Focus**: 2px accent outline with offset
+- **Mobile**: 768px breakpoint, 44px touch targets
+
+### Best Practices
+1. Use CSS variables for all theme values
+2. CSS Modules for component isolation
+3. Mobile-first responsive design
+4. Maintain WCAG AA contrast ratios
+5. Consistent use of spacing scale
