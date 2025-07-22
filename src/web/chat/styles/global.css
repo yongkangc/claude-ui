@@ -39,10 +39,11 @@ body {
 
 #root {
   width: 100%;
-  max-width: 100vw;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  min-height: 100dvh;
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: 100dvh;
+  /* Use actual viewport height from JavaScript if available */
+  height: var(--actual-vh, 100vh);
   /* Ensure root takes full viewport */
   display: flex;
   flex-direction: column;
