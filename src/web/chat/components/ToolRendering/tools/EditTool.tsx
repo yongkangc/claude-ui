@@ -1,7 +1,7 @@
 import React from 'react';
-import { formatDiffLines } from '../../../utils/tool-utils';
 import { detectLanguageFromPath } from '../../../utils/language-detection';
 import { CodeHighlight } from '../../CodeHighlight';
+import { DiffViewer } from './DiffViewer';
 import styles from '../ToolRendering.module.css';
 
 interface EditToolProps {
@@ -14,6 +14,9 @@ interface EditToolProps {
 }
 
 export function EditTool({ input, result, isError, isPending, isMultiEdit = false, workingDirectory }: EditToolProps) {
+  // 从文件路径检测语言
+  const filePath = input?.file_path || '';
+  const language = detectLanguageFromPath(filePath);
   if (isPending) {
     return (
       <div className={styles.toolContent}>
@@ -39,61 +42,36 @@ export function EditTool({ input, result, isError, isPending, isMultiEdit = fals
   if (isMultiEdit && input.edits && Array.isArray(input.edits)) {
     return (
       <div className={styles.toolContent}>
-        <div className={styles.diffContainer}>
-          {input.edits.map((edit: any, index: number) => {
-            const diffLines = formatDiffLines(edit.old_string || '', edit.new_string || '');
-            return (
-              <div key={index}>
-                {diffLines.map((line, lineIndex) => (
-                  <div 
-                    key={`${index}-${lineIndex}`}
-                    className={`${styles.diffLine} ${
-                      line.type === 'remove' ? styles.diffLineRemove : styles.diffLineAdd
-                    }`}
-                  >
-                    {line.type === 'remove' ? '-' : '+'}
-                    {line.content}
-                  </div>
-                ))}
-                {index < input.edits.length - 1 && (
-                  <div className={styles.diffLine} style={{ backgroundColor: 'transparent', color: 'var(--color-text-secondary)' }}>
-                    ...
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {input.edits.map((edit: any, index: number) => (
+          <div key={index}>
+            <DiffViewer
+              oldValue={edit.old_string || ''}
+              newValue={edit.new_string || ''}
+              language={language}
+            />
+            {index < input.edits.length - 1 && (
+              <div style={{ height: '8px' }} />
+            )}
+          </div>
+        ))}
       </div>
     );
   }
 
   // For regular Edit, process single edit
   if (input.old_string !== undefined && input.new_string !== undefined) {
-    const diffLines = formatDiffLines(input.old_string, input.new_string);
-    
     return (
       <div className={styles.toolContent}>
-        <div className={styles.diffContainer}>
-          {diffLines.map((line, index) => (
-            <div 
-              key={index}
-              className={`${styles.diffLine} ${
-                line.type === 'remove' ? styles.diffLineRemove : styles.diffLineAdd
-              }`}
-            >
-              {line.type === 'remove' ? '-' : '+'}
-              {line.content}
-            </div>
-          ))}
-        </div>
+        <DiffViewer
+          oldValue={input.old_string}
+          newValue={input.new_string}
+          language={language}
+        />
       </div>
     );
   }
 
   // Fallback if we can't parse the edit
-  const filePath = input?.file_path || '';
-  const language = detectLanguageFromPath(filePath);
   
   return (
     <div className={styles.toolContent}>

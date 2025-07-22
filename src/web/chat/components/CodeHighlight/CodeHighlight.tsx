@@ -84,7 +84,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
 
   return (
     <Highlight
-      theme={themes.github}
+      theme={themes.vsDark}
       code={code.trimEnd()}
       language={prismLanguage as Language}
     >

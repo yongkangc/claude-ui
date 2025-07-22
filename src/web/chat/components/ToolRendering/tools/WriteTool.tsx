@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import { CornerDownRight } from 'lucide-react';
-import { formatFilePath } from '../../../utils/tool-utils';
+import React from 'react';
 import { detectLanguageFromPath } from '../../../utils/language-detection';
-import { CodeHighlight } from '../../CodeHighlight';
+import { DiffViewer } from './DiffViewer';
 import styles from '../ToolRendering.module.css';
 
 interface WriteToolProps {
@@ -14,7 +12,6 @@ interface WriteToolProps {
 }
 
 export function WriteTool({ input, result, isError, isPending, workingDirectory }: WriteToolProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
 
   if (isPending) {
     return (
@@ -38,30 +35,16 @@ export function WriteTool({ input, result, isError, isPending, workingDirectory 
   }
 
   const filePath = input?.file_path || '';
-  const formattedPath = formatFilePath(filePath, workingDirectory);
   const content = input?.content || '';
   const language = detectLanguageFromPath(filePath);
 
   return (
     <div className={styles.toolContent}>
-      <div 
-        className={`${styles.toolSummary} ${styles.expandable}`}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <CornerDownRight 
-          size={12} 
-          className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`} 
-        />
-        Wrote to {formattedPath}
-      </div>
-      
-      {isExpanded && content && (
-        <CodeHighlight
-          code={content}
-          language={language}
-          className={styles.codeBlock}
-        />
-      )}
+      <DiffViewer
+        oldValue=""
+        newValue={content}
+        language={language}
+      />
     </div>
   );
 }
