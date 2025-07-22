@@ -1,5 +1,3 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { ConversationMessage } from '@/types';
 import { createLogger, type Logger } from './logger';
 import Anthropic from '@anthropic-ai/sdk';
@@ -15,9 +13,30 @@ export interface ConversationChain {
   model: string;
 }
 
+interface RawJsonEntry {
+  type: string;
+  uuid?: string;
+  sessionId?: string;
+  parentUuid?: string;
+  timestamp?: string;
+  message?: Anthropic.Message | Anthropic.MessageParam;
+  cwd?: string;
+  durationMs?: number;
+  isSidechain?: boolean;
+  userType?: string;
+  version?: string;
+  summary?: string;
+  leafUuid?: string;
+}
+
+interface FileCache {
+  entries: RawJsonEntry[];     // Parsed JSONL entries from this file
+  mtime: number;              // File modification time when cached
+  sourceProject: string;      // Project directory name
+}
+
 interface ConversationCacheData {
-  data: ConversationChain[];
-  fileModTimes: Map<string, number>; // filepath -> mtime in ms
+  fileCache: Map<string, FileCache>; // filePath -> cached file data
   lastCacheTime: number;
 }
 
@@ -27,6 +46,7 @@ interface ConversationCacheData {
 export class ConversationCache {
   private cache: ConversationCacheData | null = null;
   private logger: Logger;
+  private parsingPromise: Promise<ConversationChain[]> | null = null;
 
   constructor() {
     this.logger = createLogger('ConversationCache');
@@ -37,152 +57,239 @@ export class ConversationCache {
    */
   clear(): void {
     this.logger.debug('Clearing conversation cache');
-    const previousCacheSize = this.cache?.data.length || 0;
+    const previousStats = this.cache ? {
+      cachedFileCount: this.cache.fileCache.size,
+      totalEntries: Array.from(this.cache.fileCache.values())
+        .reduce((sum, cache) => sum + cache.entries.length, 0)
+    } : { cachedFileCount: 0, totalEntries: 0 };
+    
     this.cache = null;
+    this.parsingPromise = null;
     this.logger.info('Conversation cache cleared', { 
-      previousCacheSize,
+      previousStats,
       timestamp: new Date().toISOString() 
     });
   }
 
   /**
-   * Get cached conversations if the cache is valid
+   * Get cached file entries, combining cached and newly parsed entries
    */
-  async getCachedConversations(
-    currentFileModTimes: Map<string, number>
-  ): Promise<ConversationChain[] | null> {
-    this.logger.debug('Attempting to retrieve cached conversations', {
+  async getCachedFileEntries(
+    currentFileModTimes: Map<string, number>,
+    parseFileFunction: (filePath: string) => Promise<RawJsonEntry[]>,
+    getSourceProject: (filePath: string) => string
+  ): Promise<(RawJsonEntry & { sourceProject: string })[]> {
+    this.logger.debug('Getting cached file entries', {
       hasCachedData: !!this.cache,
       currentFileCount: currentFileModTimes.size
     });
 
+    // Initialize cache if it doesn't exist
     if (!this.cache) {
-      this.logger.debug('No cache exists, returning null');
-      return null;
+      this.cache = {
+        fileCache: new Map(),
+        lastCacheTime: Date.now()
+      };
     }
 
-    const isValid = await this.isCacheValid(currentFileModTimes);
-    if (!isValid) {
-      this.logger.debug('Cache is invalid, returning null');
-      return null;
+    const allEntries: (RawJsonEntry & { sourceProject: string })[] = [];
+    let filesFromCache = 0;
+    let filesReparsed = 0;
+
+    // Process each file: use cache OR re-parse if changed
+    for (const [filePath, currentMtime] of currentFileModTimes) {
+      const cached = this.cache.fileCache.get(filePath);
+      
+      if (cached && cached.mtime === currentMtime) {
+        // Use cached entries (skip expensive file I/O + JSON parsing)
+        const entriesWithSource = cached.entries.map(entry => ({
+          ...entry,
+          sourceProject: cached.sourceProject
+        }));
+        allEntries.push(...entriesWithSource);
+        filesFromCache++;
+      } else {
+        // Re-parse this file (expensive operation)
+        try {
+          const entries = await parseFileFunction(filePath);
+          const sourceProject = getSourceProject(filePath);
+          
+          // Update cache for this file
+          this.cache.fileCache.set(filePath, {
+            entries,
+            mtime: currentMtime,
+            sourceProject
+          });
+          
+          const entriesWithSource = entries.map(entry => ({
+            ...entry,
+            sourceProject
+          }));
+          allEntries.push(...entriesWithSource);
+          filesReparsed++;
+        } catch (error) {
+          this.logger.warn('Failed to parse file, skipping', { filePath, error });
+          // Remove from cache if it exists
+          this.cache.fileCache.delete(filePath);
+        }
+      }
     }
 
-    this.logger.debug('Cache is valid, returning cached data', {
-      conversationCount: this.cache.data.length,
-      cacheAge: Date.now() - this.cache.lastCacheTime
+    // Clean up cache entries for files that no longer exist
+    for (const [cachedFilePath] of this.cache.fileCache) {
+      if (!currentFileModTimes.has(cachedFilePath)) {
+        this.logger.debug('Removing cache entry for deleted file', { filePath: cachedFilePath });
+        this.cache.fileCache.delete(cachedFilePath);
+      }
+    }
+
+    this.logger.debug('File cache processing complete', {
+      totalFiles: currentFileModTimes.size,
+      filesFromCache,
+      filesReparsed,
+      totalEntries: allEntries.length,
+      cachedFileCount: this.cache.fileCache.size
     });
 
-    return this.cache.data;
+    return allEntries;
   }
 
   /**
-   * Update the cache with new conversation data
+   * Update a specific file's cache entry
    */
-  updateCache(
-    conversations: ConversationChain[],
-    fileModTimes: Map<string, number>
+  updateFileCache(
+    filePath: string,
+    entries: RawJsonEntry[],
+    mtime: number,
+    sourceProject: string
   ): void {
-    const startTime = Date.now();
-    
-    this.logger.debug('Updating cache', {
-      conversationCount: conversations.length,
-      fileCount: fileModTimes.size,
-      previousCacheExists: !!this.cache
+    if (!this.cache) {
+      this.cache = {
+        fileCache: new Map(),
+        lastCacheTime: Date.now()
+      };
+    }
+
+    this.cache.fileCache.set(filePath, {
+      entries,
+      mtime,
+      sourceProject
     });
 
-    // Store previous cache info for comparison
-    const previousCacheInfo = this.cache ? {
-      conversationCount: this.cache.data.length,
-      fileCount: this.cache.fileModTimes.size,
-      lastCacheTime: this.cache.lastCacheTime
-    } : null;
-
-    // Update cache
-    this.cache = {
-      data: conversations,
-      fileModTimes: new Map(fileModTimes), // Create a copy to avoid external modifications
-      lastCacheTime: Date.now()
-    };
-
-    const updateDuration = Date.now() - startTime;
-
-    this.logger.info('Cache updated successfully', {
-      conversationCount: conversations.length,
-      fileCount: fileModTimes.size,
-      updateDurationMs: updateDuration,
-      previousCacheInfo,
-      timestamp: new Date(this.cache.lastCacheTime).toISOString()
+    this.logger.debug('File cache updated', {
+      filePath,
+      entryCount: entries.length,
+      sourceProject,
+      mtime: new Date(mtime).toISOString()
     });
   }
 
   /**
-   * Check if the cache is still valid by comparing file modification times
+   * Clear cache entry for a specific file
    */
-  private async isCacheValid(currentModTimes: Map<string, number>): Promise<boolean> {
+  clearFileCache(filePath: string): void {
+    if (this.cache?.fileCache.has(filePath)) {
+      this.cache.fileCache.delete(filePath);
+      this.logger.debug('File cache cleared', { filePath });
+    }
+  }
+
+  /**
+   * Check if a specific file's cache entry is valid
+   */
+  isFileCacheValid(filePath: string, currentMtime: number): boolean {
     if (!this.cache) {
-      this.logger.debug('Cache validity check: No cache exists');
       return false;
     }
 
-    this.logger.debug('Starting cache validity check', {
-      cachedFileCount: this.cache.fileModTimes.size,
-      currentFileCount: currentModTimes.size,
-      cacheAge: Date.now() - this.cache.lastCacheTime
+    const cached = this.cache.fileCache.get(filePath);
+    return cached ? cached.mtime === currentMtime : false;
+  }
+
+  /**
+   * Get or parse conversations with file-level caching and concurrency protection
+   */
+  async getOrParseConversations(
+    currentFileModTimes: Map<string, number>,
+    parseFileFunction: (filePath: string) => Promise<RawJsonEntry[]>,
+    getSourceProject: (filePath: string) => string,
+    processAllEntries: (allEntries: (RawJsonEntry & { sourceProject: string })[]) => ConversationChain[]
+  ): Promise<ConversationChain[]> {
+    this.logger.debug('Request for conversations received', {
+      hasCachedData: !!this.cache,
+      isCurrentlyParsing: !!this.parsingPromise,
+      currentFileCount: currentFileModTimes.size
     });
 
-    // Check if file counts differ
-    if (currentModTimes.size !== this.cache.fileModTimes.size) {
-      this.logger.info('Cache invalidated: File count changed', {
-        cachedCount: this.cache.fileModTimes.size,
-        currentCount: currentModTimes.size,
-        difference: currentModTimes.size - this.cache.fileModTimes.size
-      });
-      return false;
-    }
-
-    // Check if any file has been modified
-    for (const [filePath, currentMtime] of currentModTimes) {
-      const cachedMtime = this.cache.fileModTimes.get(filePath);
-      
-      if (!cachedMtime) {
-        this.logger.info('Cache invalidated: New file added', { 
-          filePath,
-          currentMtime: new Date(currentMtime).toISOString()
+    // If already parsing, wait for it to complete
+    if (this.parsingPromise) {
+      this.logger.info('Parsing already in progress, waiting for completion');
+      try {
+        const result = await this.parsingPromise;
+        this.logger.debug('Concurrent parsing completed, returning result', {
+          conversationCount: result.length
         });
-        return false;
-      }
-      
-      if (cachedMtime < currentMtime) {
-        const timeDiff = currentMtime - cachedMtime;
-        this.logger.info('Cache invalidated: File modified', { 
-          filePath,
-          cachedMtime: new Date(cachedMtime).toISOString(),
-          currentMtime: new Date(currentMtime).toISOString(),
-          timeDifferenceMs: timeDiff
-        });
-        return false;
+        return result;
+      } catch (error) {
+        this.logger.error('Concurrent parsing failed', error);
+        // Clear the failed promise and fall through to retry
+        this.parsingPromise = null;
       }
     }
 
-    // Check if any cached files were removed
-    for (const [filePath, cachedMtime] of this.cache.fileModTimes) {
-      if (!currentModTimes.has(filePath)) {
-        this.logger.info('Cache invalidated: File removed', { 
-          filePath,
-          cachedMtime: new Date(cachedMtime).toISOString()
-        });
-        return false;
-      }
-    }
-
-    const cacheAge = Date.now() - this.cache.lastCacheTime;
-    this.logger.debug('Cache is valid', {
-      cacheAgeMs: cacheAge,
-      cacheAgeMinutes: Math.floor(cacheAge / 60000),
-      fileCount: this.cache.fileModTimes.size
+    // Start new parsing operation with file-level caching
+    this.logger.info('Starting parsing operation with file-level caching', {
+      fileCount: currentFileModTimes.size
     });
 
-    return true;
+    this.parsingPromise = this.executeFileBasedParsing(
+      currentFileModTimes,
+      parseFileFunction,
+      getSourceProject,
+      processAllEntries
+    );
+
+    try {
+      const result = await this.parsingPromise;
+      this.parsingPromise = null;
+      return result;
+    } catch (error) {
+      this.parsingPromise = null;
+      throw error;
+    }
+  }
+
+  /**
+   * Execute file-based parsing with proper logging
+   */
+  private async executeFileBasedParsing(
+    currentFileModTimes: Map<string, number>,
+    parseFileFunction: (filePath: string) => Promise<RawJsonEntry[]>,
+    getSourceProject: (filePath: string) => string,
+    processAllEntries: (allEntries: (RawJsonEntry & { sourceProject: string })[]) => ConversationChain[]
+  ): Promise<ConversationChain[]> {
+    const parseStartTime = Date.now();
+    
+    this.logger.debug('Executing file-based parsing');
+    
+    // Get all entries using file-level caching
+    const allEntries = await this.getCachedFileEntries(
+      currentFileModTimes,
+      parseFileFunction,
+      getSourceProject
+    );
+    
+    // Process entries into conversations (cheap in-memory operation)
+    const conversations = processAllEntries(allEntries);
+    const parseElapsed = Date.now() - parseStartTime;
+
+    this.logger.info('File-based parsing completed', {
+      conversationCount: conversations.length,
+      totalEntries: allEntries.length,
+      parseElapsedMs: parseElapsed
+    });
+
+    return conversations;
   }
 
   /**
@@ -190,27 +297,43 @@ export class ConversationCache {
    */
   getStats(): {
     isLoaded: boolean;
-    conversationCount: number;
-    fileCount: number;
+    cachedFileCount: number;
+    totalCachedEntries: number;
     lastCacheTime: number | null;
     cacheAge: number | null;
+    isCurrentlyParsing: boolean;
+    fileCacheDetails: { filePath: string; entryCount: number; mtime: string }[];
   } {
     if (!this.cache) {
       return {
         isLoaded: false,
-        conversationCount: 0,
-        fileCount: 0,
+        cachedFileCount: 0,
+        totalCachedEntries: 0,
         lastCacheTime: null,
-        cacheAge: null
+        cacheAge: null,
+        isCurrentlyParsing: !!this.parsingPromise,
+        fileCacheDetails: []
       };
     }
 
+    const totalCachedEntries = Array.from(this.cache.fileCache.values())
+      .reduce((sum, cache) => sum + cache.entries.length, 0);
+
+    const fileCacheDetails = Array.from(this.cache.fileCache.entries())
+      .map(([filePath, cache]) => ({
+        filePath,
+        entryCount: cache.entries.length,
+        mtime: new Date(cache.mtime).toISOString()
+      }));
+
     return {
       isLoaded: true,
-      conversationCount: this.cache.data.length,
-      fileCount: this.cache.fileModTimes.size,
+      cachedFileCount: this.cache.fileCache.size,
+      totalCachedEntries,
       lastCacheTime: this.cache.lastCacheTime,
-      cacheAge: Date.now() - this.cache.lastCacheTime
+      cacheAge: Date.now() - this.cache.lastCacheTime,
+      isCurrentlyParsing: !!this.parsingPromise,
+      fileCacheDetails
     };
   }
 }

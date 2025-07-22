@@ -7,7 +7,8 @@ import { SessionInfoService } from './session-info-service';
 import { ConversationCache, ConversationChain } from './conversation-cache';
 import Anthropic from '@anthropic-ai/sdk';
 
-interface RawJsonEntry {
+// Import RawJsonEntry from ConversationCache to avoid duplication
+type RawJsonEntry = {
   type: string;
   uuid?: string;
   sessionId?: string;
@@ -21,7 +22,7 @@ interface RawJsonEntry {
   version?: string;
   summary?: string;
   leafUuid?: string;
-}
+};
 
 /**
  * Reads conversation history from Claude's local storage
@@ -236,60 +237,23 @@ export class ClaudeHistoryReader {
 
 
   /**
-   * Parse all conversations from all JSONL files (uncached version)
+   * Extract source project name from file path
    */
-  private async parseAllConversationsUncached(): Promise<ConversationChain[]> {
-    const startTime = Date.now();
+  private extractSourceProject(filePath: string): string {
     const projectsPath = path.join(this.claudeHomePath, 'projects');
-    const projects = await this.readDirectory(projectsPath);
+    const relativePath = path.relative(projectsPath, filePath);
+    const segments = relativePath.split(path.sep);
+    return segments[0]; // First segment is the project directory name
+  }
+
+  /**
+   * Process all entries into conversation chains (the cheap in-memory operations)
+   */
+  private processAllEntries(allEntries: (RawJsonEntry & { sourceProject: string })[]): ConversationChain[] {
+    const startTime = Date.now();
     
-    this.logger.debug('Starting uncached conversation parsing', {
-      projectsPath,
-      projectCount: projects.length
-    });
-    
-    // Collect all JSON entries from all files with source tracking
-    const allEntries: (RawJsonEntry & { sourceProject: string })[] = [];
-    let filesProcessed = 0;
-    let entriesFound = 0;
-    
-    for (const project of projects) {
-      const projectPath = path.join(projectsPath, project);
-      const stats = await fs.stat(projectPath);
-      
-      if (!stats.isDirectory()) continue;
-      
-      const files = await this.readDirectory(projectPath);
-      const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
-      
-      for (const file of jsonlFiles) {
-        const filePath = path.join(projectPath, file);
-        const entries = await this.parseJsonlFile(filePath);
-        
-        if (entries.length > 0) {
-          this.logger.debug('Parsed JSONL file', {
-            filePath,
-            entryCount: entries.length,
-            project
-          });
-        }
-        
-        // Add source project tracking to each entry
-        const entriesWithSource = entries.map(entry => ({
-          ...entry,
-          sourceProject: project
-        }));
-        
-        allEntries.push(...entriesWithSource);
-        filesProcessed++;
-        entriesFound += entries.length;
-      }
-    }
-    
-    this.logger.debug('All files parsed', {
-      filesProcessed,
-      totalEntries: entriesFound,
-      elapsedMs: Date.now() - startTime
+    this.logger.debug('Processing all entries into conversations', {
+      totalEntries: allEntries.length
     });
     
     // Group entries by sessionId
@@ -316,7 +280,7 @@ export class ClaudeHistoryReader {
     }
     
     const totalElapsed = Date.now() - startTime;
-    this.logger.debug('Uncached parsing complete', {
+    this.logger.debug('Entry processing complete', {
       conversationCount: conversationChains.length,
       totalElapsedMs: totalElapsed,
       avgTimePerConversation: conversationChains.length > 0 ? totalElapsed / conversationChains.length : 0
@@ -326,48 +290,28 @@ export class ClaudeHistoryReader {
   }
 
   /**
-   * Parse all conversations from all JSONL files with caching
+   * Parse all conversations from all JSONL files with file-level caching and concurrency protection
    */
   private async parseAllConversations(): Promise<ConversationChain[]> {
     const startTime = Date.now();
-    this.logger.debug('Starting parseAllConversations');
+    this.logger.debug('Starting parseAllConversations with file-level caching');
     
     // Get current file modification times
     const currentModTimes = await this.getFileModificationTimes();
     this.logger.debug('Retrieved file modification times', { fileCount: currentModTimes.size });
     
-    // Check if we can use cached data
-    const cachedConversations = await this.conversationCache.getCachedConversations(currentModTimes);
-    if (cachedConversations) {
-      const elapsed = Date.now() - startTime;
-      this.logger.info('Using cached conversation data', {
-        conversationCount: cachedConversations.length,
-        elapsedMs: elapsed,
-        cacheStats: this.conversationCache.getStats()
-      });
-      return cachedConversations;
-    }
-    
-    // Cache miss or invalid, parse all files
-    this.logger.info('Cache miss - parsing all conversation files', {
-      reason: 'No valid cache available',
-      fileCount: currentModTimes.size
-    });
-    
-    const parseStartTime = Date.now();
-    const conversations = await this.parseAllConversationsUncached();
-    const parseElapsed = Date.now() - parseStartTime;
-    
-    // Update cache with new data
-    this.conversationCache.updateCache(conversations, currentModTimes);
+    // Use the new file-level cache interface
+    const conversations = await this.conversationCache.getOrParseConversations(
+      currentModTimes,
+      (filePath: string) => this.parseJsonlFile(filePath), // Parse single file
+      (filePath: string) => this.extractSourceProject(filePath), // Get source project
+      (allEntries: (RawJsonEntry & { sourceProject: string })[]) => this.processAllEntries(allEntries) // Process entries
+    );
     
     const totalElapsed = Date.now() - startTime;
-    this.logger.info('Conversation parsing completed', { 
+    this.logger.info('File-level cached conversation parsing completed', { 
       conversationCount: conversations.length,
-      fileCount: currentModTimes.size,
-      parseElapsedMs: parseElapsed,
-      totalElapsedMs: totalElapsed,
-      cacheStats: this.conversationCache.getStats()
+      totalElapsedMs: totalElapsed
     });
     
     return conversations;
@@ -378,6 +322,7 @@ export class ClaudeHistoryReader {
    */
   private async parseJsonlFile(filePath: string): Promise<RawJsonEntry[]> {
     try {
+      this.logger.debug('Parsing JSONL file', { filePath });
       const content = await fs.readFile(filePath, 'utf-8');
       const lines = content.split('\n').filter(line => line.trim());
       const entries: RawJsonEntry[] = [];
@@ -394,6 +339,11 @@ export class ClaudeHistoryReader {
           });
         }
       }
+      
+      this.logger.debug('JSONL file parsed successfully', {
+        filePath,
+        entryCount: entries.length
+      });
       
       return entries;
     } catch (error) {

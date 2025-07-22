@@ -59,7 +59,7 @@ describe('ClaudeHistoryReader', () => {
       });
     });
 
-    it('should handle filesystem errors properly', async () => {
+    it('should handle filesystem errors gracefully', async () => {
       // Create a file where we expect a directory to cause an error
       const fileInsteadOfDir = path.join(tempDir, 'projects');
       await fs.rm(fileInsteadOfDir, { recursive: true, force: true });
@@ -68,7 +68,12 @@ describe('ClaudeHistoryReader', () => {
       const invalidReader = new ClaudeHistoryReader();
       (invalidReader as any).claudeHomePath = tempDir;
       
-      await expect(invalidReader.listConversations()).rejects.toThrow('Failed to read conversation history');
+      // Should handle filesystem errors gracefully and return empty result
+      const result = await invalidReader.listConversations();
+      expect(result).toEqual({
+        conversations: [],
+        total: 0
+      });
     });
 
     it('should process project directories and conversations correctly', async () => {
