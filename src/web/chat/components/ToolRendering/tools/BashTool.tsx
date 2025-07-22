@@ -17,7 +17,7 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
     <div className={styles.toolContent}>
       <div className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}>
         <div className={styles.scrollableCode}>
-          <pre>{result || 'Command completed'}</pre>
+          <pre>{result || '(No content)'}</pre>
         </div>
       </div>
     </div>
