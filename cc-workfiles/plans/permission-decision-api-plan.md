@@ -25,6 +25,8 @@ Claude CLI → MCP Server → CCUI Backend → Frontend (displays request)
                 └──────────────┴───────── User Decision
 ```
 
+Important Note: MCP only communicates with the backend through the Rest API. The mcp is a separate process that is called by the Claude CLI. So although we can import PermissionTracker to access the singleton instance, that does not work. MCP server work on its own to only rely on the Rest API.
+
 ## Plan: Implement Permission Decision API with Fast Response
 
 ### Overview
@@ -33,43 +35,35 @@ Add functionality to allow the frontend to send permission decisions (approve/de
 ### Key Requirements
 - No integration tests for now
 - 10-minute timeout for permission decisions
-- < 1 second latency from user decision to MCP response
+- 1 second latency from user decision to MCP response
 
 ### Architecture Changes
 
-1. **MCP Server Event-Driven Waiting**
-   - MCP server creates a promise that waits for permission decision
-   - Uses event emitter pattern to receive instant notification
+1. **MCP Server Pooling Waiting** (in src/mcp-server/index.ts)
+   - MCP server notify the backend with the request(already implemented)
+   - MCP server poll `/api/permissions` once per second with its own streamingId.
    - 10-minute timeout to prevent indefinite blocking
-   - Sub-second response time via direct event notification
+   - MCP server check status of its own request until it is decided or timed out.
 
-2. **Backend Permission Decision Flow**
-   - Permission decision endpoint updates PermissionTracker
-   - PermissionTracker emits event with decision
-   - MCP server receives event and resolves waiting promise
+2. **New API Endpoint for Permission Decision** (/api/permissions/:requestId/decision)
+   - Used by the client
+   - Only update the status of the request on the backend. MCP server poll it own its own.
 
-3. **Frontend Integration**
+3. **Frontend Integration** (in src/web/chat/components/InputArea/InputArea.tsx)
    - Enable approve/deny buttons
-   - Send decision to backend
+   - Send decision to `/api/permissions/:requestId/decision`
    - Clear permission UI immediately
 
 ### Implementation Steps
 
-1. **Enhance PermissionTracker** (`src/services/permission-tracker.ts`)
-   - Add method to wait for permission decision (returns Promise)
-   - Emit specific event when permission is decided
-   - Handle cleanup for timed-out requests
-
-2. **Update MCP Server** (`src/mcp-server/index.ts`)
-   - Import PermissionTracker to access the singleton instance
-   - Replace auto-approval with event-driven waiting
-   - Use PermissionTracker's wait method with 10-minute timeout
+1. **Update MCP Server** (`src/mcp-server/index.ts`)
+   - Replace auto-approval with polling
    - Return MCP response based on decision
 
-3. **Add Permission Decision Endpoint** (`src/routes/permission.routes.ts`)
+2. **Add Permission Decision Endpoint** (`src/routes/permission.routes.ts`)
    - Add `POST /api/permissions/:requestId/decision`
    - Validate request exists and is pending
-   - Call PermissionTracker.updatePermissionStatus()
+   - Update the status of the request on the backend. MCP server poll it own its own.
    - Return success response
 
 4. **Update Frontend API Client** (`src/web/chat/services/api.ts`)
@@ -87,63 +81,25 @@ Add functionality to allow the frontend to send permission decisions (approve/de
    - Add `PermissionDecisionResponse` interface
 
 7. **Add Unit Tests Only**
-   - Test permission decision endpoint
-   - Test PermissionTracker wait mechanism
-   - Test timeout handling
-   - Test event emission
 
 8. **Update Documentation**
    - Update API.md with new endpoint
    - Update CLAUDE.md permission flow
 
-### Event-Driven Design for Sub-Second Response
+### Related Files
 
-```typescript
-// PermissionTracker adds waiting mechanism:
-class PermissionTracker {
-  private waitingPromises: Map<string, {
-    resolve: (decision: PermissionDecision) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }> = new Map();
-
-  async waitForDecision(requestId: string, timeoutMs: number): Promise<PermissionDecision> {
-    // Create promise that resolves when decision is made
-    // Set timeout to reject after 10 minutes
-    // Clean up on resolution/timeout
-  }
-
-  updatePermissionStatus(id: string, status: 'approved' | 'denied', options?: {...}) {
-    // Update status
-    // Emit event
-    // Resolve any waiting promise
-  }
-}
-```
-
-### Files to Modify
-
-1. `src/services/permission-tracker.ts` - Add event-driven waiting
-2. `src/mcp-server/index.ts` - Use event-driven waiting
-3. `src/routes/permission.routes.ts` - Add decision endpoint
-4. `src/types/index.ts` - Add new types
-5. `src/web/chat/services/api.ts` - Add API method
-6. `src/web/chat/components/InputArea/InputArea.tsx` - Enable buttons
-7. `cc-workfiles/knowledge/API.md` - Document endpoint
-8. `CLAUDE.md` - Update permission flow
-
-### Files to Create
-
-1. `tests/unit/routes/permission-decision.test.ts` - Unit tests for decision endpoint
-2. `tests/unit/services/permission-tracker-wait.test.ts` - Unit tests for wait mechanism
+1. `src/mcp-server/index.ts` - Use polling waiting
+2. `src/routes/permission.routes.ts` - Add decision endpoint
+3. `src/types/index.ts` - Add new types
+4. `src/web/chat/services/api.ts` - Add API method
+5. `src/web/chat/components/InputArea/InputArea.tsx` - Enable buttons
+6. `cc-workfiles/knowledge/API.md` - Document endpoint
+7. `CLAUDE.md` - Update permission flow
 
 ### Performance Considerations
 
-- Event-driven approach ensures < 1 second response time
 - No polling overhead on server
 - Direct memory-based event emission
-- Automatic cleanup of timed-out requests
-- Singleton PermissionTracker ensures events reach MCP server
 
 ### API Endpoint Specification
 
@@ -160,25 +116,3 @@ interface PermissionDecisionResponse {
   message?: string;
 }
 ```
-
-### Testing Strategy
-
-Since integration tests are not required for now, focus on comprehensive unit tests:
-
-1. **PermissionTracker Wait Mechanism**
-   - Test promise resolution on decision
-   - Test timeout after 10 minutes
-   - Test cleanup of waiting promises
-   - Test multiple concurrent waits
-
-2. **Permission Decision Endpoint**
-   - Test valid decision updates
-   - Test invalid request ID handling
-   - Test non-pending request rejection
-   - Test input validation
-
-3. **MCP Server Decision Handling**
-   - Mock PermissionTracker for testing
-   - Test approve response format
-   - Test deny response format
-   - Test timeout response
