@@ -1,7 +1,7 @@
 .codeBlock {
   background-color: #292a30;
   color: #ffffff;
-  padding: 1rem;
+  padding: 0.5rem;
   border-radius: 4px;
   overflow: hidden;
   white-space: pre-wrap;
@@ -29,7 +29,7 @@
 .lineNumber {
   display: table-cell;
   text-align: right;
-  padding-right: 1rem;
+  padding-right: 0.5rem;
   user-select: none;
   opacity: 0.5;
   min-width: 2rem;

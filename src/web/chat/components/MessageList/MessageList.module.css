@@ -240,7 +240,7 @@
 
 .codeBlock pre {
   margin: 0;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   color: #e8e8e8;
   font-family: var(--font-mono);
   font-size: 12px;
