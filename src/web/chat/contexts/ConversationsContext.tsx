@@ -14,7 +14,7 @@ interface ConversationsContextType {
   hasMore: boolean;
   error: string | null;
   recentDirectories: Record<string, RecentDirectory>;
-  loadConversations: () => Promise<void>;
+  loadConversations: (limit?: number) => Promise<void>;
   loadMoreConversations: () => Promise<void>;
   getMostRecentWorkingDirectory: () => string | null;
 }
@@ -79,14 +79,15 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     setRecentDirectories(newDirectories);
   };
 
-  const loadConversations = async () => {
+  const loadConversations = async (limit?: number) => {
     setLoading(true);
     setError(null);
     try {
+      const loadLimit = limit || INITIAL_LIMIT;
       // Load working directories from API in parallel with conversations
       const [data, apiDirectories] = await Promise.all([
         api.getConversations({ 
-          limit: INITIAL_LIMIT,
+          limit: loadLimit,
           offset: 0,
           sortBy: 'updated',
           order: 'desc'
@@ -96,7 +97,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
       
       setConversations(data.conversations);
       updateRecentDirectories(data.conversations, apiDirectories);
-      setHasMore(data.conversations.length === INITIAL_LIMIT);
+      setHasMore(data.conversations.length === loadLimit);
     } catch (err) {
       setError('Failed to load conversations');
       console.error('Error loading conversations:', err);

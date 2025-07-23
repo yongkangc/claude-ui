@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useConversations } from '../../contexts/ConversationsContext';
 import { api } from '../../services/api';
@@ -21,6 +21,47 @@ export function Home() {
   } = useConversations();
   const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive'>('tasks');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const conversationCountRef = useRef(conversations.length);
+
+  // Update the ref whenever conversations change
+  useEffect(() => {
+    conversationCountRef.current = conversations.length;
+  }, [conversations.length]);
+
+  // Auto-refresh on navigation back to Home
+  useEffect(() => {
+    // Refresh on component mount if we have conversations
+    if (conversationCountRef.current > 0) {
+      loadConversations(conversationCountRef.current);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array means this runs only on mount
+
+  // Auto-refresh on focus
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only refresh if we have loaded conversations before
+      if (conversationCountRef.current > 0) {
+        loadConversations(conversationCountRef.current);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && conversationCountRef.current > 0) {
+        loadConversations(conversationCountRef.current);
+      }
+    };
+
+    // Listen for window focus
+    window.addEventListener('focus', handleFocus);
+    // Listen for tab visibility change
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadConversations]);
 
   // Get the most recent working directory from conversations
   const recentWorkingDirectory = conversations.length > 0 
