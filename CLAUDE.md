@@ -91,15 +91,18 @@ npx jest -t "test name"                                    # Run test by name pa
 
 ## Session Information
 
-The SessionInfoService manages extended metadata for conversation sessions:
+The SessionInfoService manages extended metadata for conversation sessions. This information is now included as a complete `sessionInfo` object in ConversationSummary responses:
 
+- **custom_name**: User-provided name for the session (default: "")
 - **pinned**: Boolean flag for pinning important sessions (default: false)
 - **archived**: Boolean flag for archiving old sessions (default: false) 
 - **continuation_session_id**: Links to a continuation session if the conversation continues elsewhere (default: "")
 - **initial_commit_head**: Git commit HEAD when the session started for tracking code changes (default: "")
-- **custom_name**: User-provided name for the session (default: "")
+- **created_at**: ISO 8601 timestamp when session info was created
+- **updated_at**: ISO 8601 timestamp when session info was last updated
+- **version**: Schema version for future migrations
 
-Sessions are automatically migrated to include these fields when the schema version updates.
+Sessions are automatically migrated to include these fields when the schema version updates. All ConversationSummary objects now include the complete sessionInfo instead of just the custom_name field.
 
 ## Workflow Guidelines
 

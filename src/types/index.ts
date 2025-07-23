@@ -14,7 +14,7 @@ export interface ConversationSummary {
   sessionId: string; // Claude CLI's actual session ID (used for history files)
   projectPath: string;
   summary: string;
-  custom_name: string; // Custom name from SessionInfoService, default: ""
+  sessionInfo: SessionInfo; // Complete session metadata from SessionInfoService
   createdAt: string;
   updatedAt: string;
   messageCount: number;

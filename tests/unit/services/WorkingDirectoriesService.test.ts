@@ -10,7 +10,16 @@ const createConversation = (overrides: Partial<ConversationSummary>): Conversati
   sessionId: 'default-id',
   projectPath: '/default/path',
   summary: 'Default summary',
-  custom_name: '',
+  sessionInfo: {
+    custom_name: '',
+    created_at: '2024-01-01T10:00:00Z',
+    updated_at: '2024-01-01T10:00:00Z',
+    version: 2,
+    pinned: false,
+    archived: false,
+    continuation_session_id: '',
+    initial_commit_head: ''
+  },
   createdAt: '2024-01-01T10:00:00Z',
   updatedAt: '2024-01-01T10:00:00Z',
   messageCount: 1,

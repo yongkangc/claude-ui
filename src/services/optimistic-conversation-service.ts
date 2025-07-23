@@ -74,7 +74,16 @@ export class OptimisticConversationService {
             sessionId,
             projectPath: context.workingDirectory,
             summary: '', // No summary for active conversation
-            custom_name: '', // No custom name yet
+            sessionInfo: {
+              custom_name: '', // No custom name yet
+              created_at: context.timestamp,
+              updated_at: context.timestamp,
+              version: 2,
+              pinned: false,
+              archived: false,
+              continuation_session_id: '',
+              initial_commit_head: ''
+            },
             createdAt: context.timestamp,
             updatedAt: context.timestamp,
             messageCount: 1, // At least the initial user message

@@ -219,7 +219,7 @@ interface ConversationSummary {
   sessionId: string;        // Claude CLI's actual session ID (used for history files)
   projectPath: string;      // Original working directory
   summary: string;          // Brief description of the conversation
-  custom_name: string;      // Custom name set by user, default: ""
+  sessionInfo: SessionInfo; // Complete session metadata (custom name, pinning, archiving, etc.)
   createdAt: string;        // ISO 8601 timestamp when conversation started
   updatedAt: string;        // ISO 8601 timestamp of last modification
   messageCount: number;     // Total number of messages in the conversation

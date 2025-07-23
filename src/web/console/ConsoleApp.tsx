@@ -566,14 +566,20 @@ function ConsoleApp() {
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
                   const summary = session.summary || 'No summary';
-                  const customName = session.custom_name || '';
+                  const customName = session.sessionInfo?.custom_name || '';
+                  const sessionFlags = [];
+                  if (session.sessionInfo?.pinned) sessionFlags.push('📌');
+                  if (session.sessionInfo?.archived) sessionFlags.push('📦');
+                  if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
+                  if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
                   const metrics = session.toolMetrics;
                   const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{flagsStr}{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -649,14 +655,20 @@ function ConsoleApp() {
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
                   const summary = session.summary || 'No summary';
-                  const customName = session.custom_name || '';
+                  const customName = session.sessionInfo?.custom_name || '';
+                  const sessionFlags = [];
+                  if (session.sessionInfo?.pinned) sessionFlags.push('📌');
+                  if (session.sessionInfo?.archived) sessionFlags.push('📦');
+                  if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
+                  if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
                   const metrics = session.toolMetrics;
                   const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{flagsStr}{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -817,13 +829,13 @@ function ConsoleApp() {
               <option value="">Select a session...</option>
               {availableSessions.map(session => {
                 const summary = session.summary || 'No summary';
-                const customName = session.custom_name || '';
+                const customName = session.sessionInfo?.custom_name || '';
                 const displayName = customName ? `[${customName}] ${summary}` : summary;
                 const date = new Date(session.updatedAt).toLocaleString();
                 const metrics = session.toolMetrics;
                 const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                 return (
-                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
                     {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
                   </option>
                 );
