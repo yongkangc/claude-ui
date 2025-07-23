@@ -21,6 +21,11 @@ export class ToolMetricsService extends EventEmitter {
    */
   listenToClaudeMessages(processManager: EventEmitter): void {
     processManager.on('claude-message', ({ streamingId, message }: { streamingId: string; message: StreamEvent }) => {
+      this.logger.debug('Received claude-message in ToolMetricsService', {
+        streamingId,
+        messageType: message?.type,
+        sessionId: (message as any)?.session_id
+      });
       this.handleClaudeMessage(streamingId, message);
     });
     this.logger.debug('Started listening to claude-message events');
@@ -30,15 +35,16 @@ export class ToolMetricsService extends EventEmitter {
    * Get metrics for a specific session
    */
   getMetrics(sessionId: string): ToolMetrics | undefined {
-    return this.metrics.get(sessionId);
+    const metrics = this.metrics.get(sessionId);
+    this.logger.debug('Getting metrics', {
+      sessionId,
+      found: !!metrics,
+      metrics,
+      allSessionIds: Array.from(this.metrics.keys())
+    });
+    return metrics;
   }
 
-  /**
-   * Clear metrics for a session
-   */
-  clearMetrics(sessionId: string): void {
-    this.metrics.delete(sessionId);
-  }
 
   /**
    * Handle Claude messages to extract tool use data
@@ -55,6 +61,14 @@ export class ToolMetricsService extends EventEmitter {
    * Process assistant messages to find tool use blocks
    */
   private processAssistantMessage(streamingId: string, message: AssistantStreamMessage): void {
+    this.logger.debug('Processing assistant message', {
+      streamingId,
+      sessionId: message.session_id,
+      hasMessage: !!message.message,
+      hasContent: !!message.message?.content,
+      contentType: Array.isArray(message.message?.content) ? 'array' : typeof message.message?.content
+    });
+    
     if (!message.message || !message.message.content) {
       return;
     }
@@ -63,6 +77,12 @@ export class ToolMetricsService extends EventEmitter {
     
     // Content can be a string or an array of content blocks
     if (Array.isArray(content)) {
+      this.logger.debug('Processing content blocks', {
+        sessionId: message.session_id,
+        blockCount: content.length,
+        blockTypes: content.map(b => b.type)
+      });
+      
       content.forEach(block => {
         if (block.type === 'tool_use') {
           this.processToolUse(message.session_id, block);

@@ -521,9 +521,11 @@ function ConsoleApp() {
                   const customName = session.custom_name || '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
+                  const metrics = session.toolMetrics;
+                  const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -602,9 +604,11 @@ function ConsoleApp() {
                   const customName = session.custom_name || '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
+                  const metrics = session.toolMetrics;
+                  const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -717,9 +721,11 @@ function ConsoleApp() {
                 const customName = session.custom_name || '';
                 const displayName = customName ? `[${customName}] ${summary}` : summary;
                 const date = new Date(session.updatedAt).toLocaleString();
+                const metrics = session.toolMetrics;
+                const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                 return (
-                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}`}>
-                    {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}... ({date})
+                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                    {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
                   </option>
                 );
               })}

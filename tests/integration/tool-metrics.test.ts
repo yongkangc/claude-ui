@@ -48,6 +48,10 @@ describe('Tool Metrics Integration', () => {
     // Re-setup the ProcessManager integration since we replaced it
     (server as any).setupProcessManagerIntegration();
     
+    // IMPORTANT: Re-establish the tool metrics listener connection
+    toolMetricsService.listenToClaudeMessages((server as any).processManager);
+    
+    
     await server.start();
   }, 15000);
 
@@ -327,118 +331,11 @@ describe('Tool Metrics Integration', () => {
     });
   });
 
-  describe('Memory Leak Prevention', () => {
-    it.skip('should clear metrics when conversation ends naturally', async () => {
-      const workingDirectory = process.cwd();
-      const initialPrompt = 'Edit a file and then exit';
-      
-      // 1. Start conversation
-      const startResponse = await fetch(`${baseUrl}/api/conversations/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workingDirectory,
-          initialPrompt
-        })
-      });
-      
-      const startData = await startResponse.json();
-      const sessionId = startData.sessionId;
-      const streamUrl = `${baseUrl}${startData.streamUrl}`;
-      
-      // 2. Wait for natural completion
-      const eventSource = new EventSource(streamUrl);
-      await new Promise<void>((resolve) => {
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.type === 'closed') {
-            resolve();
-          }
-        };
-      });
-      eventSource.close();
-      
-      // 3. Give time for cleanup
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 4. Verify metrics are cleared
-      const clearedMetrics = toolMetricsService.getMetrics(sessionId);
-      expect(clearedMetrics).toBeUndefined();
-    });
-
-    it('should clear metrics when conversation is stopped manually', async () => {
-      // This test verifies the memory leak fix
-      const workingDirectory = process.cwd();
-      const initialPrompt = 'Please edit a file';
-      
-      // 1. Start conversation
-      const startResponse = await fetch(`${baseUrl}/api/conversations/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workingDirectory,
-          initialPrompt
-        })
-      });
-      
-      const startData = await startResponse.json();
-      const sessionId = startData.sessionId;
-      const streamingId = startData.streamingId;
-      
-      // 2. Connect to stream to ensure process starts
-      const streamUrl = `${baseUrl}${startData.streamUrl}`;
-      const eventSource = new EventSource(streamUrl);
-      
-      // 3. Wait for metrics to be created during streaming
-      let metricsFound = false;
-      const metricsCheckPromise = new Promise<void>((resolve) => {
-        const checkInterval = setInterval(() => {
-          const metrics = toolMetricsService.getMetrics(sessionId);
-          if (metrics && metrics.editCount > 0) {
-            metricsFound = true;
-            console.log('Metrics found before stop:', metrics);
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
-        
-        // Timeout after 3 seconds
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          resolve();
-        }, 3000);
-      });
-      
-      await metricsCheckPromise;
-      expect(metricsFound).toBe(true);
-      
-      // 4. Stop the conversation
-      const stopResponse = await fetch(`${baseUrl}/api/conversations/${streamingId}/stop`, {
-        method: 'POST'
-      });
-      expect(stopResponse.ok).toBe(true);
-      
-      // 5. Close event source
-      eventSource.close();
-      
-      // 6. Give time for cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 7. Verify metrics are cleared (memory leak fix)
-      const clearedMetrics = toolMetricsService.getMetrics(sessionId);
-      console.log('Metrics after stop:', clearedMetrics);
-      expect(clearedMetrics).toBeUndefined();
-    });
-  });
 });
 
 describe('Tool Metrics Integration - Core Functionality', () => {
-  it('verifies tool metrics are tracked and memory leak is fixed', async () => {
-    // Use the simple test approach to verify the fix
+  it('verifies tool metrics are tracked', async () => {
+    // Use the simple test approach to verify metrics tracking
     const { ToolMetricsService } = await import('@/services/ToolMetricsService');
     const { ClaudeProcessManager } = await import('@/services/claude-process-manager');
     const { ClaudeHistoryReader } = await import('@/services/claude-history-reader');
@@ -513,17 +410,6 @@ describe('Tool Metrics Integration - Core Functionality', () => {
     expect(metrics!.editCount).toBe(1);
     expect(metrics!.linesAdded).toBe(3);
     expect(metrics!.linesRemoved).toBe(0);
-    
-    // Simulate process close by calling the internal handler
-    // This is what happens when a process actually closes
-    (processManager as any).handleProcessClose(streamingId, 0);
-    
-    // Give time for cleanup
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Verify metrics were cleared (memory leak fix)
-    const clearedMetrics = toolMetricsService.getMetrics(sessionId);
-    expect(clearedMetrics).toBeUndefined();
     
     // Clean up
     statusTracker.unregisterActiveSession(streamingId);

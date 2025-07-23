@@ -881,16 +881,6 @@ export class ClaudeProcessManager extends EventEmitter {
       this.timeouts.delete(streamingId);
     }
     
-    // Clear tool metrics for this session
-    if (this.toolMetricsService && this.statusTracker) {
-      // Get the sessionId from the statusTracker if available
-      const sessionId = this.statusTracker.getSessionId(streamingId);
-      if (sessionId) {
-        this.toolMetricsService.clearMetrics(sessionId);
-        this.logger.debug('Cleared tool metrics for session', { streamingId, sessionId });
-      }
-    }
-    
     this.processes.delete(streamingId);
     this.outputBuffers.delete(streamingId);
     this.conversationConfigs.delete(streamingId);
