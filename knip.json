@@ -1,0 +1,56 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/cli/index.ts",
+    "src/web/main.tsx",
+    "src/mcp-server/index.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts"
+  ],
+  "ignore": [
+    "dist/**",
+    "coverage/**",
+    "node_modules/**",
+    "cc-worktrees/**",
+    "cc-workfiles/**"
+  ],
+  "ignoreDependencies": [
+    "@anthropic-ai/claude-code",
+    "@types/eventsource",
+    "@types/react",
+    "@types/react-dom",
+    "@types/prismjs"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "includeEntryExports": true,
+  "workspaces": {
+    ".": {
+      "entry": [
+        "src/cli/index.ts",
+        "src/web/main.tsx",
+        "src/mcp-server/index.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "tests/**/*.{ts,tsx}",
+        "!src/**/*.d.ts"
+      ],
+      "ignoreDependencies": [
+        "@anthropic-ai/claude-code",
+        "@types/eventsource", 
+        "@types/react",
+        "@types/react-dom",
+        "@types/prismjs"
+      ]
+    }
+  },
+  "vite": {
+    "config": ["vite.config.ts"],
+    "entry": ["src/web/index.html"]
+  },
+  "jest": {
+    "config": ["jest.config.js"]
+  }
+}

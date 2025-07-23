@@ -120,33 +120,6 @@ export function parseTodos(content: string): Array<{id: string; content: string;
   return [];
 }
 
-/**
- * Format diff lines for Edit/MultiEdit tools
- */
-export function formatDiffLines(oldString: string, newString: string): Array<{type: 'remove' | 'add'; content: string}> {
-  const lines = [];
-  
-  // Split into lines and add removal lines
-  const oldLines = oldString.split('\n');
-  const newLines = newString.split('\n');
-  
-  oldLines.forEach(line => {
-    lines.push({ type: 'remove' as const, content: line });
-  });
-  
-  newLines.forEach(line => {
-    lines.push({ type: 'add' as const, content: line });
-  });
-  
-  return lines;
-}
-
-/**
- * Check if tool result has error status
- */
-export function isToolError(toolResult?: { is_error?: boolean }): boolean {
-  return toolResult?.is_error === true;
-}
 
 /**
  * Extract domain from URL for WebFetch
