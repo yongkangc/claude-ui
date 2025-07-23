@@ -19,7 +19,7 @@ export function Home() {
     loadConversations, 
     loadMoreConversations 
   } = useConversations();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'archive'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive'>('tasks');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the most recent working directory from conversations

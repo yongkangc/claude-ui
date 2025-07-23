@@ -62,6 +62,12 @@ export function TaskList({
   };
 
   const handleArchiveTask = async (sessionId: string) => {
+    // Optimistically remove the item from the current view
+    const element = document.querySelector(`[data-session-id="${sessionId}"]`);
+    if (element) {
+      element.style.display = 'none';
+    }
+    
     try {
       // Call the API to persist the change
       await api.updateSession(sessionId, { archived: true });
@@ -70,7 +76,10 @@ export function TaskList({
       loadConversations();
     } catch (error) {
       console.error('Failed to archive task:', error);
-      // Optionally show an error message to the user
+      // Restore visibility if the API call fails
+      if (element) {
+        element.style.display = '';
+      }
     }
   };
 
@@ -133,26 +142,27 @@ export function TaskList({
   return (
     <div ref={scrollRef} className={styles.container}>
       {sortedConversations.map((conversation) => (
-        <TaskItem
-          key={conversation.sessionId}
-          id={conversation.sessionId}
-          title={conversation.summary}
-          timestamp={conversation.updatedAt}
-          projectPath={conversation.projectPath}
-          recentDirectories={recentDirectories}
-          status={conversation.status}
-          onClick={() => handleTaskClick(conversation.sessionId)}
-          onCancel={
-            conversation.status === 'ongoing' 
-              ? () => handleCancelTask(conversation.sessionId)
-              : undefined
-          }
-          onArchive={
-            conversation.status === 'completed'
-              ? () => handleArchiveTask(conversation.sessionId)
-              : undefined
-          }
-        />
+        <div key={conversation.sessionId} data-session-id={conversation.sessionId}>
+          <TaskItem
+            id={conversation.sessionId}
+            title={conversation.summary}
+            timestamp={conversation.updatedAt}
+            projectPath={conversation.projectPath}
+            recentDirectories={recentDirectories}
+            status={conversation.status}
+            onClick={() => handleTaskClick(conversation.sessionId)}
+            onCancel={
+              conversation.status === 'ongoing' 
+                ? () => handleCancelTask(conversation.sessionId)
+                : undefined
+            }
+            onArchive={
+              conversation.status === 'completed'
+                ? () => handleArchiveTask(conversation.sessionId)
+                : undefined
+            }
+          />
+        </div>
       ))}
       
       {/* Loading indicator for infinite scroll */}

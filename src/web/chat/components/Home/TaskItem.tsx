@@ -102,7 +102,7 @@ export function TaskItem({
                 aria-label="Archive task"
                 type="button"
               >
-                <Archive size={17} />
+                <Archive size={21} />
               </button>
             </div>
           )}
