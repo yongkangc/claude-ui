@@ -117,9 +117,19 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 208)}px`;
+      const maxHeight = Math.floor(window.innerHeight * 0.8); // Up to 80% of viewport
+      textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
     }
   };
+
+  // Re-adjust height on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      adjustTextareaHeight();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [text]);
 
   return (
     <form className={styles.composer} onSubmit={handleSubmit}>

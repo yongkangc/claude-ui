@@ -38,8 +38,8 @@
 
 .textarea {
   width: 100%;
-  min-height: 185px;
-  max-height: 270px;
+  min-height: 80px;
+  max-height: 80vh;
   padding: 16px 0;
   border: none;
   background: transparent;

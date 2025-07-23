@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Square, Zap, ChevronDown, Mic, Check, X } from 'lucide-react';
 import type { PermissionRequest } from '@/types';
 import styles from './InputArea.module.css';
@@ -15,6 +15,15 @@ interface InputAreaProps {
 export function InputArea({ onSubmit, onStop, onPermissionDecision, isLoading = false, placeholder = "Type a message...", permissionRequest }: InputAreaProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const maxHeight = Math.floor(window.innerHeight * 0.8); // Up to 80% of viewport
+      textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    }
+  };
 
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -33,6 +42,15 @@ export function InputArea({ onSubmit, onStop, onPermissionDecision, isLoading = 
       handleSubmit();
     }
   };
+
+  // Re-adjust height on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      adjustTextareaHeight();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [message]);
 
   return (
     <div className={styles.container}>
@@ -62,7 +80,10 @@ export function InputArea({ onSubmit, onStop, onPermissionDecision, isLoading = 
                     ref={textareaRef}
                     className={styles.textarea}
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      adjustTextareaHeight();
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     disabled={isLoading}
