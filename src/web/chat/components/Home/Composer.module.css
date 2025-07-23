@@ -8,8 +8,8 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: var(--color-token-bg-primary);
-  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: text;
@@ -43,7 +43,7 @@
   padding: 16px 0;
   border: none;
   background: transparent;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
@@ -54,7 +54,7 @@
 }
 
 .textarea::placeholder {
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
 }
 
 .footerActions {
@@ -87,7 +87,7 @@
   padding: 8px 8px;
   border: none;
   background: transparent;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 500;
   border-radius: 9999px;
@@ -96,7 +96,7 @@
 }
 
 .actionButton:hover {
-  background: var(--color-token-bg-tertiary);
+  background: var(--color-bg-tertiary);
 }
 
 .buttonText {
@@ -132,8 +132,8 @@
   height: 32px;
   padding: 0;
   border: none;
-  background: var(--color-token-text-primary);
-  color: var(--color-token-bg-primary);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -146,7 +146,7 @@
 .iconButton:disabled {
   cursor: not-allowed;
   background: transparent;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   opacity: 1;
 }
 

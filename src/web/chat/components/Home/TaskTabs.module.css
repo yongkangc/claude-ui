@@ -3,7 +3,7 @@
   align-items: center;
   width: 100%;
   margin-top: 16px;
-  border-bottom: 1px solid var(--color-token-border-light);
+  border-bottom: 1px solid var(--color-border-light);
   /* overflow-x: auto; */
   
   /* Auto-hide scrollbar for Firefox */
@@ -14,7 +14,7 @@
 
 .container:hover {
   /* Show scrollbar on hover for Firefox */
-  scrollbar-color: var(--color-token-border-medium) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 @media (min-width: 768px) {
@@ -37,7 +37,7 @@
   padding: 8px 8px 12px 8px;
   border: none;
   background: transparent;
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -45,11 +45,11 @@
 }
 
 .tab:hover {
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .tab.active {
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
 }
 
 .activeIndicator {
@@ -58,13 +58,13 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--color-token-text-primary);
+  background: var(--color-text-primary);
   transform: translateY(1px);
   z-index: 10;
 }
 
 [data-theme="dark"] .container {
-  border-bottom-color: var(--color-token-border-light);
+  border-bottom-color: var(--color-border-light);
 }
 
 /* Auto-hide scrollbar for Webkit browsers (Chrome, Safari, Edge) */
@@ -80,11 +80,11 @@
 }
 
 .container:hover::-webkit-scrollbar-thumb {
-  background: var(--color-token-border-medium);
+  background: var(--color-border);
 }
 
 .container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-token-border-strong);
+  background: var(--color-accent);
 }
 
 .container::-webkit-scrollbar-track {

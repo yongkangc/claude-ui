@@ -7,7 +7,7 @@
   justify-content: space-between;
   padding: 12px;
   height: var(--header-height-codex);
-  background: var(--color-token-bg-primary);
+  background: var(--color-bg-primary);
   font-weight: 600;
 }
 
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
   text-decoration: none;
   margin-left: 5px;
   margin-top: 5px;
@@ -71,7 +71,7 @@
 }
 
 .navLink {
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: normal;
   text-decoration: none;
@@ -92,15 +92,15 @@
   padding: 4px;
   border: none;
   background: transparent;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .profileButton:hover {
-  color: var(--color-token-text-primary);
-  background: var(--color-token-interactive-bg-secondary-hover);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
 }
 
 .profileButton:focus-visible {

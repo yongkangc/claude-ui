@@ -14,7 +14,7 @@
 
 .container:hover {
   /* Show scrollbar on hover for Firefox */
-  scrollbar-color: var(--color-token-border-medium) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 /* Auto-hide scrollbar for Webkit browsers (Chrome, Safari, Edge) */
@@ -30,11 +30,11 @@
 }
 
 .container:hover::-webkit-scrollbar-thumb {
-  background: var(--color-token-border-medium);
+  background: var(--color-border);
 }
 
 .container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-token-border-strong);
+  background: var(--color-accent);
 }
 
 .container::-webkit-scrollbar-track {
@@ -47,10 +47,10 @@
   justify-content: center;
   width: 100%;
   padding: 48px 16px;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   text-align: center;
-  background: var(--color-token-bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .error {
@@ -62,7 +62,7 @@
   color: var(--color-error);
   font-size: 14px;
   text-align: center;
-  background: var(--color-token-bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .loadingMore {
@@ -78,13 +78,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   background: linear-gradient(90deg, 
-    var(--color-token-text-secondary) 0%, 
-    var(--color-token-text-secondary) 50%, 
-    var(--color-token-text-tertiary) 50%, 
-    var(--color-token-text-tertiary) 100%);
+    var(--color-text-secondary) 0%, 
+    var(--color-text-secondary) 50%, 
+    var(--color-text-muted) 50%, 
+    var(--color-text-muted) 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -97,7 +97,7 @@
   justify-content: center;
   width: 100%;
   padding: 16px;
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
   font-size: 12px;
   text-align: center;
 }

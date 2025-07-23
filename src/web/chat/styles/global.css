@@ -179,10 +179,10 @@ input:focus, textarea:focus, select:focus {
 /* Loading shimmer animation */
 .loading-shimmer-pure-text {
   background: linear-gradient(90deg, 
-    var(--color-token-text-secondary) 0%, 
-    var(--color-token-text-secondary) 50%, 
-    var(--color-token-text-tertiary) 50%, 
-    var(--color-token-text-tertiary) 100%);
+    var(--color-text-secondary) 0%, 
+    var(--color-text-secondary) 50%, 
+    var(--color-text-muted) 50%, 
+    var(--color-text-muted) 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -210,12 +210,12 @@ input:focus, textarea:focus, select:focus {
   transition: all 0.15s ease;
   background: transparent;
   border: none;
-  color: var(--color-token-text-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .composer-btn:hover {
-  background: var(--color-token-bg-tertiary);
+  background: var(--color-bg-tertiary);
 }
 
 /* Smooth transitions for theme changes */

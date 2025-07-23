@@ -4,8 +4,8 @@
 
 .dropdown {
   width: 360px;
-  background: var(--color-token-bg-primary);
-  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 18px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   display: flex;
@@ -15,7 +15,7 @@
 
 [data-theme="dark"] .dropdown {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  border-color: var(--color-border-light);
+  border-color: var(--color-border);
 }
 
 @media (max-width: 768px) {
@@ -37,7 +37,7 @@
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 14px;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
   outline: none;
   transition: all 0.15s ease;
 }
@@ -47,7 +47,7 @@
 }
 
 .filterInput::placeholder {
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
 }
 
 /* Divider */
@@ -100,7 +100,7 @@
   gap: 16px;
   text-align: left;
   font-size: 14px;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 1px;
 }
 
@@ -160,13 +160,13 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
 }
 
 /* No options message */
 .noOptions {
   padding: 24px;
   text-align: center;
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
   font-size: 14px;
 }

@@ -4,11 +4,11 @@
 }
 
 .container:hover {
-  background: var(--color-token-bg-secondary);
+  background: var(--color-bg-secondary);
 }
 
 .container:hover .title {
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
 }
 
 .link {
@@ -23,7 +23,7 @@
 }
 
 .container:focus-within {
-  border-left: 2px solid var(--color-token-border-heavy);
+  border-left: 2px solid var(--color-accent);
   padding-left: -2px;
 }
 
@@ -34,7 +34,7 @@
   gap: 20px;
   width: 100%;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--color-token-border-light);
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 14px;
 }
 
@@ -56,7 +56,7 @@
   gap: 6px;
   width: 100%;
   min-width: 0;
-  color: var(--color-token-text-primary);
+  color: var(--color-text-primary);
 }
 
 .title {
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
 }
 
 .timestamp,
@@ -87,7 +87,7 @@
 }
 
 .separator {
-  color: var(--color-token-text-tertiary);
+  color: var(--color-text-muted);
 }
 
 .statusSection {
@@ -98,10 +98,10 @@
 
 .statusText {
   background: linear-gradient(90deg, 
-    var(--color-token-text-secondary) 0%, 
-    var(--color-token-text-secondary) 50%, 
-    var(--color-token-text-tertiary) 50%, 
-    var(--color-token-text-tertiary) 100%);
+    var(--color-text-secondary) 0%, 
+    var(--color-text-secondary) 50%, 
+    var(--color-text-muted) 50%, 
+    var(--color-text-muted) 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -131,7 +131,7 @@
 }
 
 .stopButton:hover {
-  background: var(--color-token-bg-hover);
+  background: var(--color-bg-hover);
 }
 
 .archiveButton {
@@ -148,5 +148,5 @@
 }
 
 .archiveButton:hover {
-  background: var(--color-token-bg-hover);
+  background: var(--color-bg-hover);
 }
