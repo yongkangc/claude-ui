@@ -14,7 +14,7 @@ export interface ConversationSummary {
   sessionId: string; // Claude CLI's actual session ID (used for history files)
   projectPath: string;
   summary: string;
-  custom_name: string; // Custom name from SessionInfoService, default: ""
+  sessionInfo: SessionInfo; // Complete session metadata from SessionInfoService
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -257,6 +257,10 @@ export interface SessionInfo {
   created_at: string;           // ISO 8601 timestamp when session info was created
   updated_at: string;           // ISO 8601 timestamp when session info was last updated
   version: number;              // Schema version for future migrations
+  pinned: boolean;              // Whether session is pinned, default: false
+  archived: boolean;            // Whether session is archived, default: false
+  continuation_session_id: string; // ID of the continuation session if exists, default: ""
+  initial_commit_head: string;  // Git commit HEAD when session started, default: ""
 }
 
 export interface DatabaseMetadata {
@@ -270,7 +274,7 @@ export interface SessionInfoDatabase {
   metadata: DatabaseMetadata;
 }
 
-// API types for session renaming
+// API types for session renaming (deprecated - use SessionUpdateRequest instead)
 export interface SessionRenameRequest {
   customName: string;
 }
@@ -279,6 +283,21 @@ export interface SessionRenameResponse {
   success: boolean;
   sessionId: string;
   customName: string;
+}
+
+// API types for session update
+export interface SessionUpdateRequest {
+  customName?: string;           // Optional: update custom name
+  pinned?: boolean;              // Optional: update pinned status
+  archived?: boolean;            // Optional: update archived status
+  continuationSessionId?: string; // Optional: update continuation session
+  initialCommitHead?: string;    // Optional: update initial commit head
+}
+
+export interface SessionUpdateResponse {
+  success: boolean;
+  sessionId: string;
+  updatedFields: SessionInfo;    // Returns the complete updated session info
 }
 
 // Working directories API types

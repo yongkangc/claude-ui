@@ -49,9 +49,13 @@ function ConsoleApp() {
   const [readPath, setReadPath] = useState('');
   const [logWindowVisible, setLogWindowVisible] = useState(false);
   
-  // Rename session states
+  // Update session states
   const [renameSessionId, setRenameSessionId] = useState('');
   const [renameCustomName, setRenameCustomName] = useState('');
+  const [sessionPinned, setSessionPinned] = useState(false);
+  const [sessionArchived, setSessionArchived] = useState(false);
+  const [continuationSessionId, setContinuationSessionId] = useState('');
+  const [initialCommitHead, setInitialCommitHead] = useState('');
   
   // Permission decision states
   const [permissionRequestId, setPermissionRequestId] = useState('');
@@ -354,12 +358,20 @@ function ConsoleApp() {
         return;
       }
 
-      const response = await fetch(`/api/conversations/${renameSessionId}/rename`, {
+      // Use the new update endpoint with all fields
+      const updateData: any = {};
+      
+      // Only include fields that have values or are explicitly set
+      if (renameCustomName.trim() !== '') updateData.customName = renameCustomName.trim();
+      updateData.pinned = sessionPinned;
+      updateData.archived = sessionArchived;
+      if (continuationSessionId.trim() !== '') updateData.continuationSessionId = continuationSessionId.trim();
+      if (initialCommitHead.trim() !== '') updateData.initialCommitHead = initialCommitHead.trim();
+      
+      const response = await fetch(`/api/conversations/${renameSessionId}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customName: renameCustomName
-        })
+        body: JSON.stringify(updateData)
       });
       const data = await response.json();
       showJson('renameResult', data);
@@ -554,14 +566,20 @@ function ConsoleApp() {
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
                   const summary = session.summary || 'No summary';
-                  const customName = session.custom_name || '';
+                  const customName = session.sessionInfo?.custom_name || '';
+                  const sessionFlags = [];
+                  if (session.sessionInfo?.pinned) sessionFlags.push('📌');
+                  if (session.sessionInfo?.archived) sessionFlags.push('📦');
+                  if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
+                  if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
                   const metrics = session.toolMetrics;
                   const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{flagsStr}{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -625,10 +643,10 @@ function ConsoleApp() {
           </div>
         </div>
         
-        {/* Rename Session */}
+        {/* Update Session (includes rename) */}
         <div className="section">
           <div className={`endpoint collapsible ${collapsed.rename ? 'collapsed' : ''}`} onClick={() => toggleCollapse('rename')}>
-            PUT /api/conversations/:sessionId/rename
+            PUT /api/conversations/:sessionId/update
           </div>
           <div className="collapsible-content">
             <div className="field-group">
@@ -637,14 +655,20 @@ function ConsoleApp() {
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
                   const summary = session.summary || 'No summary';
-                  const customName = session.custom_name || '';
+                  const customName = session.sessionInfo?.custom_name || '';
+                  const sessionFlags = [];
+                  if (session.sessionInfo?.pinned) sessionFlags.push('📌');
+                  if (session.sessionInfo?.archived) sessionFlags.push('📦');
+                  if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
+                  if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
                   const metrics = session.toolMetrics;
                   const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                   return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
+                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{flagsStr}{metricsStr} ({date})
                     </option>
                   );
                 })}
@@ -658,7 +682,27 @@ function ConsoleApp() {
                 {renameCustomName.length}/200 characters
               </div>
             </div>
-            <button onClick={renameSession}>Rename Session</button>
+            <div className="field-group">
+              <div className="inline-fields">
+                <div>
+                  <input type="checkbox" id="sessionPinned" checked={sessionPinned} onChange={(e) => setSessionPinned(e.target.checked)} />
+                  <label htmlFor="sessionPinned">Pinned</label>
+                </div>
+                <div>
+                  <input type="checkbox" id="sessionArchived" checked={sessionArchived} onChange={(e) => setSessionArchived(e.target.checked)} />
+                  <label htmlFor="sessionArchived">Archived</label>
+                </div>
+              </div>
+            </div>
+            <div className="field-group">
+              <div className="field-label">Continuation Session ID <span className="optional">(optional)</span></div>
+              <input type="text" value={continuationSessionId} onChange={(e) => setContinuationSessionId(e.target.value)} placeholder="claude-session-id" />
+            </div>
+            <div className="field-group">
+              <div className="field-label">Initial Commit HEAD <span className="optional">(optional)</span></div>
+              <input type="text" value={initialCommitHead} onChange={(e) => setInitialCommitHead(e.target.value)} placeholder="git commit hash" />
+            </div>
+            <button onClick={renameSession}>Update Session</button>
             <div id="renameResult" className="json-viewer-container">
               {results.renameResult && <JsonViewer data={results.renameResult} resultId="renameResult" />}
             </div>
@@ -785,13 +829,13 @@ function ConsoleApp() {
               <option value="">Select a session...</option>
               {availableSessions.map(session => {
                 const summary = session.summary || 'No summary';
-                const customName = session.custom_name || '';
+                const customName = session.sessionInfo?.custom_name || '';
                 const displayName = customName ? `[${customName}] ${summary}` : summary;
                 const date = new Date(session.updatedAt).toLocaleString();
                 const metrics = session.toolMetrics;
                 const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
                 return (
-                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${customName ? `Custom Name: ${customName}\n` : ''}${summary}\nPath: ${session.projectPath}\nUpdated: ${date}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
+                  <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
                     {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{metricsStr} ({date})
                   </option>
                 );

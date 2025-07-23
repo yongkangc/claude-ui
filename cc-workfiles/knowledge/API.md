@@ -219,7 +219,7 @@ interface ConversationSummary {
   sessionId: string;        // Claude CLI's actual session ID (used for history files)
   projectPath: string;      // Original working directory
   summary: string;          // Brief description of the conversation
-  custom_name: string;      // Custom name set by user, default: ""
+  sessionInfo: SessionInfo; // Complete session metadata (custom name, pinning, archiving, etc.)
   createdAt: string;        // ISO 8601 timestamp when conversation started
   updatedAt: string;        // ISO 8601 timestamp of last modification
   messageCount: number;     // Total number of messages in the conversation
@@ -271,9 +271,9 @@ interface StopConversationResponse {
 }
 ```
 
-#### `PUT /api/conversations/:sessionId/rename`
+#### `PUT /api/conversations/:sessionId/rename` (Deprecated)
 
-Update the custom name for a conversation session.
+Update the custom name for a conversation session. **This endpoint is deprecated - use `/api/conversations/:sessionId/update` instead.**
 
 **Request Body:**
 ```typescript
@@ -281,6 +281,47 @@ interface SessionRenameRequest {
   customName: string;          // New custom name for the session (up to 200 characters)
 }
 ```
+
+#### `PUT /api/conversations/:sessionId/update`
+
+Update session information including custom name, pinned status, archived status, and other metadata.
+
+**Request Body:**
+```typescript
+interface SessionUpdateRequest {
+  customName?: string;           // Optional: update custom name (up to 200 characters)
+  pinned?: boolean;              // Optional: update pinned status
+  archived?: boolean;            // Optional: update archived status
+  continuationSessionId?: string; // Optional: update continuation session ID
+  initialCommitHead?: string;    // Optional: update initial git commit HEAD
+}
+```
+
+**Response:**
+```typescript
+interface SessionUpdateResponse {
+  success: boolean;
+  sessionId: string;
+  updatedFields: SessionInfo;    // Returns the complete updated session info
+}
+
+interface SessionInfo {
+  custom_name: string;           // Custom name for the session
+  created_at: string;            // ISO 8601 timestamp when session info was created
+  updated_at: string;            // ISO 8601 timestamp when session info was last updated
+  version: number;               // Schema version for future migrations
+  pinned: boolean;               // Whether session is pinned
+  archived: boolean;             // Whether session is archived
+  continuation_session_id: string; // ID of the continuation session if exists
+  initial_commit_head: string;   // Git commit HEAD when session started
+}
+```
+
+**Notes:**
+- Only provided fields in the request will be updated
+- If session doesn't exist in the database, it will be created with defaults
+- Custom name is trimmed of whitespace before saving
+- Returns 404 if the conversation session doesn't exist in history
 
 **Tool Metrics:**
 The `toolMetrics` field provides statistics about tool usage (Edit, MultiEdit, Write) in conversations:

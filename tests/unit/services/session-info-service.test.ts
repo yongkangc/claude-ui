@@ -82,7 +82,7 @@ describe('SessionInfoService', () => {
       
       expect(dbData.sessions).toHaveProperty('test-session');
       expect(dbData.metadata).toMatchObject({
-        schema_version: 1,
+        schema_version: 2,
         created_at: expect.any(String),
         last_updated: expect.any(String)
       });
@@ -146,16 +146,24 @@ describe('SessionInfoService', () => {
       const sessionInfo = await service.getSessionInfo(testSessionId);
       
       expect(sessionInfo.custom_name).toBe(testCustomName);
-      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.version).toBe(2);
       expect(sessionInfo.created_at).toBeDefined();
       expect(sessionInfo.updated_at).toBeDefined();
+      expect(sessionInfo.pinned).toBe(false);
+      expect(sessionInfo.archived).toBe(false);
+      expect(sessionInfo.continuation_session_id).toBe('');
+      expect(sessionInfo.initial_commit_head).toBe('');
     });
 
     it('should return default values for non-existent session', async () => {
       const sessionInfo = await service.getSessionInfo('non-existent-session');
       
       expect(sessionInfo.custom_name).toBe('');
-      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.pinned).toBe(false);
+      expect(sessionInfo.archived).toBe(false);
+      expect(sessionInfo.continuation_session_id).toBe('');
+      expect(sessionInfo.initial_commit_head).toBe('');
       expect(sessionInfo.created_at).toBeDefined();
       expect(sessionInfo.updated_at).toBeDefined();
     });
@@ -168,7 +176,11 @@ describe('SessionInfoService', () => {
       const sessionInfo = await service.getSessionInfo('test-session');
       
       expect(sessionInfo.custom_name).toBe('');
-      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.pinned).toBe(false);
+      expect(sessionInfo.archived).toBe(false);
+      expect(sessionInfo.continuation_session_id).toBe('');
+      expect(sessionInfo.initial_commit_head).toBe('');
       
       // Restore mock
       jest.restoreAllMocks();
@@ -192,7 +204,11 @@ describe('SessionInfoService', () => {
       
       const sessionInfo = await service.getSessionInfo(testSessionId);
       expect(sessionInfo.custom_name).toBe(testCustomName);
-      expect(sessionInfo.version).toBe(1);
+      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.pinned).toBe(false);
+      expect(sessionInfo.archived).toBe(false);
+      expect(sessionInfo.continuation_session_id).toBe('');
+      expect(sessionInfo.initial_commit_head).toBe('');
     });
 
     it('should update existing session entry', async () => {
@@ -256,7 +272,99 @@ describe('SessionInfoService', () => {
       const mockError = new Error('Write error');
       jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
       
-      await expect(service.updateCustomName(testSessionId, testCustomName)).rejects.toThrow('Failed to update custom name');
+      await expect(service.updateCustomName(testSessionId, testCustomName)).rejects.toThrow('Failed to update session info');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('updateSessionInfo', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should create new session with all fields', async () => {
+      const testSessionId = 'new-session';
+      const updates = {
+        custom_name: 'Test Session',
+        pinned: true,
+        archived: false,
+        continuation_session_id: 'other-session',
+        initial_commit_head: 'abc123def'
+      };
+      
+      const result = await service.updateSessionInfo(testSessionId, updates);
+      
+      expect(result.custom_name).toBe('Test Session');
+      expect(result.pinned).toBe(true);
+      expect(result.archived).toBe(false);
+      expect(result.continuation_session_id).toBe('other-session');
+      expect(result.initial_commit_head).toBe('abc123def');
+      expect(result.version).toBe(2);
+    });
+
+    it('should partially update existing session', async () => {
+      const testSessionId = 'test-session';
+      
+      // First create a session
+      await service.updateSessionInfo(testSessionId, {
+        custom_name: 'Original Name',
+        pinned: false
+      });
+      
+      // Update only some fields
+      const result = await service.updateSessionInfo(testSessionId, {
+        pinned: true,
+        archived: true
+      });
+      
+      expect(result.custom_name).toBe('Original Name'); // Should be preserved
+      expect(result.pinned).toBe(true); // Updated
+      expect(result.archived).toBe(true); // Updated
+      expect(result.continuation_session_id).toBe(''); // Default preserved
+      expect(result.initial_commit_head).toBe(''); // Default preserved
+    });
+
+    it('should handle empty updates object', async () => {
+      const testSessionId = 'test-session';
+      
+      const result = await service.updateSessionInfo(testSessionId, {});
+      
+      expect(result.custom_name).toBe('');
+      expect(result.pinned).toBe(false);
+      expect(result.archived).toBe(false);
+      expect(result.continuation_session_id).toBe('');
+      expect(result.initial_commit_head).toBe('');
+    });
+
+    it('should update timestamps correctly', async () => {
+      const testSessionId = 'test-session';
+      
+      const result1 = await service.updateSessionInfo(testSessionId, { custom_name: 'Test' });
+      const createdAt = result1.created_at;
+      
+      // Wait a bit
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      const result2 = await service.updateSessionInfo(testSessionId, { pinned: true });
+      
+      expect(result2.created_at).toBe(createdAt); // Should not change
+      expect(new Date(result2.updated_at).getTime()).toBeGreaterThan(new Date(result1.updated_at).getTime());
+    });
+
+    it('should throw error on update failure', async () => {
+      const testSessionId = 'test-session';
+      
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Write error');
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
+      
+      await expect(service.updateSessionInfo(testSessionId, { custom_name: 'Test' })).rejects.toThrow('Failed to update session info');
       
       // Restore mock
       jest.restoreAllMocks();

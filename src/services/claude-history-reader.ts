@@ -68,17 +68,26 @@ export class ClaudeHistoryReader {
       // Convert to ConversationSummary format and enhance with custom names
       const allConversations: ConversationSummary[] = await Promise.all(
         conversationChains.map(async (chain) => {
-          // Get custom name from SessionInfoService
-          let customName = '';
+          // Get full session info from SessionInfoService
+          let sessionInfo;
           try {
-            const sessionInfo = await this.sessionInfoService.getSessionInfo(chain.sessionId);
-            customName = sessionInfo.custom_name;
+            sessionInfo = await this.sessionInfoService.getSessionInfo(chain.sessionId);
           } catch (error) {
             this.logger.warn('Failed to get session info for conversation', { 
               sessionId: chain.sessionId, 
               error: error instanceof Error ? error.message : String(error) 
             });
-            // Continue with empty custom name on error
+            // Continue with default session info on error
+            sessionInfo = {
+              custom_name: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              version: 2,
+              pinned: false,
+              archived: false,
+              continuation_session_id: '',
+              initial_commit_head: ''
+            };
           }
 
           // Calculate tool metrics for this conversation
@@ -88,7 +97,7 @@ export class ClaudeHistoryReader {
             sessionId: chain.sessionId,
             projectPath: chain.projectPath,
             summary: chain.summary,
-            custom_name: customName,
+            sessionInfo: sessionInfo,
             createdAt: chain.createdAt,
             updatedAt: chain.updatedAt,
             messageCount: chain.messages.length,
