@@ -127,7 +127,7 @@ export function createPermissionRoutes(
       
       const response: PermissionDecisionResponse = {
         success: true,
-        message: `Permission ${decisionRequest.action}d successfully`
+        message: `Permission ${decisionRequest.action === 'approve' ? 'approved' : 'denied'} successfully`
       };
       
       res.json(response);
