@@ -49,9 +49,13 @@ function ConsoleApp() {
   const [readPath, setReadPath] = useState('');
   const [logWindowVisible, setLogWindowVisible] = useState(false);
   
-  // Rename session states
+  // Update session states
   const [renameSessionId, setRenameSessionId] = useState('');
   const [renameCustomName, setRenameCustomName] = useState('');
+  const [sessionPinned, setSessionPinned] = useState(false);
+  const [sessionArchived, setSessionArchived] = useState(false);
+  const [continuationSessionId, setContinuationSessionId] = useState('');
+  const [initialCommitHead, setInitialCommitHead] = useState('');
   
   // Permission decision states
   const [permissionRequestId, setPermissionRequestId] = useState('');
@@ -354,13 +358,20 @@ function ConsoleApp() {
         return;
       }
 
-      // Use the new update endpoint instead of rename
+      // Use the new update endpoint with all fields
+      const updateData: any = {};
+      
+      // Only include fields that have values or are explicitly set
+      if (renameCustomName.trim() !== '') updateData.customName = renameCustomName.trim();
+      updateData.pinned = sessionPinned;
+      updateData.archived = sessionArchived;
+      if (continuationSessionId.trim() !== '') updateData.continuationSessionId = continuationSessionId.trim();
+      if (initialCommitHead.trim() !== '') updateData.initialCommitHead = initialCommitHead.trim();
+      
       const response = await fetch(`/api/conversations/${renameSessionId}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customName: renameCustomName
-        })
+        body: JSON.stringify(updateData)
       });
       const data = await response.json();
       showJson('renameResult', data);
@@ -659,7 +670,27 @@ function ConsoleApp() {
                 {renameCustomName.length}/200 characters
               </div>
             </div>
-            <button onClick={renameSession}>Rename Session</button>
+            <div className="field-group">
+              <div className="inline-fields">
+                <div>
+                  <input type="checkbox" id="sessionPinned" checked={sessionPinned} onChange={(e) => setSessionPinned(e.target.checked)} />
+                  <label htmlFor="sessionPinned">Pinned</label>
+                </div>
+                <div>
+                  <input type="checkbox" id="sessionArchived" checked={sessionArchived} onChange={(e) => setSessionArchived(e.target.checked)} />
+                  <label htmlFor="sessionArchived">Archived</label>
+                </div>
+              </div>
+            </div>
+            <div className="field-group">
+              <div className="field-label">Continuation Session ID <span className="optional">(optional)</span></div>
+              <input type="text" value={continuationSessionId} onChange={(e) => setContinuationSessionId(e.target.value)} placeholder="claude-session-id" />
+            </div>
+            <div className="field-group">
+              <div className="field-label">Initial Commit HEAD <span className="optional">(optional)</span></div>
+              <input type="text" value={initialCommitHead} onChange={(e) => setInitialCommitHead(e.target.value)} placeholder="git commit hash" />
+            </div>
+            <button onClick={renameSession}>Update Session</button>
             <div id="renameResult" className="json-viewer-container">
               {results.renameResult && <JsonViewer data={results.renameResult} resultId="renameResult" />}
             </div>
