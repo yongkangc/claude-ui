@@ -19,28 +19,11 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
   
   return (
     <div className={styles.toolContent}>
-      {isError ? (
-        <div className={`${styles.codeBlock} ${styles.errorCode}`}>
-          <div className={styles.scrollableCode}>
-            <pre>{displayContent}</pre>
-          </div>
-        </div>
-      ) : (
+      <div className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}>
         <div className={styles.scrollableCode}>
-          {command && (
-            <CodeHighlight
-              code={`$ ${command}`}
-              language="bash"
-              className={`${styles.codeBlock} ${result ? styles.bashCommand : ''}`}
-            />
-          )}
-          {result && (
-            <div className={`${styles.codeBlock} ${styles.bashOutput}`}>
-              <pre>{displayContent}</pre>
-            </div>
-          )}
+          <pre>{result || '(No content)'}</pre>
         </div>
-      )}
+      </div>
     </div>
   );
 }

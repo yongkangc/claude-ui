@@ -5,6 +5,7 @@ import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIEr
 import { createLogger, type Logger } from './logger';
 import { SessionInfoService } from './session-info-service';
 import { ConversationCache, ConversationChain } from './conversation-cache';
+import { ToolMetricsService } from './ToolMetricsService';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Import RawJsonEntry from ConversationCache to avoid duplication
@@ -32,12 +33,14 @@ export class ClaudeHistoryReader {
   private logger: Logger;
   private sessionInfoService: SessionInfoService;
   private conversationCache: ConversationCache;
+  private toolMetricsService: ToolMetricsService;
   
   constructor() {
     this.claudeHomePath = path.join(os.homedir(), '.claude');
     this.logger = createLogger('ClaudeHistoryReader');
     this.sessionInfoService = SessionInfoService.getInstance();
     this.conversationCache = new ConversationCache();
+    this.toolMetricsService = new ToolMetricsService();
   }
 
   get homePath(): string {
@@ -78,6 +81,9 @@ export class ClaudeHistoryReader {
             // Continue with empty custom name on error
           }
 
+          // Calculate tool metrics for this conversation
+          const toolMetrics = this.toolMetricsService.calculateMetricsFromMessages(chain.messages);
+          
           return {
             sessionId: chain.sessionId,
             projectPath: chain.projectPath,
@@ -88,7 +94,8 @@ export class ClaudeHistoryReader {
             messageCount: chain.messages.length,
             totalDuration: chain.totalDuration,
             model: chain.model,
-            status: 'completed' as const // Default status, will be updated by server
+            status: 'completed' as const, // Default status, will be updated by server
+            toolMetrics: toolMetrics
           };
         })
       );
