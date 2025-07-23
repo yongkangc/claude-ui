@@ -13,6 +13,17 @@ interface ReadToolProps {
   workingDirectory?: string;
 }
 
+function cleanFileContent(content: string): string {
+  // Remove system-reminder tags and their content
+  let cleaned = content.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '');
+  
+  // Remove line numbers with arrow format (e.g., "     1→" or "    10→")
+  cleaned = cleaned.replace(/^\s*\d+→/gm, '');
+  
+  // Trim any extra whitespace at the end
+  return cleaned.trimEnd();
+}
+
 export function ReadTool({ input, result, isError, isPending, workingDirectory }: ReadToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -37,7 +48,8 @@ export function ReadTool({ input, result, isError, isPending, workingDirectory }
     );
   }
 
-  const lineCount = countLines(result);
+  const cleanedContent = cleanFileContent(result);
+  const lineCount = countLines(cleanedContent);
   const filePath = input?.file_path || '';
   const language = detectLanguageFromPath(filePath);
 
@@ -54,9 +66,9 @@ export function ReadTool({ input, result, isError, isPending, workingDirectory }
         Read {lineCount} line{lineCount !== 1 ? 's' : ''}
       </div>
       
-      {isExpanded && result && (
+      {isExpanded && cleanedContent && (
         <CodeHighlight
-          code={result}
+          code={cleanedContent}
           language={language}
           showLineNumbers={true}
           className={styles.codeBlock}

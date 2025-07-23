@@ -1,16 +1,28 @@
 .codeBlock {
-  background-color: #292a30;
-  color: #ffffff;
-  padding: 0.5rem;
-  border-radius: 4px;
+  background-color: var(--color-bg-code);
+  color: var(--color-text-primary);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.8;
   margin: 0;
-  border: 1px solid #3a3b40;
+  border: 1px solid var(--color-border);
+}
+
+/* Dark theme specific */
+[data-theme="dark"] .codeBlock {
+  background-color: #292a30;
+  border-color: #3a3b40;
+}
+
+/* Light theme specific */
+[data-theme="light"] .codeBlock {
+  background-color: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .codeContent {
@@ -29,10 +41,19 @@
 .lineNumber {
   display: table-cell;
   text-align: right;
-  padding-right: 0.5rem;
+  padding-right: 1rem;
   user-select: none;
-  opacity: 0.5;
-  min-width: 2rem;
+  color: var(--color-text-muted);
+  min-width: 2.5rem;
+  background-color: transparent;
+}
+
+[data-theme="dark"] .lineNumber {
+  color: #6c7986;
+}
+
+[data-theme="light"] .lineNumber {
+  color: #5d6c79;
 }
 
 .lineContent {
@@ -42,80 +63,4 @@
   word-break: break-word;
 }
 
-/* Override prism-react-renderer theme colors for Xcode dark theme */
-.codeBlock {
-  background-color: #292a30 !important;
-}
-
-/* Custom theme adjustments for Xcode dark colors */
-.codeBlock :global(.token.comment),
-.codeBlock :global(.token.prolog),
-.codeBlock :global(.token.doctype),
-.codeBlock :global(.token.cdata) {
-  color: #6c7986;
-  font-style: italic;
-}
-
-.codeBlock :global(.token.punctuation) {
-  color: #ffffff;
-}
-
-.codeBlock :global(.token.property),
-.codeBlock :global(.token.tag),
-.codeBlock :global(.token.boolean),
-.codeBlock :global(.token.number),
-.codeBlock :global(.token.constant),
-.codeBlock :global(.token.symbol),
-.codeBlock :global(.token.deleted) {
-  color: #d0a8ff;
-}
-
-.codeBlock :global(.token.selector),
-.codeBlock :global(.token.attr-name),
-.codeBlock :global(.token.string),
-.codeBlock :global(.token.char),
-.codeBlock :global(.token.builtin),
-.codeBlock :global(.token.inserted) {
-  color: #fc6a5d;
-}
-
-.codeBlock :global(.token.operator),
-.codeBlock :global(.token.entity),
-.codeBlock :global(.token.url),
-.codeBlock :global(.language-css .token.string),
-.codeBlock :global(.style .token.string) {
-  color: #ffffff;
-}
-
-.codeBlock :global(.token.atrule),
-.codeBlock :global(.token.attr-value),
-.codeBlock :global(.token.keyword) {
-  color: #fc5fa3;
-  font-weight: bold;
-}
-
-.codeBlock :global(.token.function),
-.codeBlock :global(.token.class-name) {
-  color: #67b7a4;
-}
-
-.codeBlock :global(.token.regex),
-.codeBlock :global(.token.important),
-.codeBlock :global(.token.variable) {
-  color: #a167e6;
-}
-
-/* Bash/Shell specific styling */
-.codeBlock :global(.language-bash .token.function) {
-  color: #67b7a4;
-}
-
-.codeBlock :global(.language-bash .token.keyword) {
-  color: #fc5fa3;
-  font-weight: bold;
-}
-
-/* JSON specific styling */
-.codeBlock :global(.language-json .token.property) {
-  color: #67b7a4;
-}
+/* Since we're using a custom theme in the component, we don't need these overrides anymore */

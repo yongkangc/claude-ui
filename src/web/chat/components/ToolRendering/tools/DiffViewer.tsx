@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import Prism from 'prismjs';
+import { useTheme } from '../../../hooks/useTheme';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-jsx';
@@ -19,6 +20,9 @@ interface DiffViewerProps {
 }
 
 export function DiffViewer({ oldValue, newValue, language = 'javascript' }: DiffViewerProps) {
+  const theme = useTheme();
+  const isDark = theme.mode === 'dark';
+  
   // 渲染带语法高亮的内容
   const renderContent = (source: string): JSX.Element => {
     if (!source.trim()) {
@@ -40,12 +44,13 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
       return <span>{source}</span>;
     }
   };
+  
   return (
     <ReactDiffViewer
       oldValue={oldValue}
       newValue={newValue}
       splitView={false}  // 统一视图
-      useDarkTheme={true}
+      useDarkTheme={isDark}
       hideLineNumbers={false}
       disableWordDiff={true}  // 禁用字符级别差异，使用行级别差异
       renderContent={renderContent}
@@ -75,6 +80,31 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
             diffViewerTitleBackground: '#1f2024',
             diffViewerTitleColor: '#ffffff',
             diffViewerTitleBorderColor: '#3a3b40',
+          },
+          light: {
+            diffViewerBackground: '#ffffff',
+            addedBackground: 'rgba(28, 176, 90, 0.15)',
+            addedColor: '#1cb05a',
+            removedBackground: 'rgba(220, 53, 34, 0.15)',
+            removedColor: '#dc3522',
+            wordAddedBackground: 'rgba(28, 176, 90, 0.3)',
+            wordRemovedBackground: 'rgba(220, 53, 34, 0.3)',
+            addedGutterBackground: 'rgba(28, 176, 90, 0.25)',
+            removedGutterBackground: 'rgba(220, 53, 34, 0.25)',
+            gutterBackground: '#f7f7f7',
+            gutterBackgroundDark: '#f0f0f0',
+            highlightBackground: 'rgba(0, 0, 0, 0.05)',
+            highlightGutterBackground: 'rgba(0, 0, 0, 0.1)',
+            codeFoldGutterBackground: '#f7f7f7',
+            codeFoldBackground: '#f7f7f7',
+            emptyLineBackground: '#ffffff',
+            gutterColor: '#5d6c79',
+            addedGutterColor: '#1cb05a',
+            removedGutterColor: '#dc3522',
+            codeFoldContentColor: '#262626',
+            diffViewerTitleBackground: '#f7f7f7',
+            diffViewerTitleColor: '#262626',
+            diffViewerTitleBorderColor: '#e0e0e0',
           }
         },
         diffContainer: {
@@ -82,101 +112,101 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
           overflow: 'hidden',
           fontFamily: 'var(--font-mono)',
           fontSize: '13px',
-          border: '1px solid #3a3b40',
+          border: isDark ? '1px solid #3a3b40' : '1px solid #e0e0e0',
         },
         line: {
           '& pre': {
-            color: '#ffffff',
+            color: isDark ? '#ffffff' : '#262626',
           },
           // Prism 语法高亮样式
           '& .token.comment': {
-            color: '#6c7986',
+            color: isDark ? '#6c7986' : '#5d6c79',
             fontStyle: 'italic',
           },
           '& .token.prolog': {
-            color: '#6c7986',
+            color: isDark ? '#6c7986' : '#5d6c79',
           },
           '& .token.doctype': {
-            color: '#6c7986',
+            color: isDark ? '#6c7986' : '#5d6c79',
           },
           '& .token.cdata': {
-            color: '#6c7986',
+            color: isDark ? '#6c7986' : '#5d6c79',
           },
           '& .token.punctuation': {
-            color: '#ffffff',
+            color: isDark ? '#ffffff' : '#262626',
           },
           '& .token.property': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.tag': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.boolean': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.number': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.constant': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.symbol': {
-            color: '#d0a8ff',
+            color: isDark ? '#d0a8ff' : '#aa0d91',
           },
           '& .token.deleted': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.selector': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.attr-name': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.string': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.char': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.builtin': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.inserted': {
-            color: '#67b7a4',
+            color: isDark ? '#67b7a4' : '#1c00cf',
           },
           '& .token.operator': {
-            color: '#ffffff',
+            color: isDark ? '#ffffff' : '#262626',
           },
           '& .token.entity': {
-            color: '#ffffff',
+            color: isDark ? '#ffffff' : '#262626',
           },
           '& .token.url': {
-            color: '#fc6a5d',
+            color: isDark ? '#fc6a5d' : '#c41a16',
           },
           '& .token.atrule': {
-            color: '#fc5fa3',
+            color: isDark ? '#fc5fa3' : '#aa0d91',
           },
           '& .token.attr-value': {
-            color: '#fc5fa3',
+            color: isDark ? '#fc5fa3' : '#aa0d91',
           },
           '& .token.keyword': {
-            color: '#fc5fa3',
+            color: isDark ? '#fc5fa3' : '#aa0d91',
             fontWeight: 'bold',
           },
           '& .token.function': {
-            color: '#67b7a4',
+            color: isDark ? '#67b7a4' : '#1c00cf',
           },
           '& .token.class-name': {
-            color: '#67b7a4',
+            color: isDark ? '#67b7a4' : '#1c00cf',
           },
           '& .token.regex': {
-            color: '#a167e6',
+            color: isDark ? '#a167e6' : '#5c2699',
           },
           '& .token.important': {
-            color: '#a167e6',
+            color: isDark ? '#a167e6' : '#5c2699',
           },
           '& .token.variable': {
-            color: '#a167e6',
+            color: isDark ? '#a167e6' : '#5c2699',
           },
         }
       }}
