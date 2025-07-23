@@ -109,32 +109,6 @@
   word-break: break-word;
 }
 
-.userMessageCopy {
-  position: absolute;
-  bottom: -28px;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.userMessageContent:hover .userMessageCopy {
-  opacity: 1;
-}
-
-.userMessageCopy:hover {
-  color: var(--color-text-primary);
-}
-
 /* Assistant Messages */
 .assistantMessage {
   position: relative;
