@@ -9,7 +9,7 @@
   justify-content: center;
   width: 100%;
   background: var(--color-token-bg-primary);
-  border: 1px solid var(--color-token-border-light);
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-xl);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: text;
