@@ -78,6 +78,11 @@ export interface WorkingDirectoriesResponse {
   totalCount: number;
 }
 
+export interface Preferences {
+  colorScheme: 'light' | 'dark';
+  language: string;
+}
+
 // Tool result types
 export interface ToolResult {
   status: 'pending' | 'completed';

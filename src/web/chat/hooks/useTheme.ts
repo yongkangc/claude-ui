@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Theme } from '../types';
+import { api } from '../services/api';
 
 const THEME_KEY = 'ccui-theme';
 
@@ -20,6 +21,14 @@ export function useTheme(): Theme {
   });
 
   useEffect(() => {
+    api.getPreferences().then(prefs => {
+      if (prefs.colorScheme === 'light' || prefs.colorScheme === 'dark') {
+        setMode(prefs.colorScheme);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', mode);
     localStorage.setItem(THEME_KEY, mode);
@@ -38,8 +47,14 @@ export function useTheme(): Theme {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const toggle = () => {
-    setMode(prev => prev === 'light' ? 'dark' : 'light');
+  const toggle = async () => {
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setMode(newMode);
+    try {
+      await api.updatePreferences({ colorScheme: newMode });
+    } catch {
+      // ignore
+    }
   };
 
   return { mode, toggle };

@@ -121,6 +121,17 @@ class ApiService {
       body: JSON.stringify(updates),
     });
   }
+
+  async getPreferences(): Promise<import('../types').Preferences> {
+    return this.apiCall('/api/preferences');
+  }
+
+  async updatePreferences(updates: Partial<import('../types').Preferences>): Promise<import('../types').Preferences> {
+    return this.apiCall('/api/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
 }
 
 export const api = new ApiService();

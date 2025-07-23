@@ -79,3 +79,7 @@ ccui-backend/
    ```
 
 The server automatically serves the optimized React app alongside the API endpoints.
+
+### Preference Service
+User preferences such as color scheme and language are persisted using `PreferencesService`.
+The data is stored in `~/.ccui/preferences.json` and can be queried or updated via `/api/preferences`.

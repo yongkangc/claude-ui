@@ -9,6 +9,7 @@ import { FileSystemService } from './services/file-system-service';
 import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
+import { PreferencesService } from './services/preferences-service';
 import { OptimisticConversationService } from './services/optimistic-conversation-service';
 import { WorkingDirectoriesService } from './services/working-directories-service';
 import { ToolMetricsService } from './services/ToolMetricsService';
@@ -25,6 +26,7 @@ import { createFileSystemRoutes } from './routes/filesystem.routes';
 import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
 import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
+import { createPreferencesRoutes } from './routes/preferences.routes';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
@@ -50,6 +52,7 @@ export class CCUIServer {
   private fileSystemService: FileSystemService;
   private configService: ConfigService;
   private sessionInfoService: SessionInfoService;
+  private preferencesService: PreferencesService;
   private optimisticConversationService: OptimisticConversationService;
   private workingDirectoriesService: WorkingDirectoriesService;
   private toolMetricsService: ToolMetricsService;
@@ -86,6 +89,7 @@ export class CCUIServer {
     this.toolMetricsService = new ToolMetricsService();
     this.fileSystemService = new FileSystemService();
     this.sessionInfoService = SessionInfoService.getInstance();
+    this.preferencesService = PreferencesService.getInstance();
     this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker, undefined, undefined, this.toolMetricsService, this.sessionInfoService, this.fileSystemService);
     this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
@@ -116,6 +120,10 @@ export class CCUIServer {
       this.logger.debug('Initializing session info service');
       await this.sessionInfoService.initialize();
       this.logger.debug('Session info service initialized successfully');
+
+      this.logger.debug('Initializing preferences service');
+      await this.preferencesService.initialize();
+      this.logger.debug('Preferences service initialized successfully');
       
       // Apply overrides if provided (for tests and CLI options)
       this.port = this.configOverrides?.port ?? config.server.port;
@@ -340,6 +348,7 @@ export class CCUIServer {
     this.app.use('/api/logs', createLogRoutes());
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
+    this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
     
     // ViteExpress handles React app routing automatically
     
