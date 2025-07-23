@@ -312,3 +312,4 @@ export interface WorkingDirectoriesResponse {
   directories: WorkingDirectory[];
   totalCount: number;
 }
+export * from './preferences';

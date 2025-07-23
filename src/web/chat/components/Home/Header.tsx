@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
+import { PreferencesModal } from '../PreferencesModal/PreferencesModal';
 import styles from './Header.module.css';
 
 export function Header() {
   const theme = useTheme();
+  const [showPrefs, setShowPrefs] = useState(false);
 
   return (
     <header className={styles.header}>
@@ -32,7 +34,7 @@ export function Header() {
           </div>
 
           {/* Profile Button */}
-          <button className={styles.profileButton} aria-label="Open Profile Menu">
+          <button className={styles.profileButton} aria-label="Open Profile Menu" onClick={() => setShowPrefs(true)}>
             <div className={styles.profileImage}>
               <div className={styles.profilePlaceholder}>U</div>
             </div>
@@ -41,5 +43,6 @@ export function Header() {
         </nav>
       </div>
     </header>
+    {showPrefs && <PreferencesModal onClose={() => setShowPrefs(false)} />}
   );
 }

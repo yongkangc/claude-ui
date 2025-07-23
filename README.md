@@ -46,6 +46,10 @@ The project now includes a modern React-based web interface with TUI-inspired de
 - `GET /api/system/status` - System status
 - `GET /api/models` - Available models
 
+### Preferences
+- `GET /api/preferences` - Get user preferences
+- `PUT /api/preferences` - Update user preferences
+
 ## Installation
 
 ```bash
@@ -106,6 +110,7 @@ npm run lint
 ## Configuration
 
 CCUI uses a configuration file at `~/.ccui/config.json` for server settings. The file is automatically created on first startup.
+User preferences are stored separately in `~/.ccui/preferences.json`. Currently this file tracks the UI color scheme and language.
 
 ### Logging Configuration
 
