@@ -2,8 +2,8 @@ import React from 'react';
 import styles from './TaskTabs.module.css';
 
 interface TaskTabsProps {
-  activeTab: 'tasks' | 'archive';
-  onTabChange: (tab: 'tasks' | 'archive') => void;
+  activeTab: 'tasks' | 'history' | 'archive';
+  onTabChange: (tab: 'tasks' | 'history' | 'archive') => void;
 }
 
 export function TaskTabs({ activeTab, onTabChange }: TaskTabsProps) {
@@ -19,6 +19,19 @@ export function TaskTabs({ activeTab, onTabChange }: TaskTabsProps) {
             Tasks
           </button>
           {activeTab === 'tasks' && (
+            <div className={styles.activeIndicator} />
+          )}
+        </div>
+        
+        <div className={styles.tabWrapper}>
+          <button
+            className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
+            onClick={() => onTabChange('history')}
+            aria-label="Tab selector to view history"
+          >
+            History
+          </button>
+          {activeTab === 'history' && (
             <div className={styles.activeIndicator} />
           )}
         </div>

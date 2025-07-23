@@ -133,3 +133,20 @@
 .stopButton:hover {
   background: var(--color-token-bg-hover);
 }
+
+.archiveButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.archiveButton:hover {
+  background: var(--color-token-bg-hover);
+}

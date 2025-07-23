@@ -105,6 +105,22 @@ class ApiService {
       body: JSON.stringify(decision),
     });
   }
+
+  async updateSession(
+    sessionId: string,
+    updates: {
+      customName?: string;
+      pinned?: boolean;
+      archived?: boolean;
+      continuationSessionId?: string;
+      initialCommitHead?: string;
+    }
+  ): Promise<{ success: boolean; sessionId: string; updatedFields: Record<string, unknown> }> {
+    return this.apiCall(`/api/conversations/${sessionId}/update`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
 }
 
 export const api = new ApiService();

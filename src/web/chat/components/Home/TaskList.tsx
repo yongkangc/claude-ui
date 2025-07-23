@@ -4,6 +4,7 @@ import { TaskItem } from './TaskItem';
 import styles from './TaskList.module.css';
 import type { ConversationSummary } from '../../types';
 import { useConversations } from '../../contexts/ConversationsContext';
+import { api } from '../../services/api';
 
 interface TaskListProps {
   conversations: ConversationSummary[];
@@ -11,7 +12,7 @@ interface TaskListProps {
   loadingMore: boolean;
   hasMore: boolean;
   error: string | null;
-  activeTab: 'tasks' | 'archive';
+  activeTab: 'tasks' | 'history' | 'archive';
   onLoadMore: () => void;
 }
 
@@ -27,11 +28,29 @@ export function TaskList({
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
-  const { recentDirectories } = useConversations();
+  const { recentDirectories, loadConversations } = useConversations();
 
   // Filter conversations based on active tab
-  // For now, we'll show all conversations in "Tasks" and none in "Archive"
-  const filteredConversations = activeTab === 'tasks' ? conversations : [];
+  const filteredConversations = conversations.filter(conv => {
+    if (activeTab === 'archive') {
+      return conv.sessionInfo.archived === true;
+    } else if (activeTab === 'history') {
+      return !conv.sessionInfo.archived && conv.sessionInfo.continuation_session_id !== '';
+    } else { // tasks
+      return !conv.sessionInfo.archived && conv.sessionInfo.continuation_session_id === '';
+    }
+  });
+
+  // Sort ongoing tasks to the top in the Tasks tab
+  const sortedConversations = activeTab === 'tasks' 
+    ? [...filteredConversations].sort((a, b) => {
+        // Ongoing tasks first
+        if (a.status === 'ongoing' && b.status !== 'ongoing') return -1;
+        if (a.status !== 'ongoing' && b.status === 'ongoing') return 1;
+        // Then by updated date (already sorted by backend)
+        return 0;
+      })
+    : filteredConversations;
 
   const handleTaskClick = (sessionId: string) => {
     navigate(`/c/${sessionId}`);
@@ -40,6 +59,28 @@ export function TaskList({
   const handleCancelTask = (sessionId: string) => {
     // Mock cancel functionality
     console.log('Cancel task:', sessionId);
+  };
+
+  const handleArchiveTask = async (sessionId: string) => {
+    // Optimistically remove the item from the current view
+    const element = document.querySelector(`[data-session-id="${sessionId}"]`);
+    if (element) {
+      element.style.display = 'none';
+    }
+    
+    try {
+      // Call the API to persist the change
+      await api.updateSession(sessionId, { archived: true });
+      
+      // Refresh the conversations list to ensure consistency
+      loadConversations();
+    } catch (error) {
+      console.error('Failed to archive task:', error);
+      // Restore visibility if the API call fails
+      if (element) {
+        element.style.display = '';
+      }
+    }
   };
 
   // Intersection Observer for infinite scrolling
@@ -88,11 +129,11 @@ export function TaskList({
     );
   }
 
-  if (filteredConversations.length === 0) {
+  if (sortedConversations.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.message}>
-          {activeTab === 'tasks' ? 'No active tasks.' : 'No archived tasks.'}
+          {activeTab === 'tasks' ? 'No active tasks.' : activeTab === 'history' ? 'No history tasks.' : 'No archived tasks.'}
         </div>
       </div>
     );
@@ -100,22 +141,28 @@ export function TaskList({
 
   return (
     <div ref={scrollRef} className={styles.container}>
-      {filteredConversations.map((conversation) => (
-        <TaskItem
-          key={conversation.sessionId}
-          id={conversation.sessionId}
-          title={conversation.summary}
-          timestamp={conversation.updatedAt}
-          projectPath={conversation.projectPath}
-          recentDirectories={recentDirectories}
-          status={conversation.status}
-          onClick={() => handleTaskClick(conversation.sessionId)}
-          onCancel={
-            conversation.status === 'ongoing' 
-              ? () => handleCancelTask(conversation.sessionId)
-              : undefined
-          }
-        />
+      {sortedConversations.map((conversation) => (
+        <div key={conversation.sessionId} data-session-id={conversation.sessionId}>
+          <TaskItem
+            id={conversation.sessionId}
+            title={conversation.summary}
+            timestamp={conversation.updatedAt}
+            projectPath={conversation.projectPath}
+            recentDirectories={recentDirectories}
+            status={conversation.status}
+            onClick={() => handleTaskClick(conversation.sessionId)}
+            onCancel={
+              conversation.status === 'ongoing' 
+                ? () => handleCancelTask(conversation.sessionId)
+                : undefined
+            }
+            onArchive={
+              conversation.status === 'completed'
+                ? () => handleArchiveTask(conversation.sessionId)
+                : undefined
+            }
+          />
+        </div>
       ))}
       
       {/* Loading indicator for infinite scroll */}
@@ -130,7 +177,7 @@ export function TaskList({
       )}
       
       {/* End of list message */}
-      {!hasMore && filteredConversations.length > 0 && (
+      {!hasMore && sortedConversations.length > 0 && (
         <div className={styles.endMessage}>
           No more tasks to load
         </div>
