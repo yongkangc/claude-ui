@@ -1,9 +1,13 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import ignore from 'ignore';
 import { CCUIError, FileSystemEntry } from '@/types';
 import { createLogger } from './logger';
 import { type Logger } from './logger';
+
+const execAsync = promisify(exec);
 
 /**
  * Service for secure file system operations
@@ -350,5 +354,31 @@ export class FileSystemService {
     ig.add('.git');
     
     return ig;
+  }
+
+  /**
+   * Check if a directory is a git repository
+   */
+  async isGitRepository(dirPath: string): Promise<boolean> {
+    try {
+      await execAsync('git rev-parse --git-dir', { cwd: dirPath });
+      return true;
+    } catch (error) {
+      this.logger.debug('Directory is not a git repository', { dirPath, error });
+      return false;
+    }
+  }
+
+  /**
+   * Get current git HEAD commit hash
+   */
+  async getCurrentGitHead(dirPath: string): Promise<string | null> {
+    try {
+      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: dirPath });
+      return stdout.trim();
+    } catch (error) {
+      this.logger.debug('Failed to get git HEAD', { dirPath, error });
+      return null;
+    }
   }
 }

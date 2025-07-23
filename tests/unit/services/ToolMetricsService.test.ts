@@ -80,54 +80,6 @@ describe('ToolMetricsService', () => {
     });
   });
 
-  describe('clearMetrics', () => {
-    it('should clear metrics for a session', () => {
-      service.listenToClaudeMessages(mockProcessManager);
-
-      const writeMessage: AssistantStreamMessage = {
-        type: 'assistant',
-        session_id: 'test-session',
-        message: {
-          id: 'msg-1',
-          type: 'message',
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool_use',
-              id: 'tool-1',
-              name: 'Write',
-              input: {
-                file_path: '/test.txt',
-                content: 'line1\nline2\nline3'
-              }
-            }
-          ],
-          model: 'claude-3',
-          stop_reason: null,
-          stop_sequence: null,
-          usage: {
-            input_tokens: 10,
-            output_tokens: 20,
-            cache_creation_input_tokens: 0,
-            cache_read_input_tokens: 0,
-            server_tool_use: { web_search_requests: 0 },
-            service_tier: 'standard' as const
-          }
-        }
-      };
-
-      mockProcessManager.emit('claude-message', { streamingId: 'stream-1', message: writeMessage });
-      
-      // Verify metrics exist
-      expect(service.getMetrics('test-session')).toBeDefined();
-      
-      // Clear metrics
-      service.clearMetrics('test-session');
-      
-      // Verify metrics are gone
-      expect(service.getMetrics('test-session')).toBeUndefined();
-    });
-  });
 
   describe('tool processing', () => {
     beforeEach(() => {

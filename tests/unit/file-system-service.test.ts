@@ -181,4 +181,26 @@ describe('FileSystemService', () => {
       expect(names).not.toContain(path.join('dist', 'index.js'));
     });
   });
+
+  describe('Git operations', () => {
+    let testDir: string;
+
+    beforeEach(async () => {
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-git-test-'));
+    });
+
+    afterEach(async () => {
+      await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    it('should detect non-git directories', async () => {
+      const isGit = await service.isGitRepository(testDir);
+      expect(isGit).toBe(false);
+    });
+
+    it('should return null for git HEAD in non-git directory', async () => {
+      const gitHead = await service.getCurrentGitHead(testDir);
+      expect(gitHead).toBe(null);
+    });
+  });
 });

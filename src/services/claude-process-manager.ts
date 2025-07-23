@@ -9,6 +9,8 @@ import { ClaudeHistoryReader } from './claude-history-reader';
 import { ConversationStatusTracker } from './conversation-status-tracker';
 import { OptimisticConversationService } from './optimistic-conversation-service';
 import { ToolMetricsService } from './ToolMetricsService';
+import { SessionInfoService } from './session-info-service';
+import { FileSystemService } from './file-system-service';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -26,8 +28,10 @@ export class ClaudeProcessManager extends EventEmitter {
   private statusTracker: ConversationStatusTracker;
   private optimisticConversationService?: OptimisticConversationService;
   private toolMetricsService?: ToolMetricsService;
+  private sessionInfoService?: SessionInfoService;
+  private fileSystemService?: FileSystemService;
 
-  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService) {
+  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService, sessionInfoService?: SessionInfoService, fileSystemService?: FileSystemService) {
     super();
     this.historyReader = historyReader;
     this.statusTracker = statusTracker;
@@ -35,6 +39,8 @@ export class ClaudeProcessManager extends EventEmitter {
     this.logger = createLogger('ClaudeProcessManager');
     this.envOverrides = envOverrides || {};
     this.toolMetricsService = toolMetricsService;
+    this.sessionInfoService = sessionInfoService;
+    this.fileSystemService = fileSystemService;
   }
 
   /**
@@ -499,6 +505,30 @@ export class ClaudeProcessManager extends EventEmitter {
       // Now wait for the system init message
       this.logger.debug('Process spawned successfully, waiting for system init message', { streamingId, ...loggerContext });
       const systemInit = await systemInitPromise;
+      
+      // Check if cwd is a git repository and set initial_commit_head for new session
+      if (this.sessionInfoService && this.fileSystemService) {
+        try {
+          if (await this.fileSystemService.isGitRepository(systemInit.cwd)) {
+            const gitHead = await this.fileSystemService.getCurrentGitHead(systemInit.cwd);
+            if (gitHead) {
+              await this.sessionInfoService.updateSessionInfo(systemInit.session_id, {
+                initial_commit_head: gitHead
+              });
+              this.logger.debug('Set initial commit head for new session', {
+                sessionId: systemInit.session_id,
+                gitHead
+              });
+            }
+          }
+        } catch (error) {
+          this.logger.warn('Failed to set initial commit head for new session', {
+            sessionId: systemInit.session_id,
+            cwd: systemInit.cwd,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
       
       this.logger.info(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
         streamingId,

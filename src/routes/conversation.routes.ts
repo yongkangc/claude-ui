@@ -112,6 +112,22 @@ export function createConversationRoutes(
         sessionId: req.body.sessionId,
         message: req.body.message
       });
+
+      // Update original session with continuation session ID
+      try {
+        await sessionInfoService.updateSessionInfo(req.body.sessionId, {
+          continuation_session_id: systemInit.session_id
+        });
+        logger.debug('Updated original session with continuation ID', {
+          originalSessionId: req.body.sessionId,
+          continuationSessionId: systemInit.session_id
+        });
+      } catch (error) {
+        logger.warn('Failed to update original session with continuation ID', {
+          originalSessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
       
       logger.debug('Conversation resumed successfully', {
         requestId,

@@ -84,12 +84,12 @@ export class CCUIServer {
     this.historyReader = new ClaudeHistoryReader();
     this.statusTracker = new ConversationStatusTracker();
     this.toolMetricsService = new ToolMetricsService();
-    this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker, undefined, undefined, this.toolMetricsService);
+    this.fileSystemService = new FileSystemService();
+    this.sessionInfoService = SessionInfoService.getInstance();
+    this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker, undefined, undefined, this.toolMetricsService, this.sessionInfoService, this.fileSystemService);
     this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
-    this.fileSystemService = new FileSystemService();
-    this.sessionInfoService = SessionInfoService.getInstance();
     this.optimisticConversationService = new OptimisticConversationService(this.statusTracker);
     this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
     this.logger.debug('Services initialized successfully');
