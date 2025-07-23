@@ -30,6 +30,7 @@ interface DropdownSelectorProps<T = string> {
   maxVisibleItems?: number;
   initialFocusedIndex?: number;
   onFocusReturn?: () => void;
+  visualFocusOnly?: boolean;
 }
 
 export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps<any>>(
@@ -54,6 +55,7 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
       maxVisibleItems = 5,
       initialFocusedIndex,
       onFocusReturn,
+      visualFocusOnly = false,
     }: DropdownSelectorProps<T>,
     ref: React.ForwardedRef<HTMLDivElement>
   ) {
@@ -150,18 +152,21 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
 
     // Focus management
     useEffect(() => {
-      if (isOpen && showFilterInput && filterInputRef.current) {
+      if (isOpen && showFilterInput && filterInputRef.current && !visualFocusOnly) {
         filterInputRef.current.focus();
       }
-    }, [isOpen, showFilterInput]);
+    }, [isOpen, showFilterInput, visualFocusOnly]);
 
     useEffect(() => {
-      if (focusedIndex >= 0 && focusedIndex < optionRefs.current.length) {
-        optionRefs.current[focusedIndex]?.focus();
-      } else if (focusedIndex === -1 && showFilterInput && filterInputRef.current) {
-        filterInputRef.current.focus();
+      // Only take actual DOM focus if visualFocusOnly is false
+      if (!visualFocusOnly) {
+        if (focusedIndex >= 0 && focusedIndex < optionRefs.current.length) {
+          optionRefs.current[focusedIndex]?.focus();
+        } else if (focusedIndex === -1 && showFilterInput && filterInputRef.current) {
+          filterInputRef.current.focus();
+        }
       }
-    }, [focusedIndex, showFilterInput]);
+    }, [focusedIndex, showFilterInput, visualFocusOnly]);
 
     // Reset focused index when dropdown closes or filter changes
     useEffect(() => {

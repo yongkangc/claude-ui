@@ -124,6 +124,7 @@ function AutocompleteDropdown({
         maxVisibleItems={5}
         className={styles.pathAutocomplete}
         initialFocusedIndex={focusedIndex}
+        visualFocusOnly={true}
       />
     </div>
   );
