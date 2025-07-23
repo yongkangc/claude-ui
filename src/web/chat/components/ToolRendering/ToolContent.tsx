@@ -11,6 +11,7 @@ import { WebTool } from './tools/WebTool';
 import { TaskTool } from './tools/TaskTool';
 import { PlanTool } from './tools/PlanTool';
 import { FallbackTool } from './tools/FallbackTool';
+import styles from './ToolRendering.module.css';
 
 interface ToolResult {
   status: 'pending' | 'completed';
@@ -58,6 +59,17 @@ export function ToolContent({
   const resultContent = getResultContent();
   const isError = toolResult?.is_error === true;
   const isPending = toolResult?.status === 'pending';
+
+  // Handle error display at root level
+  if (isError) {
+    return (
+      <div className={styles.toolContent}>
+        <div className={styles.errorContent}>
+          {resultContent || 'Tool execution failed'}
+        </div>
+      </div>
+    );
+  }
 
   // Route to appropriate tool-specific component
   switch (toolName) {
