@@ -16,7 +16,7 @@ import type {
 } from '@/types';
 
 // Import ContentBlock from Anthropic SDK
-import type { ContentBlock } from '@anthropic-ai/sdk/resources/messages/messages';
+import type { ContentBlock, ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 
 export type {
   ConversationSummary,
@@ -76,4 +76,11 @@ export interface WorkingDirectory {
 export interface WorkingDirectoriesResponse {
   directories: WorkingDirectory[];
   totalCount: number;
+}
+
+// Tool result types
+export interface ToolResult {
+  status: 'pending' | 'completed';
+  result?: string | ContentBlockParam[];
+  is_error?: boolean;
 }

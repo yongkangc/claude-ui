@@ -4,13 +4,13 @@ import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import { ToolUseRenderer } from '../ToolRendering/ToolUseRenderer';
 import { CodeHighlight } from '../CodeHighlight';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, ToolResult } from '../../types';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import styles from './MessageList.module.css';
 
 interface MessageItemProps {
   message: ChatMessage;
-  toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | ContentBlockParam[] }>;
+  toolResults?: Record<string, ToolResult>;
   childrenMessages?: Record<string, ChatMessage[]>;
   expandedTasks?: Set<string>;
   onToggleTaskExpanded?: (toolUseId: string) => void;
@@ -115,13 +115,6 @@ export function MessageItem({
           <div className={styles.userMessageText}>
             {content}
           </div>
-          <button
-            className={styles.userMessageCopy}
-            onClick={() => copyContent(content, message.messageId)}
-            title="Copy"
-          >
-            {copiedBlocks.has(message.messageId) ? <Check size={16} /> : <Copy size={16} />}
-          </button>
         </div>
       </div>
     );

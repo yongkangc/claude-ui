@@ -1,11 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { MessageItem } from './MessageItem';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, ToolResult } from '../../types';
 import styles from './MessageList.module.css';
 
 export interface MessageListProps {
   messages: ChatMessage[];
-  toolResults?: Record<string, { status: 'pending' | 'completed'; result?: string | any[] }>;
+  toolResults?: Record<string, ToolResult>;
   childrenMessages?: Record<string, ChatMessage[]>;
   expandedTasks?: Set<string>;
   onToggleTaskExpanded?: (toolUseId: string) => void;

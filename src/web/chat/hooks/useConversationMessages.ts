@@ -1,12 +1,7 @@
 import { useState, useCallback } from 'react';
-import type { ChatMessage, StreamEvent } from '../types';
+import type { ChatMessage, StreamEvent, ToolResult } from '../types';
 import type { ContentBlock, ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import type { PermissionRequest } from '@/types';
-
-interface ToolResult {
-  status: 'pending' | 'completed';
-  result?: string | ContentBlockParam[];
-}
 
 interface UseConversationMessagesOptions {
   onUserMessage?: (message: ChatMessage) => void;
@@ -107,7 +102,8 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
               
               toolResultUpdates[toolUseId] = {
                 status: 'completed',
-                result
+                result,
+                is_error: block.is_error
               };
             }
           });
@@ -281,10 +277,12 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
               } else if (Array.isArray(block.content)) {
                 result = block.content;
               }
+              console.debug('Adding tool result', block);
               
               newToolResults[toolUseId] = {
                 status: 'completed',
-                result
+                result,
+                is_error: block.is_error
               };
             }
           }

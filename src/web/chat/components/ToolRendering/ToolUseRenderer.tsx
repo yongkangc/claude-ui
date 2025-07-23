@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, ToolResult } from '../../types';
 import { ToolLabel } from './ToolLabel';
 import { ToolContent } from './ToolContent';
 
@@ -9,12 +9,6 @@ interface ToolUse {
   id: string;
   name: string;
   input: any;
-}
-
-interface ToolResult {
-  status: 'pending' | 'completed';
-  result?: string | ContentBlockParam[];
-  is_error?: boolean;
 }
 
 interface ToolUseRendererProps {

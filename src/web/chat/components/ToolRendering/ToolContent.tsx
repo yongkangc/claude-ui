@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, ToolResult } from '../../types';
 import { ReadTool } from './tools/ReadTool';
 import { EditTool } from './tools/EditTool';
 import { WriteTool } from './tools/WriteTool';
@@ -12,12 +12,6 @@ import { TaskTool } from './tools/TaskTool';
 import { PlanTool } from './tools/PlanTool';
 import { FallbackTool } from './tools/FallbackTool';
 import styles from './ToolRendering.module.css';
-
-interface ToolResult {
-  status: 'pending' | 'completed';
-  result?: string | ContentBlockParam[];
-  is_error?: boolean;
-}
 
 interface ToolContentProps {
   toolName: string;
@@ -40,6 +34,7 @@ export function ToolContent({
 }: ToolContentProps) {
   // Extract result content - handle both string and ContentBlockParam[] formats
   const getResultContent = (): string => {
+    console.debug('toolResult', toolResult);
     if (!toolResult?.result) return '';
     
     if (typeof toolResult.result === 'string') {
