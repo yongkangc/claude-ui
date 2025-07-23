@@ -150,3 +150,24 @@
 .archiveButton:hover {
   background: var(--color-bg-hover);
 }
+
+.metricsSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.messageCount {
+  color: var(--color-text-muted);
+}
+
+.additions {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.deletions {
+  color: #ef4444;
+  font-weight: 500;
+}
