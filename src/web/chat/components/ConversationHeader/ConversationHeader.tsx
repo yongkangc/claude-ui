@@ -8,7 +8,7 @@ interface ConversationHeaderProps {
   subtitle?: {
     date?: string;
     repo?: string;
-    branch?: string;
+    commitSHA?: string;
     changes?: {
       additions: number;
       deletions: number;
@@ -48,8 +48,8 @@ export function ConversationHeader({ title, subtitle }: ConversationHeaderProps)
               {subtitle.repo && (
                 <span className={styles.subtitleItem}>{subtitle.repo}</span>
               )}
-              {subtitle.branch && (
-                <span className={styles.subtitleItem}>{subtitle.branch}</span>
+              {subtitle.commitSHA && (
+                <span className={styles.subtitleItem}>{subtitle.commitSHA.slice(0, 7)}</span>
               )}
               {subtitle.changes && (
                 <span className={styles.changes}>

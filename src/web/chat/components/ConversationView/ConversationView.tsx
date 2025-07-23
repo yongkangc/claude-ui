@@ -5,7 +5,7 @@ import { InputArea } from '../InputArea/InputArea';
 import { ConversationHeader } from '../ConversationHeader/ConversationHeader';
 import { api } from '../../services/api';
 import { useStreaming, useConversationMessages } from '../../hooks';
-import type { ChatMessage, ConversationDetailsResponse, ConversationMessage } from '../../types';
+import type { ChatMessage, ConversationDetailsResponse, ConversationMessage, ConversationSummary } from '../../types';
 import styles from './ConversationView.module.css';
 
 export function ConversationView() {
@@ -17,6 +17,7 @@ export function ConversationView() {
   const [error, setError] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>('Conversation');
   const [isPermissionDecisionLoading, setIsPermissionDecisionLoading] = useState(false);
+  const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
 
   // Use shared conversation messages hook
   const {
@@ -109,10 +110,14 @@ export function ConversationView() {
           conv => conv.sessionId === sessionId
         );
         
-        if (currentConversation?.status === 'ongoing' && currentConversation.streamingId) {
-          // Automatically connect to the existing stream
-          console.debug(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
-          setStreamingId(currentConversation.streamingId);
+        if (currentConversation) {
+          setConversationSummary(currentConversation);
+          
+          if (currentConversation.status === 'ongoing' && currentConversation.streamingId) {
+            // Automatically connect to the existing stream
+            console.debug(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
+            setStreamingId(currentConversation.streamingId);
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load conversation');
@@ -200,12 +205,15 @@ export function ConversationView() {
     <div className={styles.container}>
       <ConversationHeader 
         title={conversationTitle}
-        subtitle={{
-          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          repo: 'ccui',
-          branch: 'main',
-          changes: { additions: 2, deletions: 3 }
-        }}
+        subtitle={conversationSummary ? {
+          date: new Date(conversationSummary.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          repo: conversationSummary.projectPath.split('/').pop() || 'project',
+          commitSHA: conversationSummary.sessionInfo.initial_commit_head,
+          changes: conversationSummary.toolMetrics ? {
+            additions: conversationSummary.toolMetrics.linesAdded,
+            deletions: conversationSummary.toolMetrics.linesRemoved
+          } : undefined
+        } : undefined}
       />
       
       {error && (
