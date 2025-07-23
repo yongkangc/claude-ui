@@ -245,7 +245,7 @@ export class ClaudeProcessManager extends EventEmitter {
       let isResolved = false;
       let stderrOutput = '';
       
-      // Set up timeout (15 seconds)
+      // Set up timeout (1 minute)
       const timeout = setTimeout(() => {
         if (!isResolved) {
           isResolved = true;
@@ -263,7 +263,7 @@ export class ClaudeProcessManager extends EventEmitter {
           
           reject(new CCUIError('SYSTEM_INIT_TIMEOUT', errorMessage, 500));
         }
-      }, 15000);
+      }, 60000);
       
       // Cleanup function to remove all listeners
       const cleanup = () => {

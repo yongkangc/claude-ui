@@ -72,8 +72,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.getMetrics('test-session');
       expect(metrics).toEqual({
-        linesAdded: 2,
-        linesRemoved: 0,
+        linesAdded: 3,
+        linesRemoved: 1,
         editCount: 1,
         writeCount: 0
       });
@@ -124,8 +124,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.getMetrics('test-session');
       expect(metrics).toEqual({
-        linesAdded: 2,
-        linesRemoved: 0,
+        linesAdded: 3,
+        linesRemoved: 1,
         editCount: 1,
         writeCount: 0
       });
@@ -147,7 +147,7 @@ describe('ToolMetricsService', () => {
               input: {
                 file_path: '/test.txt',
                 old_string: 'line1\nline2\nline3\nline4',
-                new_string: 'line1\nline3'
+                new_string: 'line1\nline4'
               }
             }
           ],
@@ -266,8 +266,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.getMetrics('test-session');
       expect(metrics).toEqual({
-        linesAdded: 1,
-        linesRemoved: 1,
+        linesAdded: 3,
+        linesRemoved: 3,
         editCount: 2,
         writeCount: 0
       });
@@ -351,8 +351,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.getMetrics(session);
       expect(metrics).toEqual({
-        linesAdded: 3, // 2 from Write + 1 from Edit
-        linesRemoved: 0,
+        linesAdded: 4, // 2 from Write + 2 from Edit
+        linesRemoved: 1, // 1 from Edit
         editCount: 1,
         writeCount: 1
       });
@@ -522,8 +522,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.calculateMetricsFromMessages(messages);
       expect(metrics).toEqual({
-        linesAdded: 3,
-        linesRemoved: 1,
+        linesAdded: 4,
+        linesRemoved: 2,
         editCount: 1,
         writeCount: 1
       });
@@ -696,8 +696,8 @@ describe('ToolMetricsService', () => {
 
       const metrics = service.getMetrics('test-session');
       expect(metrics).toEqual({
-        linesAdded: 0,
-        linesRemoved: 0,
+        linesAdded: 2,
+        linesRemoved: 2,
         editCount: 1,
         writeCount: 0
       });

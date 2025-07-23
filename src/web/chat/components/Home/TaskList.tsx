@@ -150,6 +150,8 @@ export function TaskList({
             projectPath={conversation.projectPath}
             recentDirectories={recentDirectories}
             status={conversation.status}
+            messageCount={conversation.messageCount}
+            toolMetrics={conversation.toolMetrics}
             onClick={() => handleTaskClick(conversation.sessionId)}
             onCancel={
               conversation.status === 'ongoing' 

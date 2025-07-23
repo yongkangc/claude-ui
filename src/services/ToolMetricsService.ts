@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { ToolMetrics, StreamEvent, AssistantStreamMessage } from '@/types';
 import { createLogger, type Logger } from './logger';
 import Anthropic from '@anthropic-ai/sdk';
+import { diffLines } from 'diff';
 
 /**
  * Service for tracking tool usage metrics from Claude CLI conversations
@@ -151,7 +152,7 @@ export class ToolMetricsService extends EventEmitter {
   }
 
   /**
-   * Calculate line diff for an edit operation
+   * Calculate line diff for an edit operation using proper diff algorithm
    */
   private calculateEditLineDiff(input: Record<string, any>, metrics: ToolMetrics): void {
     const oldString = input.old_string as string;
@@ -162,16 +163,33 @@ export class ToolMetricsService extends EventEmitter {
       return;
     }
 
-    const oldLines = this.countLines(oldString);
-    const newLines = this.countLines(newString);
+    // Use jsdiff to get accurate line-by-line changes
+    const changes = diffLines(oldString, newString, {
+      ignoreWhitespace: false,
+      newlineIsToken: false
+    });
 
-    // Calculate net change
-    if (newLines > oldLines) {
-      metrics.linesAdded += (newLines - oldLines);
-    } else if (oldLines > newLines) {
-      metrics.linesRemoved += (oldLines - newLines);
-    }
-    // If equal, no net change in line count (though content may have changed)
+    let linesAdded = 0;
+    let linesRemoved = 0;
+
+    changes.forEach(change => {
+      if (change.added) {
+        linesAdded += change.count || 0;
+      } else if (change.removed) {
+        linesRemoved += change.count || 0;
+      }
+    });
+
+    metrics.linesAdded += linesAdded;
+    metrics.linesRemoved += linesRemoved;
+
+    this.logger.debug('Edit diff calculated', {
+      oldLines: this.countLines(oldString),
+      newLines: this.countLines(newString),
+      linesAdded,
+      linesRemoved,
+      changeCount: changes.length
+    });
   }
 
   /**

@@ -38,9 +38,9 @@
 
 .textarea {
   width: 100%;
-  min-height: 185px;
-  max-height: 270px;
-  padding: 16px 0;
+  min-height: 80px;
+  max-height: 80vh;
+  padding: 16px 0 50px 0;
   border: none;
   background: transparent;
   color: var(--color-text-primary);
