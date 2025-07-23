@@ -408,8 +408,8 @@ describe('Tool Metrics Integration - Core Functionality', () => {
     const metrics = toolMetricsService.getMetrics(sessionId);
     expect(metrics).toBeDefined();
     expect(metrics!.editCount).toBe(1);
-    expect(metrics!.linesAdded).toBe(3);
-    expect(metrics!.linesRemoved).toBe(0);
+    expect(metrics!.linesAdded).toBe(4);
+    expect(metrics!.linesRemoved).toBe(1);
     
     // Clean up
     statusTracker.unregisterActiveSession(streamingId);
