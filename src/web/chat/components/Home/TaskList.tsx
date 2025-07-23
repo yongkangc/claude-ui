@@ -41,17 +41,6 @@ export function TaskList({
     }
   });
 
-  // Sort ongoing tasks to the top in the Tasks tab
-  const sortedConversations = activeTab === 'tasks' 
-    ? [...filteredConversations].sort((a, b) => {
-        // Ongoing tasks first
-        if (a.status === 'ongoing' && b.status !== 'ongoing') return -1;
-        if (a.status !== 'ongoing' && b.status === 'ongoing') return 1;
-        // Then by updated date (already sorted by backend)
-        return 0;
-      })
-    : filteredConversations;
-
   const handleTaskClick = (sessionId: string) => {
     navigate(`/c/${sessionId}`);
   };
@@ -129,7 +118,7 @@ export function TaskList({
     );
   }
 
-  if (sortedConversations.length === 0) {
+  if (filteredConversations.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.message}>
@@ -141,7 +130,7 @@ export function TaskList({
 
   return (
     <div ref={scrollRef} className={styles.container}>
-      {sortedConversations.map((conversation) => (
+      {filteredConversations.map((conversation) => (
         <div key={conversation.sessionId} data-session-id={conversation.sessionId}>
           <TaskItem
             id={conversation.sessionId}
@@ -179,7 +168,7 @@ export function TaskList({
       )}
       
       {/* End of list message */}
-      {!hasMore && sortedConversations.length > 0 && (
+      {!hasMore && filteredConversations.length > 0 && (
         <div className={styles.endMessage}>
           No more tasks to load
         </div>
