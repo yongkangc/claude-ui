@@ -64,6 +64,7 @@ export interface ConversationState {
 export interface Theme {
   mode: 'light' | 'dark';
   toggle: () => void;
+  colorScheme: 'light' | 'dark' | 'system';
 }
 
 export interface ApiError {
