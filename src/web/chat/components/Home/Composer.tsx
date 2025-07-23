@@ -17,8 +17,7 @@ interface AutocompleteState {
   triggerIndex: number;
   query: string;
   suggestions: FileSystemEntry[];
-  isDropdownFocused: boolean;
-  initialFocusedIndex?: number;
+  focusedIndex: number;
 }
 
 interface DirectoryDropdownProps {
@@ -95,8 +94,7 @@ interface AutocompleteDropdownProps {
   onSelect: (path: string) => void;
   onClose: () => void;
   isOpen: boolean;
-  initialFocusedIndex?: number;
-  onFocusReturn?: () => void;
+  focusedIndex: number;
 }
 
 function AutocompleteDropdown({
@@ -104,8 +102,7 @@ function AutocompleteDropdown({
   onSelect,
   onClose,
   isOpen,
-  initialFocusedIndex,
-  onFocusReturn,
+  focusedIndex,
 }: AutocompleteDropdownProps) {
   if (!isOpen) return null;
 
@@ -126,8 +123,7 @@ function AutocompleteDropdown({
         showFilterInput={false}
         maxVisibleItems={5}
         className={styles.pathAutocomplete}
-        initialFocusedIndex={initialFocusedIndex}
-        onFocusReturn={onFocusReturn}
+        initialFocusedIndex={focusedIndex}
       />
     </div>
   );
@@ -143,8 +139,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     triggerIndex: -1,
     query: '',
     suggestions: [],
-    isDropdownFocused: false,
-    initialFocusedIndex: undefined,
+    focusedIndex: 0,
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { recentDirectories, getMostRecentWorkingDirectory } = useConversations();
@@ -216,8 +211,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
       triggerIndex: -1,
       query: '',
       suggestions: [],
-      isDropdownFocused: false,
-      initialFocusedIndex: undefined,
+      focusedIndex: 0,
     });
   };
 
@@ -251,14 +245,14 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     
     if (autocompleteInfo) {
       const suggestions = filterSuggestions(autocompleteInfo.query);
-      setAutocomplete({
+      setAutocomplete(prev => ({
         isActive: true,
         triggerIndex: autocompleteInfo.triggerIndex,
         query: autocompleteInfo.query,
         suggestions,
-        isDropdownFocused: false,
-        initialFocusedIndex: undefined,
-      });
+        // Keep focusedIndex if it's still valid, otherwise reset to 0
+        focusedIndex: prev.focusedIndex < suggestions.length ? prev.focusedIndex : 0,
+      }));
     } else {
       resetAutocomplete();
     }
@@ -278,20 +272,29 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          if (!autocomplete.isDropdownFocused && autocomplete.suggestions.length > 0) {
-            setAutocomplete(prev => ({ ...prev, isDropdownFocused: true, initialFocusedIndex: 0 }));
+          if (autocomplete.suggestions.length > 0) {
+            setAutocomplete(prev => ({
+              ...prev,
+              focusedIndex: (prev.focusedIndex + 1) % prev.suggestions.length
+            }));
           }
           break;
         case 'ArrowUp':
           e.preventDefault();
+          if (autocomplete.suggestions.length > 0) {
+            setAutocomplete(prev => ({
+              ...prev,
+              focusedIndex: prev.focusedIndex === 0 ? prev.suggestions.length - 1 : prev.focusedIndex - 1
+            }));
+          }
           break;
         case 'Enter':
         case 'Tab':
           if (!e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             if (autocomplete.suggestions.length > 0) {
-              // Select first suggestion if in textarea
-              handlePathSelection(autocomplete.suggestions[0].name);
+              // Select the currently focused suggestion
+              handlePathSelection(autocomplete.suggestions[autocomplete.focusedIndex].name);
             }
           }
           break;
@@ -404,11 +407,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
         onSelect={handlePathSelection}
         onClose={resetAutocomplete}
         isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
-        initialFocusedIndex={autocomplete.initialFocusedIndex}
-        onFocusReturn={() => {
-          textareaRef.current?.focus();
-          setAutocomplete(prev => ({ ...prev, isDropdownFocused: false, initialFocusedIndex: undefined }));
-        }}
+        focusedIndex={autocomplete.focusedIndex}
       />
     </form>
   );
