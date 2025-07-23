@@ -5,24 +5,29 @@ import { api } from '../services/api';
 const THEME_KEY = 'ccui-theme';
 
 export function useTheme(): Theme {
-  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+  const [colorScheme, setColorScheme] = useState<'light' | 'dark' | 'system'>(() => {
     // Check localStorage first
     const stored = localStorage.getItem(THEME_KEY);
-    if (stored === 'light' || stored === 'dark') {
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
       return stored;
     }
-    
-    // Then check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
+    return 'system';
+  });
+
+  const getSystemTheme = () => {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+
+  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    return colorScheme === 'system' ? getSystemTheme() : colorScheme;
   });
 
   useEffect(() => {
     api.getPreferences().then(prefs => {
-      if (prefs.colorScheme === 'light' || prefs.colorScheme === 'dark') {
+      setColorScheme(prefs.colorScheme);
+      if (prefs.colorScheme === 'system') {
+        setMode(getSystemTheme());
+      } else {
         setMode(prefs.colorScheme);
       }
     }).catch(() => {});
@@ -31,31 +36,46 @@ export function useTheme(): Theme {
   useEffect(() => {
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', mode);
-    localStorage.setItem(THEME_KEY, mode);
-  }, [mode]);
+    localStorage.setItem(THEME_KEY, colorScheme);
+  }, [mode, colorScheme]);
 
   useEffect(() => {
-    // Listen for system theme changes
+    // Listen for system theme changes when in system mode
+    if (colorScheme !== 'system') return;
+    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem(THEME_KEY)) {
-        setMode(e.matches ? 'dark' : 'light');
-      }
+      setMode(e.matches ? 'dark' : 'light');
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [colorScheme]);
 
   const toggle = async () => {
-    const newMode = mode === 'light' ? 'dark' : 'light';
-    setMode(newMode);
+    // Cycle through: light -> dark -> system -> light
+    let newColorScheme: 'light' | 'dark' | 'system';
+    if (colorScheme === 'light') {
+      newColorScheme = 'dark';
+    } else if (colorScheme === 'dark') {
+      newColorScheme = 'system';
+    } else {
+      newColorScheme = 'light';
+    }
+    
+    setColorScheme(newColorScheme);
+    if (newColorScheme === 'system') {
+      setMode(getSystemTheme());
+    } else {
+      setMode(newColorScheme);
+    }
+    
     try {
-      await api.updatePreferences({ colorScheme: newMode });
+      await api.updatePreferences({ colorScheme: newColorScheme });
     } catch {
       // ignore
     }
   };
 
-  return { mode, toggle };
+  return { mode, toggle, colorScheme };
 }

@@ -18,7 +18,13 @@ export function PreferencesModal({ onClose }: Props) {
     const updated = await api.updatePreferences(updates);
     setPrefs(updated);
     if (updates.colorScheme) {
-      document.documentElement.setAttribute('data-theme', updates.colorScheme);
+      // For system theme, we need to determine the actual theme
+      if (updates.colorScheme === 'system') {
+        const systemTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', systemTheme);
+      } else {
+        document.documentElement.setAttribute('data-theme', updates.colorScheme);
+      }
     }
   };
 
@@ -30,10 +36,11 @@ export function PreferencesModal({ onClose }: Props) {
           Color Scheme:
           <select
             value={prefs.colorScheme}
-            onChange={(e) => update({ colorScheme: e.target.value as 'light' | 'dark' })}
+            onChange={(e) => update({ colorScheme: e.target.value as 'light' | 'dark' | 'system' })}
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
+            <option value="system">System</option>
           </select>
         </label>
         <label>

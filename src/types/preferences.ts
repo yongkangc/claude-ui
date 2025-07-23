@@ -1,9 +1,9 @@
 export interface Preferences {
-  colorScheme: 'light' | 'dark';
+  colorScheme: 'light' | 'dark' | 'system';
   language: string;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
-  colorScheme: 'light',
+  colorScheme: 'system',
   language: 'en'
 };

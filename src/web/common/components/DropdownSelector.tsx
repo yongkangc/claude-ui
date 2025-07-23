@@ -28,6 +28,8 @@ interface DropdownSelectorProps<T = string> {
   renderTrigger?: (props: { isOpen: boolean; value?: T; onClick: () => void }) => React.ReactNode;
   customFilterInput?: React.ReactNode;
   maxVisibleItems?: number;
+  initialFocusedIndex?: number;
+  onFocusReturn?: () => void;
 }
 
 export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps<any>>(
@@ -50,6 +52,8 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
       renderTrigger,
       customFilterInput,
       maxVisibleItems = 5,
+      initialFocusedIndex,
+      onFocusReturn,
     }: DropdownSelectorProps<T>,
     ref: React.ForwardedRef<HTMLDivElement>
   ) {
@@ -164,8 +168,11 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
       if (!isOpen) {
         setFocusedIndex(-1);
         setFilterText('');
+      } else if (isOpen && initialFocusedIndex !== undefined) {
+        // Set initial focused index when dropdown opens
+        setFocusedIndex(initialFocusedIndex);
       }
-    }, [isOpen]);
+    }, [isOpen, initialFocusedIndex]);
 
     useEffect(() => {
       setFocusedIndex(-1);
@@ -181,8 +188,11 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
           break;
         case 'ArrowUp':
           e.preventDefault();
-          if (focusedIndex > -1) {
+          if (focusedIndex > 0) {
             setFocusedIndex(focusedIndex - 1);
+          } else if (focusedIndex === 0 && !showFilterInput && onFocusReturn) {
+            // Return focus to parent when at first item with no filter input
+            onFocusReturn();
           }
           break;
         case 'Enter':
