@@ -309,6 +309,11 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     });
   }, []);
 
+  // Clear current permission request
+  const clearPermissionRequest = useCallback(() => {
+    setCurrentPermissionRequest(null);
+  }, []);
+
   return {
     messages,
     toolResults,
@@ -320,5 +325,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     handleStreamMessage,
     setAllMessages,
     toggleTaskExpanded,
+    clearPermissionRequest,
   };
 }

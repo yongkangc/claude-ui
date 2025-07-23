@@ -6,6 +6,8 @@ import type {
   ConversationDetailsResponse,
   ApiError,
   WorkingDirectoriesResponse,
+  PermissionDecisionRequest,
+  PermissionDecisionResponse,
 } from '../types';
 
 class ApiService {
@@ -92,6 +94,16 @@ class ApiService {
 
   async getWorkingDirectories(): Promise<WorkingDirectoriesResponse> {
     return this.apiCall('/api/working-directories');
+  }
+
+  async sendPermissionDecision(
+    requestId: string,
+    decision: PermissionDecisionRequest
+  ): Promise<PermissionDecisionResponse> {
+    return this.apiCall(`/api/permissions/${requestId}/decision`, {
+      method: 'POST',
+      body: JSON.stringify(decision),
+    });
   }
 }
 

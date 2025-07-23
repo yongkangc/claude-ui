@@ -21,6 +21,7 @@ function ConsoleApp() {
     list: true,
     rename: true,
     permissions: true,
+    permissionDecision: true,
     listDir: true,
     readFile: true,
     workingDirs: true,
@@ -51,6 +52,14 @@ function ConsoleApp() {
   // Rename session states
   const [renameSessionId, setRenameSessionId] = useState('');
   const [renameCustomName, setRenameCustomName] = useState('');
+  
+  // Permission decision states
+  const [permissionRequestId, setPermissionRequestId] = useState('');
+  const [permissionDecisionBody, setPermissionDecisionBody] = useState(JSON.stringify({
+    action: 'approve',
+    modifiedInput: {},
+    denyReason: ''
+  }, null, 2));
 
   // Result states
   const [results, setResults] = useState<Record<string, any>>({});
@@ -363,6 +372,33 @@ function ConsoleApp() {
       showJson('renameResult', { error: e.message });
     }
   };
+  
+  const makePermissionDecision = async () => {
+    try {
+      if (!permissionRequestId) {
+        showJson('permissionDecisionResult', { error: 'Request ID is required' });
+        return;
+      }
+
+      let body;
+      try {
+        body = JSON.parse(permissionDecisionBody);
+      } catch (e) {
+        showJson('permissionDecisionResult', { error: 'Invalid JSON body' });
+        return;
+      }
+
+      const response = await fetch(`/api/permissions/${permissionRequestId}/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json();
+      showJson('permissionDecisionResult', data);
+    } catch (e: any) {
+      showJson('permissionDecisionResult', { error: e.message });
+    }
+  };
 
   const copyJsonToClipboard = async (data: any, buttonRef: HTMLButtonElement) => {
     try {
@@ -655,6 +691,37 @@ function ConsoleApp() {
             <button onClick={listPermissions}>List Permissions</button>
             <div id="permissionsResult" className="json-viewer-container">
               {results.permissionsResult && <JsonViewer data={results.permissionsResult} resultId="permissionsResult" />}
+            </div>
+          </div>
+        </div>
+        
+        {/* Permission Decision */}
+        <div className="section">
+          <div className={`endpoint collapsible ${collapsed.permissionDecision ? 'collapsed' : ''}`} onClick={() => toggleCollapse('permissionDecision')}>
+            POST /api/permissions/:requestId/decision
+          </div>
+          <div className="collapsible-content">
+            <div className="field-group">
+              <div className="field-label">Request ID <span style={{ color: 'red' }}>*</span></div>
+              <input type="text" value={permissionRequestId} onChange={(e) => setPermissionRequestId(e.target.value)} placeholder="permission-request-id" />
+            </div>
+            <div className="field-group">
+              <div className="field-label">Request Body <span style={{ color: 'red' }}>*</span></div>
+              <textarea 
+                value={permissionDecisionBody} 
+                onChange={(e) => setPermissionDecisionBody(e.target.value)} 
+                rows={10} 
+                placeholder={JSON.stringify({
+                  action: 'approve',
+                  modifiedInput: {},
+                  denyReason: ''
+                }, null, 2)}
+                style={{ fontFamily: 'monospace', fontSize: '12px' }}
+              />
+            </div>
+            <button onClick={makePermissionDecision}>Make Decision</button>
+            <div id="permissionDecisionResult" className="json-viewer-container">
+              {results.permissionDecisionResult && <JsonViewer data={results.permissionDecisionResult} resultId="permissionDecisionResult" />}
             </div>
           </div>
         </div>

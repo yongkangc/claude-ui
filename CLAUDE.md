@@ -73,6 +73,14 @@ npx jest -t "test name"                                    # Run test by name pa
 - Frontend uses React Router v6 for navigation
 - All backend imports use path aliases (e.g., `@/services/...`)
 
+### Permission Flow
+
+1. **Permission Request**: When Claude needs tool approval, the MCP server sends a notification to `/api/permissions/notify`
+2. **Frontend Display**: Permission requests are streamed to the frontend and displayed with approve/deny buttons
+3. **User Decision**: Users click approve/deny, which calls `/api/permissions/:requestId/decision`
+4. **MCP Polling**: The MCP server polls for decisions every second with a 10-minute timeout
+5. **Response**: Once a decision is made, the MCP server returns the appropriate response to Claude
+
 ### Common Debugging
 
 - Enable debug logs: `LOG_LEVEL=debug npm run dev`

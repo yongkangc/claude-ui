@@ -16,6 +16,7 @@ export function ConversationView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>('Conversation');
+  const [isPermissionDecisionLoading, setIsPermissionDecisionLoading] = useState(false);
 
   // Use shared conversation messages hook
   const {
@@ -29,6 +30,7 @@ export function ConversationView() {
     setAllMessages,
     handleStreamMessage,
     toggleTaskExpanded,
+    clearPermissionRequest,
   } = useConversationMessages({
     onResult: (newSessionId) => {
       // Navigate to the new session page if session changed
@@ -177,6 +179,22 @@ export function ConversationView() {
     }
   };
 
+  const handlePermissionDecision = async (requestId: string, action: 'approve' | 'deny') => {
+    if (isPermissionDecisionLoading) return;
+
+    setIsPermissionDecisionLoading(true);
+    try {
+      await api.sendPermissionDecision(requestId, { action });
+      // Clear the permission request after successful decision
+      clearPermissionRequest();
+    } catch (err: any) {
+      console.error('Failed to send permission decision:', err);
+      setError(err.message || 'Failed to send permission decision');
+    } finally {
+      setIsPermissionDecisionLoading(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <ConversationHeader 
@@ -209,7 +227,8 @@ export function ConversationView() {
       <InputArea
         onSubmit={handleSendMessage}
         onStop={handleStop}
-        isLoading={isConnected}
+        onPermissionDecision={handlePermissionDecision}
+        isLoading={isConnected || isPermissionDecisionLoading}
         placeholder="Continue the conversation..."
         permissionRequest={currentPermissionRequest}
       />

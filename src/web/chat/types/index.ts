@@ -11,6 +11,8 @@ import type {
   UserStreamMessage,
   ResultStreamMessage,
   SystemInitMessage,
+  PermissionDecisionRequest,
+  PermissionDecisionResponse,
 } from '@/types';
 
 // Import ContentBlock from Anthropic SDK
@@ -28,6 +30,8 @@ export type {
   UserStreamMessage,
   ResultStreamMessage,
   SystemInitMessage,
+  PermissionDecisionRequest,
+  PermissionDecisionResponse,
 };
 
 // Chat-specific types

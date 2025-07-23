@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { CCUIError } from '@/types';
+import { CCUIError, PermissionDecisionRequest, PermissionDecisionResponse } from '@/types';
 import { PermissionTracker } from '@/services/permission-tracker';
 import { createLogger, type Logger } from '@/services/logger';
 
@@ -67,6 +67,74 @@ export function createPermissionRoutes(
     } catch (error) {
       logger.debug('List permissions failed', {
         requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      next(error);
+    }
+  });
+
+  // Permission decision endpoint - called by frontend to approve/deny permissions
+  router.post('/:requestId/decision', async (req, res, next) => {
+    const requestIdHeader = (req as any).requestId;
+    const { requestId } = req.params;
+    const decisionRequest: PermissionDecisionRequest = req.body;
+    
+    logger.debug('Permission decision request', {
+      requestId: requestIdHeader,
+      permissionRequestId: requestId,
+      decision: decisionRequest
+    });
+    
+    try {
+      // Validate request body
+      if (!decisionRequest.action || !['approve', 'deny'].includes(decisionRequest.action)) {
+        throw new CCUIError('INVALID_ACTION', 'Action must be either "approve" or "deny"', 400);
+      }
+      
+      // Get the permission request to validate it exists and is pending
+      const permissions = permissionTracker.getPermissionRequests({ status: 'pending' });
+      const permission = permissions.find(p => p.id === requestId);
+      
+      if (!permission) {
+        throw new CCUIError('PERMISSION_NOT_FOUND', 'Permission request not found or not pending', 404);
+      }
+      
+      // Update permission status
+      let updated: boolean;
+      if (decisionRequest.action === 'approve') {
+        updated = permissionTracker.updatePermissionStatus(
+          requestId, 
+          'approved', 
+          { modifiedInput: decisionRequest.modifiedInput }
+        );
+      } else {
+        updated = permissionTracker.updatePermissionStatus(
+          requestId, 
+          'denied', 
+          { denyReason: decisionRequest.denyReason }
+        );
+      }
+      
+      if (!updated) {
+        throw new CCUIError('UPDATE_FAILED', 'Failed to update permission status', 500);
+      }
+      
+      logger.debug('Permission decision processed', {
+        requestId: requestIdHeader,
+        permissionRequestId: requestId,
+        action: decisionRequest.action
+      });
+      
+      const response: PermissionDecisionResponse = {
+        success: true,
+        message: `Permission ${decisionRequest.action === 'approve' ? 'approved' : 'denied'} successfully`
+      };
+      
+      res.json(response);
+    } catch (error) {
+      logger.debug('Permission decision failed', {
+        requestId: requestIdHeader,
+        permissionRequestId: requestId,
         error: error instanceof Error ? error.message : String(error)
       });
       next(error);

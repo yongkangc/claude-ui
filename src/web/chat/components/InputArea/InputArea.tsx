@@ -6,12 +6,13 @@ import styles from './InputArea.module.css';
 interface InputAreaProps {
   onSubmit: (message: string) => void;
   onStop?: () => void;
+  onPermissionDecision?: (requestId: string, action: 'approve' | 'deny') => void;
   isLoading?: boolean;
   placeholder?: string;
   permissionRequest?: PermissionRequest | null;
 }
 
-export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "Type a message...", permissionRequest }: InputAreaProps) {
+export function InputArea({ onSubmit, onStop, onPermissionDecision, isLoading = false, placeholder = "Type a message...", permissionRequest }: InputAreaProps) {
   const [message, setMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -138,16 +139,16 @@ export function InputArea({ onSubmit, onStop, isLoading = false, placeholder = "
                     <button
                       type="button"
                       className={`${styles.iconButton} ${styles.permissionButton} ${styles.approveButton}`}
-                      title="Approve (non-functional)"
-                      disabled
+                      title="Approve permission"
+                      onClick={() => onPermissionDecision?.(permissionRequest.id, 'approve')}
                     >
                       <Check size={18} />
                     </button>
                     <button
                       type="button"
                       className={`${styles.iconButton} ${styles.permissionButton} ${styles.denyButton}`}
-                      title="Deny (non-functional)"
-                      disabled
+                      title="Deny permission"
+                      onClick={() => onPermissionDecision?.(permissionRequest.id, 'deny')}
                     >
                       <X size={18} />
                     </button>
