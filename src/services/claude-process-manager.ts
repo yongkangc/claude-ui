@@ -8,6 +8,7 @@ import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
 import { ConversationStatusTracker } from './conversation-status-tracker';
 import { OptimisticConversationService } from './optimistic-conversation-service';
+import { ToolMetricsService } from './ToolMetricsService';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -24,14 +25,16 @@ export class ClaudeProcessManager extends EventEmitter {
   private mcpConfigPath?: string;
   private statusTracker: ConversationStatusTracker;
   private optimisticConversationService?: OptimisticConversationService;
+  private toolMetricsService?: ToolMetricsService;
 
-  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>) {
+  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService) {
     super();
     this.historyReader = historyReader;
     this.statusTracker = statusTracker;
     this.claudeExecutablePath = claudeExecutablePath || 'claude';
     this.logger = createLogger('ClaudeProcessManager');
     this.envOverrides = envOverrides || {};
+    this.toolMetricsService = toolMetricsService;
   }
 
   /**
@@ -876,6 +879,16 @@ export class ClaudeProcessManager extends EventEmitter {
     if (timeouts) {
       timeouts.forEach(timeout => clearTimeout(timeout));
       this.timeouts.delete(streamingId);
+    }
+    
+    // Clear tool metrics for this session
+    if (this.toolMetricsService && this.statusTracker) {
+      // Get the sessionId from the statusTracker if available
+      const sessionId = this.statusTracker.getSessionId(streamingId);
+      if (sessionId) {
+        this.toolMetricsService.clearMetrics(sessionId);
+        this.logger.debug('Cleared tool metrics for session', { streamingId, sessionId });
+      }
     }
     
     this.processes.delete(streamingId);

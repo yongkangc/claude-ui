@@ -11,6 +11,7 @@ import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
 import { OptimisticConversationService } from './services/optimistic-conversation-service';
 import { WorkingDirectoriesService } from './services/working-directories-service';
+import { ToolMetricsService } from './services/ToolMetricsService';
 import { 
   StreamEvent,
   CCUIError,
@@ -51,6 +52,7 @@ export class CCUIServer {
   private sessionInfoService: SessionInfoService;
   private optimisticConversationService: OptimisticConversationService;
   private workingDirectoriesService: WorkingDirectoriesService;
+  private toolMetricsService: ToolMetricsService;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -81,7 +83,8 @@ export class CCUIServer {
     this.logger.debug('Initializing services');
     this.historyReader = new ClaudeHistoryReader();
     this.statusTracker = new ConversationStatusTracker();
-    this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker);
+    this.toolMetricsService = new ToolMetricsService();
+    this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker, undefined, undefined, this.toolMetricsService);
     this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
@@ -328,7 +331,8 @@ export class CCUIServer {
       this.historyReader,
       this.statusTracker,
       this.sessionInfoService,
-      this.optimisticConversationService
+      this.optimisticConversationService,
+      this.toolMetricsService
     ));
     
     this.app.use('/api/permissions', createPermissionRoutes(this.permissionTracker));
@@ -345,6 +349,9 @@ export class CCUIServer {
 
   private setupProcessManagerIntegration(): void {
     this.logger.debug('Setting up ProcessManager integration with StreamManager');
+    
+    // Set up tool metrics service to listen to claude messages
+    this.toolMetricsService.listenToClaudeMessages(this.processManager);
     
     // Forward Claude messages to stream
     this.processManager.on('claude-message', ({ streamingId, message }) => {

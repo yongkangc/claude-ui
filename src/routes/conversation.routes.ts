@@ -15,13 +15,15 @@ import { ConversationStatusTracker } from '@/services/conversation-status-tracke
 import { SessionInfoService } from '@/services/session-info-service';
 import { OptimisticConversationService } from '@/services/optimistic-conversation-service';
 import { createLogger } from '@/services/logger';
+import { ToolMetricsService } from '@/services/ToolMetricsService';
 
 export function createConversationRoutes(
   processManager: ClaudeProcessManager,
   historyReader: ClaudeHistoryReader,
   statusTracker: ConversationStatusTracker,
   sessionInfoService: SessionInfoService,
-  optimisticConversationService: OptimisticConversationService
+  optimisticConversationService: OptimisticConversationService,
+  toolMetricsService: ToolMetricsService
 ): Router {
   const router = Router();
   const logger = createLogger('ConversationRoutes');
@@ -159,6 +161,12 @@ export function createConversationRoutes(
           status
         };
         
+        // Add toolMetrics if available
+        const metrics = toolMetricsService.getMetrics(conversation.sessionId);
+        if (metrics) {
+          baseConversation.toolMetrics = metrics;
+        }
+        
         // Add streamingId if conversation is ongoing
         if (status === 'ongoing') {
           const streamingId = statusTracker.getStreamingId(conversation.sessionId);
@@ -228,6 +236,12 @@ export function createConversationRoutes(
             model: metadata.model
           }
         };
+        
+        // Add toolMetrics if available
+        const metrics = toolMetricsService.getMetrics(req.params.sessionId);
+        if (metrics) {
+          response.toolMetrics = metrics;
+        }
         
         logger.debug('Conversation details retrieved from history', {
           requestId,

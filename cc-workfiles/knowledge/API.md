@@ -225,6 +225,7 @@ interface ConversationSummary {
   messageCount: number;     // Total number of messages in the conversation
   status: 'completed' | 'ongoing' | 'pending';  // Conversation status based on active streams
   streamingId?: string;     // CCUI's internal streaming ID (only present when status is 'ongoing')
+  toolMetrics?: ToolMetrics; // Optional tool usage metrics (see below)
 }
 ```
 
@@ -243,6 +244,7 @@ interface ConversationDetailsResponse {
     totalDuration: number;     // Total processing time
     model: string;             // Model used for conversation
   };
+  toolMetrics?: ToolMetrics;   // Optional tool usage metrics (see below)
 }
 
 interface ConversationMessage {
@@ -279,6 +281,15 @@ interface SessionRenameRequest {
   customName: string;          // New custom name for the session (up to 200 characters)
 }
 ```
+
+**Tool Metrics:**
+The `toolMetrics` field provides statistics about tool usage (Edit, MultiEdit, Write) in conversations:
+- **For active conversations**: Metrics are calculated in real-time as tool use messages are processed
+- **For historical conversations**: Metrics are calculated when loading conversation history  
+- **Line counting**: Lines are counted by splitting on `\n` characters, with trailing newlines handled properly
+- **Edit metrics**: For Edit/MultiEdit tools, the difference between old and new content is calculated
+- **Write metrics**: For Write tools, all lines in the content are counted as added
+- **Accumulation**: Metrics accumulate across all tool uses in a conversation
 
 ### Working Directories
 
@@ -944,6 +955,14 @@ interface PermissionRequestEvent {
 ### Core Types
 
 ```typescript
+// Tool metrics types
+interface ToolMetrics {
+  linesAdded: number;         // Total lines added across all edits/writes
+  linesRemoved: number;       // Total lines removed across all edits
+  editCount: number;          // Number of Edit/MultiEdit tool calls
+  writeCount: number;         // Number of Write tool calls
+}
+
 // Configuration types
 interface ConversationConfig {
   workingDirectory: string;

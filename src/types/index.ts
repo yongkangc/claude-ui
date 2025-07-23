@@ -1,6 +1,14 @@
 // Core types and interfaces for CCUI backend
 import Anthropic from '@anthropic-ai/sdk';
 
+// Tool metrics types
+export interface ToolMetrics {
+  linesAdded: number;
+  linesRemoved: number;
+  editCount: number;
+  writeCount: number;
+}
+
 // Base conversation types
 export interface ConversationSummary {
   sessionId: string; // Claude CLI's actual session ID (used for history files)
@@ -14,6 +22,7 @@ export interface ConversationSummary {
   model: string;
   status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
   streamingId?: string; // CCUI's internal streaming ID (only present when status is 'ongoing')
+  toolMetrics?: ToolMetrics; // Optional tool usage metrics
 }
 
 export interface ConversationMessage {
@@ -145,6 +154,7 @@ export interface ConversationDetailsResponse {
       totalDuration: number;
     model: string;
   };
+  toolMetrics?: ToolMetrics; // Optional tool usage metrics
 }
 
 
