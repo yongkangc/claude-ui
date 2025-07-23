@@ -165,13 +165,9 @@
 }
 
 /* Autocomplete styles */
-.autocompleteWrapper {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  margin-bottom: 24px; /* Increased from 4px to move dropdown lower */
-  z-index: 1000;
+.autocompleteDropdown {
+  margin-top: 8px;
+  width: 100%;
 }
 
 .pathAutocomplete {

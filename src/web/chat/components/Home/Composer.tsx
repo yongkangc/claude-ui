@@ -18,6 +18,7 @@ interface AutocompleteState {
   query: string;
   suggestions: FileSystemEntry[];
   isDropdownFocused: boolean;
+  initialFocusedIndex?: number;
 }
 
 interface DirectoryDropdownProps {
@@ -89,6 +90,49 @@ function DirectoryDropdown({
   );
 }
 
+interface AutocompleteDropdownProps {
+  suggestions: FileSystemEntry[];
+  onSelect: (path: string) => void;
+  onClose: () => void;
+  isOpen: boolean;
+  initialFocusedIndex?: number;
+  onFocusReturn?: () => void;
+}
+
+function AutocompleteDropdown({
+  suggestions,
+  onSelect,
+  onClose,
+  isOpen,
+  initialFocusedIndex,
+  onFocusReturn,
+}: AutocompleteDropdownProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className={styles.autocompleteDropdown}>
+      <DropdownSelector
+        options={suggestions.map((entry) => ({
+          value: entry.name,
+          label: entry.name,
+          disabled: false
+        }))}
+        value={undefined}
+        onChange={onSelect}
+        isOpen={true}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        showFilterInput={false}
+        maxVisibleItems={5}
+        className={styles.pathAutocomplete}
+        initialFocusedIndex={initialFocusedIndex}
+        onFocusReturn={onFocusReturn}
+      />
+    </div>
+  );
+}
+
 export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false }: ComposerProps) {
   const [text, setText] = useState('');
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
@@ -100,6 +144,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     query: '',
     suggestions: [],
     isDropdownFocused: false,
+    initialFocusedIndex: undefined,
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { recentDirectories, getMostRecentWorkingDirectory } = useConversations();
@@ -172,6 +217,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
       query: '',
       suggestions: [],
       isDropdownFocused: false,
+      initialFocusedIndex: undefined,
     });
   };
 
@@ -211,6 +257,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
         query: autocompleteInfo.query,
         suggestions,
         isDropdownFocused: false,
+        initialFocusedIndex: undefined,
       });
     } else {
       resetAutocomplete();
@@ -232,13 +279,14 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
         case 'ArrowDown':
           e.preventDefault();
           if (!autocomplete.isDropdownFocused && autocomplete.suggestions.length > 0) {
-            setAutocomplete(prev => ({ ...prev, isDropdownFocused: true }));
+            setAutocomplete(prev => ({ ...prev, isDropdownFocused: true, initialFocusedIndex: 0 }));
           }
           break;
         case 'ArrowUp':
           e.preventDefault();
           break;
         case 'Enter':
+        case 'Tab':
           if (!e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             if (autocomplete.suggestions.length > 0) {
@@ -248,6 +296,9 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
           }
           break;
         case ' ':
+          // Don't prevent default for space - let it insert the character
+          resetAutocomplete();
+          break;
         case 'Escape':
           e.preventDefault();
           resetAutocomplete();
@@ -295,27 +346,6 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
               disabled={isSubmitting}
             />
           </div>
-
-          {autocomplete.isActive && autocomplete.suggestions.length > 0 && (
-            <div className={styles.autocompleteWrapper}>
-              <DropdownSelector
-                options={autocomplete.suggestions.map((entry) => ({
-                  value: entry.name,
-                  label: entry.name,
-                  disabled: false
-                }))}
-                value={undefined}
-                onChange={handlePathSelection}
-                isOpen={true}
-                onOpenChange={(open) => {
-                  if (!open) resetAutocomplete();
-                }}
-                showFilterInput={false}
-                maxVisibleItems={5}
-                className={styles.pathAutocomplete}
-              />
-            </div>
-          )}
 
           <div className={styles.footerActions}>
             <div className={styles.actionButtons}>
@@ -369,6 +399,17 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
           </div>
         </div>
       </div>
+      <AutocompleteDropdown
+        suggestions={autocomplete.suggestions}
+        onSelect={handlePathSelection}
+        onClose={resetAutocomplete}
+        isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
+        initialFocusedIndex={autocomplete.initialFocusedIndex}
+        onFocusReturn={() => {
+          textareaRef.current?.focus();
+          setAutocomplete(prev => ({ ...prev, isDropdownFocused: false, initialFocusedIndex: undefined }));
+        }}
+      />
     </form>
   );
 }
