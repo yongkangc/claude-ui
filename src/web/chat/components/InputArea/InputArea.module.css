@@ -42,7 +42,7 @@
   box-shadow: 0 0 0 2px var(--color-accent);
 }
 
-[data-theme="dark"] .composerInner.expanded {
+[data-theme="dark"] .composerInner {
   background-color: #303030;
 }
 
@@ -51,11 +51,6 @@
   display: flex;
   align-items: flex-end;
   width: 100%;
-  min-height: 56px;
-  transition: min-height 400ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.composerInner.expanded .inputWrapper {
   min-height: 73px;
 }
 
@@ -65,11 +60,6 @@
   flex: 1;
   align-items: flex-start;
   margin: 0 20px;
-  min-height: 56px;
-  transition: min-height 400ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.composerInner.expanded .textAreaContainer {
   min-height: 73px;
 }
 
@@ -84,21 +74,11 @@
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text-primary);
-  padding: 10px 60px 6px 0;
+  padding: 16px 60px 6px 0;
   max-height: 200px;
   overflow-y: auto;
-  height: 24px; /* Initial height - 1 line */
-  transition: height 400ms cubic-bezier(0.25, 0.1, 0.25, 1),
-              padding 400ms cubic-bezier(0.25, 0.1, 0.25, 1),
-              opacity var(--transition-fast) ease;
-}
-
-.textarea:focus {
-  height: 80px; /* Expanded height on focus */
-}
-
-.composerInner.expanded .textarea {
-  padding-top: 16px;
+  height: 80px;
+  transition: opacity var(--transition-fast) ease;
 }
 
 .textarea::placeholder {
@@ -118,8 +98,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  opacity: 0;
-  animation: fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  opacity: 1;
 }
 
 .actionButtons {
@@ -352,23 +331,4 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-/* Additional smooth transitions for focus state */
-.composerInner:focus-within {
-  box-shadow: 0 0 0 2px var(--color-accent);
-}
-
-[data-theme="dark"] .composerInner:focus-within {
-  box-shadow: 0 0 0 2px var(--color-accent);
-}
