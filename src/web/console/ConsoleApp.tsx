@@ -354,7 +354,8 @@ function ConsoleApp() {
         return;
       }
 
-      const response = await fetch(`/api/conversations/${renameSessionId}/rename`, {
+      // Use the new update endpoint instead of rename
+      const response = await fetch(`/api/conversations/${renameSessionId}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -625,10 +626,10 @@ function ConsoleApp() {
           </div>
         </div>
         
-        {/* Rename Session */}
+        {/* Update Session (includes rename) */}
         <div className="section">
           <div className={`endpoint collapsible ${collapsed.rename ? 'collapsed' : ''}`} onClick={() => toggleCollapse('rename')}>
-            PUT /api/conversations/:sessionId/rename
+            PUT /api/conversations/:sessionId/update
           </div>
           <div className="collapsible-content">
             <div className="field-group">

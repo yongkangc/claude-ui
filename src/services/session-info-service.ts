@@ -42,7 +42,7 @@ export class SessionInfoService {
     const defaultData: SessionInfoDatabase = {
       sessions: {},
       metadata: {
-        schema_version: 1,
+        schema_version: 2,
         created_at: new Date().toISOString(),
         last_updated: new Date().toISOString()
       }
@@ -122,7 +122,11 @@ export class SessionInfoService {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 1
+        version: 2,
+        pinned: false,
+        archived: false,
+        continuation_session_id: '',
+        initial_commit_head: ''
       };
 
       // this.logger.debug('Using default session info', { sessionId, sessionInfo: defaultSessionInfo });
@@ -134,38 +138,52 @@ export class SessionInfoService {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 1
+        version: 2,
+        pinned: false,
+        archived: false,
+        continuation_session_id: '',
+        initial_commit_head: ''
       };
     }
   }
 
   /**
-   * Update custom name for a session
+   * Update session information
    * Creates session entry if it doesn't exist
+   * Supports partial updates - only provided fields will be updated
    */
-  async updateCustomName(sessionId: string, customName: string): Promise<void> {
-    this.logger.info('Updating custom name', { sessionId, customName });
+  async updateSessionInfo(sessionId: string, updates: Partial<SessionInfo>): Promise<SessionInfo> {
+    this.logger.info('Updating session info', { sessionId, updates });
 
     try {
+      let updatedSession: SessionInfo | null = null;
+      
       await this.jsonManager.update((data) => {
         const now = new Date().toISOString();
         const existingSession = data.sessions[sessionId];
 
         if (existingSession) {
-          // Update existing session
-          data.sessions[sessionId] = {
+          // Update existing session - preserve fields not being updated
+          updatedSession = {
             ...existingSession,
-            custom_name: customName,
+            ...updates,
             updated_at: now
           };
+          data.sessions[sessionId] = updatedSession;
         } else {
-          // Create new session entry
-          data.sessions[sessionId] = {
-            custom_name: customName,
+          // Create new session entry with defaults
+          updatedSession = {
+            custom_name: '',
             created_at: now,
             updated_at: now,
-            version: 1
+            version: 2,
+            pinned: false,
+            archived: false,
+            continuation_session_id: '',
+            initial_commit_head: '',
+            ...updates  // Apply any provided updates
           };
+          data.sessions[sessionId] = updatedSession;
         }
 
         // Update metadata
@@ -174,11 +192,20 @@ export class SessionInfoService {
         return data;
       });
 
-      this.logger.info('Custom name updated successfully', { sessionId, customName });
+      this.logger.info('Session info updated successfully', { sessionId, updatedSession });
+      return updatedSession!;
     } catch (error) {
-      this.logger.error('Failed to update custom name', { sessionId, customName, error });
-      throw new Error(`Failed to update custom name: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error('Failed to update session info', { sessionId, updates, error });
+      throw new Error(`Failed to update session info: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Update custom name for a session (backward compatibility)
+   * @deprecated Use updateSessionInfo instead
+   */
+  async updateCustomName(sessionId: string, customName: string): Promise<void> {
+    await this.updateSessionInfo(sessionId, { custom_name: customName });
   }
 
   /**
@@ -266,12 +293,24 @@ export class SessionInfoService {
           this.logger.info('Created missing metadata');
         }
 
-        // Future: Add schema migration logic here if needed
-        if (data.metadata.schema_version < 1) {
-          // Migrate to version 1
-          data.metadata.schema_version = 1;
+        // Schema migration logic
+        if (data.metadata.schema_version < 2) {
+          // Migrate to version 2 - add new fields to existing sessions
+          Object.keys(data.sessions).forEach(sessionId => {
+            const session = data.sessions[sessionId];
+            data.sessions[sessionId] = {
+              ...session,
+              pinned: session.pinned ?? false,
+              archived: session.archived ?? false,
+              continuation_session_id: session.continuation_session_id ?? '',
+              initial_commit_head: session.initial_commit_head ?? '',
+              version: 2
+            };
+          });
+          
+          data.metadata.schema_version = 2;
           data.metadata.last_updated = new Date().toISOString();
-          this.logger.info('Migrated database to schema version 1');
+          this.logger.info('Migrated database to schema version 2');
         }
 
         return data;

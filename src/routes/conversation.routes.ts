@@ -7,7 +7,9 @@ import {
   ConversationDetailsResponse,
   CCUIError,
   SessionRenameRequest,
-  SessionRenameResponse
+  SessionRenameResponse,
+  SessionUpdateRequest,
+  SessionUpdateResponse
 } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
@@ -365,6 +367,88 @@ export function createConversationRoutes(
         requestId,
         sessionId,
         customName,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      next(error);
+    }
+  });
+
+  // Update session info (replaces rename endpoint)
+  router.put('/:sessionId/update', async (req: Request<{ sessionId: string }, SessionUpdateResponse, SessionUpdateRequest>, res, next) => {
+    const requestId = (req as any).requestId;
+    const { sessionId } = req.params;
+    const updates = req.body;
+    
+    logger.debug('Update session request', {
+      requestId,
+      sessionId,
+      updates
+    });
+    
+    try {
+      // Validate sessionId
+      if (!sessionId || sessionId.trim() === '') {
+        logger.debug('Invalid session ID', { requestId, sessionId });
+        return res.status(400).json({
+          success: false,
+          sessionId: '',
+          updatedFields: {} as any,
+          error: 'Session ID is required'
+        } as any);
+      }
+      
+      // Check if session exists
+      const { conversations } = await historyReader.listConversations();
+      const sessionExists = conversations.some(conv => conv.sessionId === sessionId);
+      
+      if (!sessionExists) {
+        logger.debug('Session not found', { requestId, sessionId });
+        return res.status(404).json({
+          success: false,
+          sessionId,
+          updatedFields: {} as any,
+          error: 'Conversation session not found'
+        } as any);
+      }
+      
+      // Validate fields if provided
+      if (updates.customName !== undefined && updates.customName.length > 200) {
+        logger.debug('Custom name too long', { requestId, length: updates.customName.length });
+        return res.status(400).json({
+          success: false,
+          sessionId,
+          updatedFields: {} as any,
+          error: 'Custom name must be 200 characters or less'
+        } as any);
+      }
+      
+      // Prepare updates object - map camelCase to snake_case
+      const sessionUpdates: any = {};
+      if (updates.customName !== undefined) sessionUpdates.custom_name = updates.customName.trim();
+      if (updates.pinned !== undefined) sessionUpdates.pinned = updates.pinned;
+      if (updates.archived !== undefined) sessionUpdates.archived = updates.archived;
+      if (updates.continuationSessionId !== undefined) sessionUpdates.continuation_session_id = updates.continuationSessionId;
+      if (updates.initialCommitHead !== undefined) sessionUpdates.initial_commit_head = updates.initialCommitHead;
+      
+      // Update session info
+      const updatedFields = await sessionInfoService.updateSessionInfo(sessionId, sessionUpdates);
+      
+      logger.info('Session updated successfully', {
+        requestId,
+        sessionId,
+        updatedFields
+      });
+      
+      res.json({
+        success: true,
+        sessionId,
+        updatedFields
+      });
+    } catch (error) {
+      logger.debug('Update session failed', {
+        requestId,
+        sessionId,
+        updates,
         error: error instanceof Error ? error.message : String(error)
       });
       next(error);

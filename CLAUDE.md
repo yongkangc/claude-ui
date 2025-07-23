@@ -44,6 +44,7 @@ npx jest -t "test name"                                    # Run test by name pa
 - **StreamManager**: Handles HTTP streaming connections for real-time updates
 - **ClaudeHistoryReader**: Reads conversation history from ~/.claude directory
 - **CCUIMCPServer**: MCP server for handling tool permission requests
+- **SessionInfoService**: Manages extended session metadata (pinning, archiving, continuation sessions, git HEAD tracking)
 
 ### Frontend (`src/web/`)
 - **chat/**: Main chat application components
@@ -87,6 +88,18 @@ npx jest -t "test name"                                    # Run test by name pa
 - Test logs are silenced by default, use `npm run test:debug` for verbose output
 - Check `~/.ccui/config.json` for server configuration
 - MCP configuration is in `config/mcp-config.json`
+
+## Session Information
+
+The SessionInfoService manages extended metadata for conversation sessions:
+
+- **pinned**: Boolean flag for pinning important sessions (default: false)
+- **archived**: Boolean flag for archiving old sessions (default: false) 
+- **continuation_session_id**: Links to a continuation session if the conversation continues elsewhere (default: "")
+- **initial_commit_head**: Git commit HEAD when the session started for tracking code changes (default: "")
+- **custom_name**: User-provided name for the session (default: "")
+
+Sessions are automatically migrated to include these fields when the schema version updates.
 
 ## Workflow Guidelines
 
