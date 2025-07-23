@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Square, Zap, ChevronDown, Mic, Check, X } from 'lucide-react';
+import { Send, Square, Mic, Check, X } from 'lucide-react';
 import type { PermissionRequest } from '@/types';
 import styles from './InputArea.module.css';
 
@@ -90,20 +90,6 @@ export function InputArea({ onSubmit, onStop, onPermissionDecision, isLoading = 
                     rows={1}
                   />
                 )}
-              </div>
-              
-              <div className={styles.footerActions}>
-                <div className={styles.actionButtons}>
-                  <button 
-                    type="button" 
-                    className={styles.actionButton}
-                    title="Model version selector"
-                  >
-                    <Zap size={14} />
-                    <span className={styles.buttonText}>1x</span>
-                    <ChevronDown size={14} />
-                  </button>
-                </div>
               </div>
               
               <div className={styles.voiceButton}>
