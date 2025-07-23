@@ -1,5 +1,5 @@
-import React from 'react';
-import { StopCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { StopCircle, Archive } from 'lucide-react';
 import styles from './TaskItem.module.css';
 
 interface TaskItemProps {
@@ -11,18 +11,21 @@ interface TaskItemProps {
   status: 'ongoing' | 'completed' | 'error';
   onClick: () => void;
   onCancel?: () => void;
+  onArchive?: () => void;
 }
 
 export function TaskItem({ 
-  id, 
+  id: _id, 
   title, 
   timestamp, 
   projectPath, 
   recentDirectories,
   status, 
   onClick,
-  onCancel 
+  onCancel,
+  onArchive 
 }: TaskItemProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const formatTimestamp = (ts: string) => {
     const date = new Date(ts);
     const now = new Date();
@@ -36,7 +39,11 @@ export function TaskItem({
   };
 
   return (
-    <div className={styles.container}>
+    <div 
+      className={styles.container}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <a 
         className={styles.link} 
         onClick={(e) => {
@@ -79,6 +86,23 @@ export function TaskItem({
                 type="button"
               >
                 <StopCircle size={24} />
+              </button>
+            </div>
+          )}
+          
+          {status === 'completed' && isHovered && (
+            <div className={styles.statusSection}>
+              <button
+                className={styles.archiveButton}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onArchive?.();
+                }}
+                aria-label="Archive task"
+                type="button"
+              >
+                <Archive size={17} />
               </button>
             </div>
           )}
