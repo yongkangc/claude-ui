@@ -8,6 +8,8 @@ import type {
   WorkingDirectoriesResponse,
   PermissionDecisionRequest,
   PermissionDecisionResponse,
+  FileSystemListQuery,
+  FileSystemListResponse,
 } from '../types';
 
 class ApiService {
@@ -131,6 +133,15 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
+  }
+
+  async listDirectory(params: FileSystemListQuery): Promise<FileSystemListResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('path', params.path);
+    if (params.recursive !== undefined) searchParams.append('recursive', params.recursive.toString());
+    if (params.respectGitignore !== undefined) searchParams.append('respectGitignore', params.respectGitignore.toString());
+    
+    return this.apiCall(`/api/filesystem/list?${searchParams}`);
   }
 }
 

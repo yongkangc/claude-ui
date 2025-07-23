@@ -13,6 +13,9 @@ import type {
   SystemInitMessage,
   PermissionDecisionRequest,
   PermissionDecisionResponse,
+  FileSystemEntry,
+  FileSystemListQuery,
+  FileSystemListResponse,
 } from '@/types';
 
 // Import ContentBlock from Anthropic SDK
@@ -32,6 +35,9 @@ export type {
   SystemInitMessage,
   PermissionDecisionRequest,
   PermissionDecisionResponse,
+  FileSystemEntry,
+  FileSystemListQuery,
+  FileSystemListResponse,
 };
 
 // Chat-specific types

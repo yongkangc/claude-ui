@@ -2,12 +2,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Plus } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '@/web/common/components/DropdownSelector';
 import { useConversations } from '../../contexts/ConversationsContext';
+import { api } from '../../services/api';
+import type { FileSystemEntry } from '../../types';
 import styles from './Composer.module.css';
 
 interface ComposerProps {
   workingDirectory?: string;
   onSubmit?: (text: string, workingDirectory: string, branch: string, model: string) => void;
   isSubmitting?: boolean;
+}
+
+interface AutocompleteState {
+  isActive: boolean;
+  triggerIndex: number;
+  query: string;
+  suggestions: FileSystemEntry[];
+  isDropdownFocused: boolean;
 }
 
 interface DirectoryDropdownProps {
@@ -83,6 +93,14 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
   const [text, setText] = useState('');
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
   const [selectedModel, setSelectedModel] = useState('default');
+  const [fileSystemEntries, setFileSystemEntries] = useState<FileSystemEntry[]>([]);
+  const [autocomplete, setAutocomplete] = useState<AutocompleteState>({
+    isActive: false,
+    triggerIndex: -1,
+    query: '',
+    suggestions: [],
+    isDropdownFocused: false,
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { recentDirectories, getMostRecentWorkingDirectory } = useConversations();
 
@@ -96,16 +114,146 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     }
   }, [workingDirectory, selectedDirectory, recentDirectories, getMostRecentWorkingDirectory]);
 
+  // Fetch file system entries when composer is focused
+  useEffect(() => {
+    const fetchFileSystem = async () => {
+      if (selectedDirectory && selectedDirectory !== 'Select directory') {
+        try {
+          const response = await api.listDirectory({
+            path: selectedDirectory,
+            recursive: true,
+            respectGitignore: true,
+          });
+          setFileSystemEntries(response.entries);
+        } catch (error) {
+          console.error('Failed to fetch file system entries:', error);
+        }
+      }
+    };
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const handleFocus = () => fetchFileSystem();
+      textarea.addEventListener('focus', handleFocus);
+      return () => textarea.removeEventListener('focus', handleFocus);
+    }
+  }, [selectedDirectory]);
+
+  const detectAutocomplete = (value: string, cursorPosition: number) => {
+    // Find the last @ before cursor
+    const beforeCursor = value.substring(0, cursorPosition);
+    const lastAtIndex = beforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return null;
+    
+    // Check if there's a space or newline between @ and cursor
+    const afterAt = beforeCursor.substring(lastAtIndex + 1);
+    if (afterAt.includes(' ') || afterAt.includes('\n')) return null;
+    
+    return {
+      triggerIndex: lastAtIndex,
+      query: afterAt,
+    };
+  };
+
+  const filterSuggestions = (query: string): FileSystemEntry[] => {
+    if (!query) return fileSystemEntries.slice(0, 50); // Show first 50 entries when no query
+    
+    const lowerQuery = query.toLowerCase();
+    return fileSystemEntries
+      .filter(entry => entry.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 50); // Limit to 50 results
+  };
+
+  const resetAutocomplete = () => {
+    setAutocomplete({
+      isActive: false,
+      triggerIndex: -1,
+      query: '',
+      suggestions: [],
+      isDropdownFocused: false,
+    });
+  };
+
+  const handlePathSelection = (path: string) => {
+    if (!textareaRef.current) return;
+    
+    const cursorPos = textareaRef.current.selectionStart;
+    const newText = text.substring(0, autocomplete.triggerIndex + 1) + path + text.substring(cursorPos);
+    setText(newText);
+    
+    // Set cursor position after the inserted path
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = autocomplete.triggerIndex + 1 + path.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        textareaRef.current.focus();
+      }
+    }, 0);
+    
+    resetAutocomplete();
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setText(newValue);
+    adjustTextareaHeight();
+    
+    // Detect autocomplete trigger
+    const cursorPos = e.target.selectionStart;
+    const autocompleteInfo = detectAutocomplete(newValue, cursorPos);
+    
+    if (autocompleteInfo) {
+      const suggestions = filterSuggestions(autocompleteInfo.query);
+      setAutocomplete({
+        isActive: true,
+        triggerIndex: autocompleteInfo.triggerIndex,
+        query: autocompleteInfo.query,
+        suggestions,
+        isDropdownFocused: false,
+      });
+    } else {
+      resetAutocomplete();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() && onSubmit && selectedDirectory !== 'Select directory') {
       onSubmit(text.trim(), selectedDirectory, 'main', selectedModel);
       setText('');
+      resetAutocomplete();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (autocomplete.isActive) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          if (!autocomplete.isDropdownFocused && autocomplete.suggestions.length > 0) {
+            setAutocomplete(prev => ({ ...prev, isDropdownFocused: true }));
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          break;
+        case 'Enter':
+          if (!e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            if (autocomplete.suggestions.length > 0) {
+              // Select first suggestion if in textarea
+              handlePathSelection(autocomplete.suggestions[0].name);
+            }
+          }
+          break;
+        case ' ':
+        case 'Escape':
+          e.preventDefault();
+          resetAutocomplete();
+          break;
+      }
+    } else if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
         handleSubmit(e as any);
@@ -141,15 +289,33 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
               className={styles.textarea}
               placeholder="Describe another task"
               value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                adjustTextareaHeight();
-              }}
+              onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               rows={1}
               disabled={isSubmitting}
             />
           </div>
+
+          {autocomplete.isActive && autocomplete.suggestions.length > 0 && (
+            <div className={styles.autocompleteWrapper}>
+              <DropdownSelector
+                options={autocomplete.suggestions.map((entry) => ({
+                  value: entry.name,
+                  label: entry.name,
+                  disabled: false
+                }))}
+                value={undefined}
+                onChange={handlePathSelection}
+                isOpen={true}
+                onOpenChange={(open) => {
+                  if (!open) resetAutocomplete();
+                }}
+                showFilterInput={false}
+                maxVisibleItems={5}
+                className={styles.pathAutocomplete}
+              />
+            </div>
+          )}
 
           <div className={styles.footerActions}>
             <div className={styles.actionButtons}>
