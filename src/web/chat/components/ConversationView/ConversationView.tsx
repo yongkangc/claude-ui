@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
-import { Composer } from '@/web/common/components/Composer';
+import { Composer, ComposerRef } from '@/web/common/components/Composer';
 import { ConversationHeader } from '../ConversationHeader/ConversationHeader';
 import { api } from '../../services/api';
 import { useStreaming, useConversationMessages } from '../../hooks';
@@ -18,6 +18,7 @@ export function ConversationView() {
   const [conversationTitle, setConversationTitle] = useState<string>('Conversation');
   const [isPermissionDecisionLoading, setIsPermissionDecisionLoading] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
+  const composerRef = useRef<ComposerRef>(null);
 
   // Use shared conversation messages hook
   const {
@@ -111,6 +112,11 @@ export function ConversationView() {
         setError(err.message || 'Failed to load conversation');
       } finally {
         setIsLoading(false);
+        
+        // Focus the input after loading is complete
+        setTimeout(() => {
+          composerRef.current?.focusInput();
+        }, 100);
       }
     };
 
@@ -214,6 +220,7 @@ export function ConversationView() {
 
       <div className={styles.composerWrapper}>
         <Composer
+          ref={composerRef}
           onSubmit={handleSendMessage}
           onStop={handleStop}
           onPermissionDecision={handlePermissionDecision}

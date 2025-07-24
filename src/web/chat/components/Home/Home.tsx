@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useConversations } from '../../contexts/ConversationsContext';
 import { api } from '../../services/api';
 import { Header } from './Header';
-import { Composer } from '@/web/common/components/Composer';
+import { Composer, ComposerRef } from '@/web/common/components/Composer';
 import { TaskTabs } from './TaskTabs';
 import { TaskList } from './TaskList';
 import styles from './Home.module.css';
@@ -24,6 +24,7 @@ export function Home() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive'>('tasks');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const conversationCountRef = useRef(conversations.length);
+  const composerRef = useRef<ComposerRef>(null);
 
   // Update the ref whenever conversations change
   useEffect(() => {
@@ -36,6 +37,13 @@ export function Home() {
     if (conversationCountRef.current > 0) {
       loadConversations(conversationCountRef.current);
     }
+    
+    // Focus the input after a brief delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      composerRef.current?.focusInput();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array means this runs only on mount
 
@@ -102,6 +110,7 @@ export function Home() {
               
               <div className={styles.composerWrapper}>
                 <Composer 
+                  ref={composerRef}
                   workingDirectory={recentWorkingDirectory}
                   onSubmit={handleComposerSubmit}
                   isLoading={isSubmitting}
@@ -111,6 +120,18 @@ export function Home() {
                   enableFileAutocomplete={true}
                   recentDirectories={recentDirectories}
                   getMostRecentWorkingDirectory={getMostRecentWorkingDirectory}
+                  onDirectoryChange={(directory) => {
+                    // Focus input after directory change
+                    setTimeout(() => {
+                      composerRef.current?.focusInput();
+                    }, 50);
+                  }}
+                  onModelChange={(model) => {
+                    // Focus input after model change
+                    setTimeout(() => {
+                      composerRef.current?.focusInput();
+                    }, 50);
+                  }}
                   onFetchFileSystem={async (directory) => {
                     const response = await api.listDirectory({
                       path: directory,

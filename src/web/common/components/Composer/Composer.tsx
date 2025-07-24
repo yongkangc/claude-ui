@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import type { PermissionRequest } from '@/types';
@@ -55,6 +55,10 @@ export interface ComposerProps {
   // File autocomplete
   fileSystemEntries?: FileSystemEntry[];
   onFetchFileSystem?: (directory: string) => Promise<FileSystemEntry[]>;
+}
+
+export interface ComposerRef {
+  focusInput: () => void;
 }
 
 interface DirectoryDropdownProps {
@@ -167,7 +171,7 @@ function AutocompleteDropdown({
   );
 }
 
-export function Composer({
+export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer({
   value: controlledValue,
   onChange: onControlledChange,
   onSubmit,
@@ -191,7 +195,7 @@ export function Composer({
   onStop,
   fileSystemEntries = [],
   onFetchFileSystem,
-}: ComposerProps) {
+}: ComposerProps, ref: React.Ref<ComposerRef>) {
   // Use controlled or uncontrolled value
   const [uncontrolledValue, setUncontrolledValue] = useState('');
   const value = controlledValue !== undefined ? controlledValue : uncontrolledValue;
@@ -213,6 +217,15 @@ export function Composer({
     focusedIndex: 0,
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Expose focusInput method via ref
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }), []);
 
   // Update local state when props change
   useEffect(() => {
@@ -581,4 +594,4 @@ export function Composer({
       )}
     </form>
   );
-}
+});
