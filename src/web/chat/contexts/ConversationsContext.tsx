@@ -21,8 +21,8 @@ interface ConversationsContextType {
 
 const ConversationsContext = createContext<ConversationsContextType | undefined>(undefined);
 
-const INITIAL_LIMIT = 50;
-const LOAD_MORE_LIMIT = 100;
+const INITIAL_LIMIT = 20;
+const LOAD_MORE_LIMIT = 40;
 
 export function ConversationsProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -79,7 +79,11 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     setRecentDirectories(newDirectories);
   };
 
-  const loadConversations = async (limit?: number) => {
+  const loadConversations = async (limit?: number, filters?: {
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
+  }) => {
     setLoading(true);
     setError(null);
     try {
@@ -90,7 +94,8 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
           limit: loadLimit,
           offset: 0,
           sortBy: 'updated',
-          order: 'desc'
+          order: 'desc',
+          ...filters
         }),
         loadWorkingDirectories()
       ]);
@@ -106,7 +111,11 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loadMoreConversations = async () => {
+  const loadMoreConversations = async (filters?: {
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
+  }) => {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
@@ -116,7 +125,8 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         limit: LOAD_MORE_LIMIT,
         offset: conversations.length,
         sortBy: 'updated',
-        order: 'desc'
+        order: 'desc',
+        ...filters
       });
       
       if (data.conversations.length === 0) {

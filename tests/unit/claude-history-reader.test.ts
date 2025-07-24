@@ -14,9 +14,36 @@ const mockLogger = {
   debug: jest.fn()
 };
 
+// Mock SessionInfoService
+const mockSessionInfoService = {
+  getSessionInfo: jest.fn()
+};
+
+// Mock ToolMetricsService
+const mockToolMetricsService = {
+  calculateMetricsFromMessages: jest.fn(() => ({
+    linesAdded: 0,
+    linesRemoved: 0,
+    editCount: 0,
+    writeCount: 0
+  }))
+};
+
 // Mock logger
 jest.mock('@/services/logger', () => ({
   createLogger: jest.fn(() => mockLogger)
+}));
+
+// Mock SessionInfoService
+jest.mock('@/services/session-info-service', () => ({
+  SessionInfoService: {
+    getInstance: jest.fn(() => mockSessionInfoService)
+  }
+}));
+
+// Mock ToolMetricsService
+jest.mock('@/services/ToolMetricsService', () => ({
+  ToolMetricsService: jest.fn(() => mockToolMetricsService)
 }));
 
 describe('ClaudeHistoryReader', () => {
@@ -26,12 +53,21 @@ describe('ClaudeHistoryReader', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     
+    // Set up default mock session info
+    mockSessionInfoService.getSessionInfo.mockResolvedValue({
+      custom_name: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      version: 2,
+      pinned: false,
+      archived: false,
+      continuation_session_id: '',
+      initial_commit_head: ''
+    });
+    
     // Create temporary Claude home directory structure
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-test-'));
     await fs.mkdir(path.join(tempDir, 'projects'), { recursive: true });
-    reader = new ClaudeHistoryReader();
-    // Mock the homePath property to use our temp directory
-    (reader as any).claudeHomePath = tempDir;
   });
 
   afterEach(async () => {
@@ -50,6 +86,9 @@ describe('ClaudeHistoryReader', () => {
     it('should return empty result when projects directory does not exist', async () => {
       // Remove the projects directory
       await fs.rm(path.join(tempDir, 'projects'), { recursive: true, force: true });
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
       
       const result = await reader.listConversations();
       
@@ -91,6 +130,9 @@ describe('ClaudeHistoryReader', () => {
       
       await fs.writeFile(conversationFile, conversationContent);
       
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      
       const result = await reader.listConversations();
       
       expect(result.conversations).toHaveLength(1);
@@ -129,6 +171,9 @@ describe('ClaudeHistoryReader', () => {
       await fs.writeFile(path.join(project1Dir, 'conv1.jsonl'), conversation1Content);
       await fs.writeFile(path.join(project2Dir, 'conv2.jsonl'), conversation2Content);
       
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      
       // Test filtering by project path
       const filtered = await reader.listConversations({
         projectPath: '/Users/username/project1'
@@ -154,6 +199,9 @@ describe('ClaudeHistoryReader', () => {
       }
       
       await fs.writeFile(path.join(projectDir, 'conversations.jsonl'), content.trim());
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
       
       // Test pagination
       const paginated = await reader.listConversations({
@@ -186,6 +234,9 @@ describe('ClaudeHistoryReader', () => {
       
       await fs.writeFile(path.join(projectDir, 'conversations.jsonl'), content.trim());
       
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      
       // Test sorting by created date ascending
       const sorted = await reader.listConversations({
         sortBy: 'created',
@@ -195,10 +246,195 @@ describe('ClaudeHistoryReader', () => {
       expect(sorted.conversations[0].sessionId).toBe('session-2'); // earliest
       expect(sorted.conversations[2].sessionId).toBe('session-1'); // latest
     });
+
+    it('should filter by archived status', async () => {
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test');
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      const session1 = 'archived-session';
+      const session2 = 'active-session';
+      
+      // Create two separate conversation files
+      const conversation1Content = `{"type":"summary","summary":"Archived Session","leafUuid":"msg1"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test","sessionId":"${session1}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z"}`;
+      
+      const conversation2Content = `{"type":"summary","summary":"Active Session","leafUuid":"msg2"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test","sessionId":"${session2}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg2","timestamp":"2024-01-02T00:00:00Z"}`;
+      
+      // Mock session info service to return different archived statuses
+      // Clear the default mock first
+      mockSessionInfoService.getSessionInfo.mockReset();
+      mockSessionInfoService.getSessionInfo.mockImplementation((sessionId: string) => {
+        if (sessionId === session1) {
+          return Promise.resolve({
+            custom_name: '',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+            version: 2,
+            pinned: false,
+            archived: true,
+            continuation_session_id: '',
+            initial_commit_head: ''
+          });
+        }
+        return Promise.resolve({
+          custom_name: '',
+          created_at: '2024-01-02T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          version: 2,
+          pinned: false,
+          archived: false,
+          continuation_session_id: '',
+          initial_commit_head: ''
+        });
+      });
+      
+      // Write files after setting up the mock
+      await fs.writeFile(path.join(projectDir, 'conv1.jsonl'), conversation1Content);
+      await fs.writeFile(path.join(projectDir, 'conv2.jsonl'), conversation2Content);
+      
+      // Create the reader AFTER setting up the mocks
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      // Directly replace the sessionInfoService instance with our mock
+      (reader as any).sessionInfoService = mockSessionInfoService;
+      
+      // Test filtering by archived status
+      const archivedOnly = await reader.listConversations({ archived: true });
+      expect(archivedOnly.conversations).toHaveLength(1);
+      expect(archivedOnly.conversations[0].sessionId).toBe(session1);
+      
+      const activeOnly = await reader.listConversations({ archived: false });
+      expect(activeOnly.conversations).toHaveLength(1);
+      expect(activeOnly.conversations[0].sessionId).toBe(session2);
+    });
+
+    it('should filter by continuation session status', async () => {
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test2');
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      const session1 = 'continuation-session';
+      const session2 = 'standalone-session';
+      
+      // Create two separate conversation files
+      const conversation1Content = `{"type":"summary","summary":"Continuation Session","leafUuid":"msg1"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test2","sessionId":"${session1}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z"}`;
+      
+      const conversation2Content = `{"type":"summary","summary":"Standalone Session","leafUuid":"msg2"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test2","sessionId":"${session2}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg2","timestamp":"2024-01-02T00:00:00Z"}`;
+      
+      // Mock session info service to return different continuation statuses
+      mockSessionInfoService.getSessionInfo.mockReset();
+      mockSessionInfoService.getSessionInfo.mockImplementation((sessionId: string) => {
+        if (sessionId === session1) {
+          return Promise.resolve({
+            custom_name: '',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+            version: 2,
+            pinned: false,
+            archived: false,
+            continuation_session_id: 'some-continuation-id',
+            initial_commit_head: ''
+          });
+        }
+        return Promise.resolve({
+          custom_name: '',
+          created_at: '2024-01-02T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          version: 2,
+          pinned: false,
+          archived: false,
+          continuation_session_id: '',
+          initial_commit_head: ''
+        });
+      });
+      
+      // Write files after setting up the mock
+      await fs.writeFile(path.join(projectDir, 'conv1.jsonl'), conversation1Content);
+      await fs.writeFile(path.join(projectDir, 'conv2.jsonl'), conversation2Content);
+      
+      // Create the reader and replace sessionInfoService with mock
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      (reader as any).sessionInfoService = mockSessionInfoService;
+      
+      // Test filtering by continuation status
+      const withContinuation = await reader.listConversations({ hasContinuation: true });
+      expect(withContinuation.conversations).toHaveLength(1);
+      expect(withContinuation.conversations[0].sessionId).toBe(session1);
+      
+      const withoutContinuation = await reader.listConversations({ hasContinuation: false });
+      expect(withoutContinuation.conversations).toHaveLength(1);
+      expect(withoutContinuation.conversations[0].sessionId).toBe(session2);
+    });
+
+    it('should filter by pinned status', async () => {
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-test3');
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      const session1 = 'pinned-session';
+      const session2 = 'unpinned-session';
+      
+      // Create two separate conversation files
+      const conversation1Content = `{"type":"summary","summary":"Pinned Session","leafUuid":"msg1"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test3","sessionId":"${session1}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg1","timestamp":"2024-01-01T00:00:00Z"}`;
+      
+      const conversation2Content = `{"type":"summary","summary":"Unpinned Session","leafUuid":"msg2"}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/Users/username/test3","sessionId":"${session2}","version":"1.0.3","type":"user","message":{"role":"user","content":"Hello"},"uuid":"msg2","timestamp":"2024-01-02T00:00:00Z"}`;
+      
+      // Mock session info service to return different pinned statuses
+      mockSessionInfoService.getSessionInfo.mockReset();
+      mockSessionInfoService.getSessionInfo.mockImplementation((sessionId: string) => {
+        if (sessionId === session1) {
+          return Promise.resolve({
+            custom_name: '',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+            version: 2,
+            pinned: true,
+            archived: false,
+            continuation_session_id: '',
+            initial_commit_head: ''
+          });
+        }
+        return Promise.resolve({
+          custom_name: '',
+          created_at: '2024-01-02T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          version: 2,
+          pinned: false,
+          archived: false,
+          continuation_session_id: '',
+          initial_commit_head: ''
+        });
+      });
+      
+      // Write files after setting up the mock
+      await fs.writeFile(path.join(projectDir, 'conv1.jsonl'), conversation1Content);
+      await fs.writeFile(path.join(projectDir, 'conv2.jsonl'), conversation2Content);
+      
+      // Create the reader and replace sessionInfoService with mock
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      (reader as any).sessionInfoService = mockSessionInfoService;
+      
+      // Test filtering by pinned status
+      const pinnedOnly = await reader.listConversations({ pinned: true });
+      expect(pinnedOnly.conversations).toHaveLength(1);
+      expect(pinnedOnly.conversations[0].sessionId).toBe(session1);
+      
+      const unpinnedOnly = await reader.listConversations({ pinned: false });
+      expect(unpinnedOnly.conversations).toHaveLength(1);
+      expect(unpinnedOnly.conversations[0].sessionId).toBe(session2);
+    });
   });
 
   describe('fetchConversation', () => {
     it('should throw error if conversation not found', async () => {
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+      
       await expect(reader.fetchConversation('non-existent')).rejects.toThrow('Conversation non-existent not found');
     });
 
@@ -215,6 +451,9 @@ describe('ClaudeHistoryReader', () => {
 {"parentUuid":"msg1","type":"assistant","message":{"role":"assistant","content":"Hi there","id":"msg_123"},"uuid":"msg2","timestamp":"2024-01-01T00:00:01Z","sessionId":"${sessionId}","durationMs":1000}`;
 
       await fs.writeFile(conversationFile, fileContent);
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
 
       const messages = await reader.fetchConversation(sessionId);
       
@@ -239,6 +478,9 @@ describe('ClaudeHistoryReader', () => {
 {"parentUuid":"msg1","type":"assistant","uuid":"msg2","also":"valid","sessionId":"${sessionId}"}`;
 
       await fs.writeFile(conversationFile, fileContent);
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
 
       const messages = await reader.fetchConversation(sessionId);
       
@@ -261,6 +503,9 @@ describe('ClaudeHistoryReader', () => {
       const complexJsonLine = `{"parentUuid": "b72a5272-ecd5-4b58-b8e6-87483e9acad6", "isSidechain": false, "userType": "external", "cwd": "/Users/example/project", "sessionId": "${sessionId}", "version": "1.0.3", "message": {"id": "msg_02Example456", "type": "message", "role": "assistant", "model": "claude-opus-4-20250514", "content": [{"type": "text", "text": "Let me check the current directory structure."}, {"type": "tool_use", "id": "toolu_02LSExample", "name": "LS", "input": {"path": "/Users/example/project"}}], "stop_reason": "tool_use", "stop_sequence": null, "usage": {"input_tokens": 150, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 1200, "output_tokens": 80, "service_tier": "standard"}}, "costUSD": 0.00180, "durationMs": 1800, "type": "assistant", "uuid": "2c333acb-b9f2-41bf-b2d1-d20f0fa413e5", "timestamp": "2025-05-26T07:27:44.400Z"}`;
 
       await fs.writeFile(conversationFile, complexJsonLine);
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
 
       const messages = await reader.fetchConversation(sessionId);
       
@@ -322,6 +567,9 @@ describe('ClaudeHistoryReader', () => {
 {"parentUuid":"msg1","durationMs":1500,"sessionId":"${sessionId}","type":"assistant","message":{"role":"assistant","content":"Hi","model":"claude-opus-4-20250514"},"uuid":"msg2"}`;
 
       await fs.writeFile(conversationFile, fileContent);
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
 
       const metadata = await reader.getConversationMetadata(sessionId);
       

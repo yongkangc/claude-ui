@@ -13,7 +13,11 @@ interface TaskListProps {
   hasMore: boolean;
   error: string | null;
   activeTab: 'tasks' | 'history' | 'archive';
-  onLoadMore: () => void;
+  onLoadMore: (filters?: {
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
+  }) => void;
 }
 
 export function TaskList({ 
@@ -30,16 +34,19 @@ export function TaskList({
   const loadingRef = useRef<HTMLDivElement>(null);
   const { recentDirectories, loadConversations } = useConversations();
 
-  // Filter conversations based on active tab
-  const filteredConversations = conversations.filter(conv => {
-    if (activeTab === 'archive') {
-      return conv.sessionInfo.archived === true;
-    } else if (activeTab === 'history') {
-      return !conv.sessionInfo.archived && conv.sessionInfo.continuation_session_id !== '';
-    } else { // tasks
-      return !conv.sessionInfo.archived && conv.sessionInfo.continuation_session_id === '';
+  // Get filter parameters based on active tab
+  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive') => {
+    switch (tab) {
+      case 'tasks':
+        return { archived: false, hasContinuation: false };
+      case 'history':
+        return { archived: false, hasContinuation: true };
+      case 'archive':
+        return { archived: true };
+      default:
+        return {};
     }
-  });
+  };
 
   const handleTaskClick = (sessionId: string) => {
     navigate(`/c/${sessionId}`);
@@ -77,10 +84,10 @@ export function TaskList({
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
       if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
-        onLoadMore();
+        onLoadMore(getFiltersForTab(activeTab));
       }
     },
-    [hasMore, loadingMore, loading, onLoadMore]
+    [hasMore, loadingMore, loading, onLoadMore, activeTab]
   );
 
   useEffect(() => {
@@ -118,7 +125,7 @@ export function TaskList({
     );
   }
 
-  if (filteredConversations.length === 0) {
+  if (conversations.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.message}>
@@ -130,7 +137,7 @@ export function TaskList({
 
   return (
     <div ref={scrollRef} className={styles.container}>
-      {filteredConversations.map((conversation) => (
+      {conversations.map((conversation) => (
         <div key={conversation.sessionId} data-session-id={conversation.sessionId}>
           <TaskItem
             id={conversation.sessionId}
@@ -168,7 +175,7 @@ export function TaskList({
       )}
       
       {/* End of list message */}
-      {!hasMore && filteredConversations.length > 0 && (
+      {!hasMore && conversations.length > 0 && (
         <div className={styles.endMessage}>
           No more tasks to load
         </div>

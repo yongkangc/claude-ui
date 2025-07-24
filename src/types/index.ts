@@ -144,6 +144,9 @@ export interface ConversationListQuery {
   offset?: number;
   sortBy?: 'created' | 'updated';
   order?: 'asc' | 'desc';
+  hasContinuation?: boolean;
+  archived?: boolean;
+  pinned?: boolean;
 }
 
 export interface ConversationDetailsResponse {

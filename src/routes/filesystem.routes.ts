@@ -16,7 +16,7 @@ export function createFileSystemRoutes(
   const logger = createLogger('FileSystemRoutes');
 
   // List directory contents
-  router.get('/list', async (req: Request<{}, FileSystemListResponse, {}, any>, res, next) => {
+  router.get('/list', async (req: Request<{}, FileSystemListResponse, {}, FileSystemListQuery>, res, next) => {
     const requestId = (req as any).requestId;
     logger.debug('List directory request', {
       requestId,
@@ -32,9 +32,9 @@ export function createFileSystemRoutes(
       }
       
       const result = await fileSystemService.listDirectory(
-        req.query.path as string,
-        req.query.recursive === 'true',
-        req.query.respectGitignore === 'true'
+        req.query.path,
+        req.query.recursive || false,
+        req.query.respectGitignore || false
       );
       
       logger.debug('Directory listed successfully', {

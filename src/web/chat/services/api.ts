@@ -54,11 +54,17 @@ class ApiService {
     limit?: number;
     offset?: number;
     projectPath?: string;
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
   }): Promise<{ conversations: ConversationSummary[]; total: number }> {
     const searchParams = new URLSearchParams();
     if (params?.limit) searchParams.append('limit', params.limit.toString());
     if (params?.offset) searchParams.append('offset', params.offset.toString());
     if (params?.projectPath) searchParams.append('projectPath', params.projectPath);
+    if (params?.hasContinuation !== undefined) searchParams.append('hasContinuation', params.hasContinuation.toString());
+    if (params?.archived !== undefined) searchParams.append('archived', params.archived.toString());
+    if (params?.pinned !== undefined) searchParams.append('pinned', params.pinned.toString());
     searchParams.append('sortBy', 'updated');
     searchParams.append('order', 'desc');
 

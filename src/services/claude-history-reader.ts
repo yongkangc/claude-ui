@@ -617,6 +617,24 @@ export class ClaudeHistoryReader {
       filtered = filtered.filter(c => c.projectPath === filter.projectPath);
     }
     
+    // Filter by continuation session
+    if (filter.hasContinuation !== undefined) {
+      filtered = filtered.filter(c => {
+        const hasContinuation = c.sessionInfo.continuation_session_id !== '';
+        return filter.hasContinuation ? hasContinuation : !hasContinuation;
+      });
+    }
+    
+    // Filter by archived status
+    if (filter.archived !== undefined) {
+      filtered = filtered.filter(c => c.sessionInfo.archived === filter.archived);
+    }
+    
+    // Filter by pinned status
+    if (filter.pinned !== undefined) {
+      filtered = filtered.filter(c => c.sessionInfo.pinned === filter.pinned);
+    }
+    
     // Sort
     if (filter.sortBy) {
       filtered.sort((a, b) => {

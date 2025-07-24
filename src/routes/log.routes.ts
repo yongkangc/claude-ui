@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { logStreamBuffer } from '@/services/log-stream-buffer';
 import { createLogger, type Logger } from '@/services/logger';
 
@@ -7,19 +7,17 @@ export function createLogRoutes(): Router {
   const logger = createLogger('LogRoutes');
 
   // Get recent logs
-  router.get('/recent', (req, res) => {
+  router.get('/recent', (req: Request<Record<string, never>, unknown, Record<string, never>, { limit?: number }>, res) => {
     const requestId = (req as any).requestId;
-    const limitParam = req.query.limit as string;
-    const limit = limitParam !== undefined ? parseInt(limitParam) : 100;
-    const validLimit = isNaN(limit) ? 100 : limit;
+    const limit = req.query.limit || 100;
     
     logger.debug('Get recent logs request', {
       requestId,
-      limit: validLimit
+      limit
     });
     
     try {
-      const logs = logStreamBuffer.getRecentLogs(validLimit);
+      const logs = logStreamBuffer.getRecentLogs(limit);
       res.json({ logs });
     } catch (error) {
       logger.error('Failed to get recent logs', error, { requestId });

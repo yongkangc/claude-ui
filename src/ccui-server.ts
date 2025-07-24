@@ -29,6 +29,7 @@ import { createPreferencesRoutes } from './routes/preferences.routes';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
+import { queryParser } from './middleware/query-parser';
 
 // Conditionally import ViteExpress only in non-test environments
 let ViteExpress: any;
@@ -325,6 +326,9 @@ export class CCUIServer {
     
     // Request logging
     this.app.use(requestLogger);
+    
+    // Query parameter parsing - convert strings to proper types
+    this.app.use(queryParser);
     
   }
 
