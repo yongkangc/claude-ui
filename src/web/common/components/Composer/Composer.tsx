@@ -132,6 +132,7 @@ interface AutocompleteDropdownProps {
   onClose: () => void;
   isOpen: boolean;
   focusedIndex: number;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 function AutocompleteDropdown({
@@ -140,6 +141,7 @@ function AutocompleteDropdown({
   onClose,
   isOpen,
   focusedIndex,
+  triggerRef,
 }: AutocompleteDropdownProps) {
   if (!isOpen) return null;
 
@@ -162,6 +164,7 @@ function AutocompleteDropdown({
         className={styles.pathAutocomplete}
         initialFocusedIndex={focusedIndex}
         visualFocusOnly={true}
+        triggerElementRef={triggerRef}
       />
     </div>
   );
@@ -584,6 +587,7 @@ export function Composer({
           onClose={resetAutocomplete}
           isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
           focusedIndex={autocomplete.focusedIndex}
+          triggerRef={textareaRef}
         />
       )}
     </form>

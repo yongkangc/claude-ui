@@ -31,6 +31,7 @@ interface DropdownSelectorProps<T = string> {
   initialFocusedIndex?: number;
   onFocusReturn?: () => void;
   visualFocusOnly?: boolean;
+  triggerElementRef?: React.RefObject<HTMLElement>;
 }
 
 export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps<any>>(
@@ -56,6 +57,7 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
       initialFocusedIndex,
       onFocusReturn,
       visualFocusOnly = false,
+      triggerElementRef,
     }: DropdownSelectorProps<T>,
     ref: React.ForwardedRef<HTMLDivElement>
   ) {
@@ -85,7 +87,8 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
     // Combine refs
     const combinedContainerRef = useCallback((node: HTMLDivElement | null) => {
       containerRef.current = node;
-      triggerRef.current = node;
+      // Use external trigger element if provided, otherwise use container
+      triggerRef.current = triggerElementRef?.current || node;
       if (ref) {
         if (typeof ref === 'function') {
           ref(node);
@@ -93,7 +96,7 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
           ref.current = node;
         }
       }
-    }, [ref, triggerRef]);
+    }, [ref, triggerRef, triggerElementRef]);
 
     // Get filter text from external ref or internal state
     const getFilterText = useCallback(() => {

@@ -238,6 +238,16 @@ export function ConversationView() {
           permissionRequest={currentPermissionRequest}
           showPermissionUI={true}
           showStopButton={true}
+          enableFileAutocomplete={true}
+          workingDirectory={conversationSummary?.projectPath}
+          onFetchFileSystem={async (directory) => {
+            const response = await api.listDirectory({
+              path: directory,
+              recursive: true,
+              respectGitignore: true,
+            });
+            return response.entries;
+          }}
         />
       </div>
 
