@@ -9,7 +9,8 @@ import {
   SessionRenameRequest,
   SessionRenameResponse,
   SessionUpdateRequest,
-  SessionUpdateResponse
+  SessionUpdateResponse,
+  ConversationMessage
 } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
