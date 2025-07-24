@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, CheckCircle, Unlock, FileText, Lightbulb } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import type { PermissionRequest } from '@/types';
 import styles from './Composer.module.css';
@@ -207,6 +207,8 @@ export function Composer({
 
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
   const [selectedModel, setSelectedModel] = useState(model);
+  const [selectedPermissionMode, setSelectedPermissionMode] = useState<string>('default');
+  const [isPermissionDropdownOpen, setIsPermissionDropdownOpen] = useState(false);
   const [localFileSystemEntries, setLocalFileSystemEntries] = useState<FileSystemEntry[]>(fileSystemEntries);
   const [autocomplete, setAutocomplete] = useState<AutocompleteState>({
     isActive: false,
@@ -311,6 +313,24 @@ export function Composer({
       suggestions: [],
       focusedIndex: 0,
     });
+  };
+
+  const getPermissionModeLabel = (mode: string): string => {
+    switch (mode) {
+      case 'default': return 'Code';
+      case 'acceptEdits': return 'Auto';
+      case 'bypassPermissions': return 'Yolo';
+      default: return 'Code';
+    }
+  };
+
+  const getPermissionModeTitle = (mode: string): string => {
+    switch (mode) {
+      case 'default': return 'Code - Ask for permissions as needed';
+      case 'acceptEdits': return 'Auto - Allow Claude to make changes directly';
+      case 'bypassPermissions': return 'Yolo - Skip all permission prompts';
+      default: return 'Code - Ask for permissions as needed';
+    }
   };
 
   const handlePathSelection = (path: string) => {
@@ -561,42 +581,58 @@ export function Composer({
               </button>
             ) : value.trim() ? (
               <div className={styles.permissionModeButtons}>
+                {/* Separate Plan Button */}
                 <button
                   type="button"
-                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.acceptEditsButton}`}
-                  title="Accept Edits - Allow Claude to make changes directly"
-                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
-                  onClick={() => handleSubmit('acceptEdits')}
-                >
-                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <CheckCircle size={18} />}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.bypassPermissionsButton}`}
-                  title="Bypass Permissions - Skip all permission prompts"
-                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
-                  onClick={() => handleSubmit('bypassPermissions')}
-                >
-                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Unlock size={18} />}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.defaultButton}`}
-                  title="Default - Ask for permissions as needed"
-                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
-                  onClick={() => handleSubmit('default')}
-                >
-                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Send size={18} />}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.planButton}`}
+                  className={`${styles.btn} ${styles.btnSecondary}`}
                   title="Plan Mode - Create a plan without executing"
                   disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                   onClick={() => handleSubmit('plan')}
                 >
-                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Lightbulb size={18} />}
+                  <div className={styles.btnContent}>
+                    {isLoading ? <Loader2 size={14} className={styles.spinning} /> : 'Plan'}
+                  </div>
                 </button>
+                
+                {/* Combined Permission Mode Button with Dropdown */}
+                <div className={styles.combinedPermissionButton}>
+                  <button
+                    type="button"
+                    className={styles.permissionMainButton}
+                    title={getPermissionModeTitle(selectedPermissionMode)}
+                    disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                    onClick={() => handleSubmit(selectedPermissionMode)}
+                  >
+                    <div className={styles.btnContent}>
+                      {isLoading ? <Loader2 size={14} className={styles.spinning} /> : getPermissionModeLabel(selectedPermissionMode)}
+                    </div>
+                  </button>
+                  <DropdownSelector
+                    options={[
+                      { value: 'default', label: 'Code' },
+                      { value: 'acceptEdits', label: 'Auto' },
+                      { value: 'bypassPermissions', label: 'Yolo' },
+                    ]}
+                    value={selectedPermissionMode}
+                    onChange={setSelectedPermissionMode}
+                    isOpen={isPermissionDropdownOpen}
+                    onOpenChange={setIsPermissionDropdownOpen}
+                    showFilterInput={false}
+                    renderTrigger={({ onClick }) => (
+                      <button
+                        type="button"
+                        className={styles.permissionDropdownButton}
+                        onClick={onClick}
+                        disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                        aria-label="Select permission mode"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M4.5 5.5L8 9L11.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        </svg>
+                      </button>
+                    )}
+                  />
+                </div>
               </div>
             ) : (
               <button
