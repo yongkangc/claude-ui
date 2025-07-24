@@ -912,7 +912,7 @@ describe('CCUIServer', () => {
         });
 
         expect((server as any).historyReader.listConversations).toHaveBeenCalledWith({
-          limit: '10',
+          limit: 10,
           sortBy: 'updated',
           order: 'desc'
         });

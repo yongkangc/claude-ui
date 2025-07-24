@@ -9,7 +9,7 @@ export function createLogRoutes(): Router {
   // Get recent logs
   router.get('/recent', (req: Request<Record<string, never>, unknown, Record<string, never>, { limit?: number }>, res) => {
     const requestId = (req as any).requestId;
-    const limit = req.query.limit || 100;
+    const limit = req.query.limit !== undefined ? req.query.limit : 100;
     
     logger.debug('Get recent logs request', {
       requestId,
