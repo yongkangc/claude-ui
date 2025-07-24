@@ -1,5 +1,5 @@
 import { CCUIServer } from '@/ccui-server';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 import * as path from 'path';
 import { EventSource } from 'eventsource';
@@ -339,12 +339,12 @@ describe('Tool Metrics Integration - Core Functionality', () => {
     const { ToolMetricsService } = await import('@/services/ToolMetricsService');
     const { ClaudeProcessManager } = await import('@/services/claude-process-manager');
     const { ClaudeHistoryReader } = await import('@/services/claude-history-reader');
-    const { ConversationStatusTracker } = await import('@/services/conversation-status-tracker');
+    const { ConversationStatusManager } = await import('@/services/conversation-status-manager');
     const EventEmitter = (await import('events')).EventEmitter;
     
     // Create services
     const historyReader = new ClaudeHistoryReader();
-    const statusTracker = new ConversationStatusTracker();
+    const statusTracker = new ConversationStatusManager();
     const toolMetricsService = new ToolMetricsService();
     const processManager = new ClaudeProcessManager(
       historyReader,

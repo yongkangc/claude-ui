@@ -1,10 +1,11 @@
 import { EventEmitter } from 'events';
 import { createLogger, type Logger } from './logger';
+import { ConversationSummary, ConversationMessage, ConversationDetailsResponse } from '@/types';
 
 /**
  * Context data stored for active conversations that have not yet been written to local directories
  */
-export interface OptimisticConversationContext {
+export interface ConversationStatusContext {
   initialPrompt: string;
   workingDirectory: string;
   model: string;
@@ -12,31 +13,38 @@ export interface OptimisticConversationContext {
 }
 
 /**
- * Tracks the mapping between Claude session IDs and active CCUI streaming IDs
- * to determine conversation status (ongoing vs completed)
+ * Unified service for managing conversation status and tracking active session status.
+ * This service combines the functionality of ConversationStatusTracker and optimistic conversation handling.
+ * 
+ * Responsibilities:
+ * - Track active streaming sessions and their Claude session IDs
+ * - Store conversation status contexts for active sessions
+ * - Generate optimistic conversation summaries and details for UI feedback
+ * - Emit events for session lifecycle (started/ended)
  */
-export class ConversationStatusTracker extends EventEmitter {
+export class ConversationStatusManager extends EventEmitter {
   // Maps Claude session ID -> CCUI streaming ID
   private sessionToStreaming: Map<string, string> = new Map();
   // Maps CCUI streaming ID -> Claude session ID (reverse lookup)
   private streamingToSession: Map<string, string> = new Map();
   // Maps Claude session ID -> conversation context for active sessions
-  private sessionContext: Map<string, OptimisticConversationContext> = new Map();
+  private sessionContext: Map<string, ConversationStatusContext> = new Map();
   private logger: Logger;
 
   constructor() {
     super();
-    this.logger = createLogger('ConversationStatusTracker');
+    this.logger = createLogger('ConversationStatusManager');
   }
 
   /**
-   * Register a new active streaming session with optional optimistic context
+   * Register a new active streaming session with optional conversation context
    * This is called when we extract the session_id from the first stream message
    */
-  registerActiveSession(streamingId: string, claudeSessionId: string, optimisticContext?: { initialPrompt: string; workingDirectory: string; model?: string }): void {
+  registerActiveSession(streamingId: string, claudeSessionId: string, conversationContext?: { initialPrompt: string; workingDirectory: string; model?: string }): void {
     this.logger.debug('Registering active session', { 
       streamingId, 
-      claudeSessionId 
+      claudeSessionId,
+      hasConversationContext: !!conversationContext
     });
 
     // Remove any existing mapping for this Claude session
@@ -66,17 +74,17 @@ export class ConversationStatusTracker extends EventEmitter {
     this.sessionToStreaming.set(claudeSessionId, streamingId);
     this.streamingToSession.set(streamingId, claudeSessionId);
 
-    // If optimistic context is provided, store it immediately
-    if (optimisticContext) {
-      const context: OptimisticConversationContext = {
-        initialPrompt: optimisticContext.initialPrompt,
-        workingDirectory: optimisticContext.workingDirectory,
-        model: optimisticContext.model || 'default',
+    // If conversation context is provided, store it immediately
+    if (conversationContext) {
+      const context: ConversationStatusContext = {
+        initialPrompt: conversationContext.initialPrompt,
+        workingDirectory: conversationContext.workingDirectory,
+        model: conversationContext.model || 'default',
         timestamp: new Date().toISOString()
       };
       this.sessionContext.set(claudeSessionId, context);
       
-      this.logger.debug('Stored optimistic conversation context', {
+      this.logger.debug('Stored conversation status context', {
         claudeSessionId,
         hasInitialPrompt: !!context.initialPrompt,
         workingDirectory: context.workingDirectory,
@@ -88,12 +96,11 @@ export class ConversationStatusTracker extends EventEmitter {
       streamingId, 
       claudeSessionId,
       totalActiveSessions: this.sessionToStreaming.size,
-      hasOptimisticContext: !!optimisticContext
+      hasConversationContext: !!conversationContext
     });
 
     this.emit('session-started', { streamingId, claudeSessionId });
   }
-
 
   /**
    * Unregister an active streaming session when it ends
@@ -121,13 +128,12 @@ export class ConversationStatusTracker extends EventEmitter {
     } else {
       this.logger.warn('Attempted to unregister unknown streaming session', { streamingId });
     }
-    
   }
 
   /**
    * Get conversation context for an active session
    */
-  getConversationContext(claudeSessionId: string): OptimisticConversationContext | undefined {
+  getConversationContext(claudeSessionId: string): ConversationStatusContext | undefined {
     const context = this.sessionContext.get(claudeSessionId);
     this.logger.debug('Getting conversation context', {
       claudeSessionId,
@@ -209,6 +215,117 @@ export class ConversationStatusTracker extends EventEmitter {
     });
     
     return status;
+  }
+
+  /**
+   * Get conversations that haven't appeared in history yet
+   * Used by the conversation list endpoint
+   */
+  getConversationsNotInHistory(existingSessionIds: Set<string>): ConversationSummary[] {
+    const activeSessionIds = this.getActiveSessionIds();
+    
+    const conversationsNotInHistory = activeSessionIds
+      .filter(sessionId => !existingSessionIds.has(sessionId))
+      .map(sessionId => {
+        const context = this.getConversationContext(sessionId);
+        const streamingId = this.getStreamingId(sessionId);
+        
+        if (context && streamingId) {
+          // Create conversation entry for active session
+          const conversationSummary: ConversationSummary = {
+            sessionId,
+            projectPath: context.workingDirectory,
+            summary: '', // No summary for active conversation
+            sessionInfo: {
+              custom_name: '', // No custom name yet
+              created_at: context.timestamp,
+              updated_at: context.timestamp,
+              version: 2,
+              pinned: false,
+              archived: false,
+              continuation_session_id: '',
+              initial_commit_head: ''
+            },
+            createdAt: context.timestamp,
+            updatedAt: context.timestamp,
+            messageCount: 1, // At least the initial user message
+            totalDuration: 0, // No duration yet
+            model: context.model || 'unknown',
+            status: 'ongoing' as const,
+            streamingId
+          };
+          
+          this.logger.debug('Created conversation summary for active session', {
+            sessionId,
+            streamingId,
+            workingDirectory: context.workingDirectory,
+            model: context.model
+          });
+          
+          return conversationSummary;
+        }
+        
+        return null;
+      })
+      .filter((conversation): conversation is ConversationSummary => conversation !== null);
+
+    this.logger.debug('Generated conversations not in history', {
+      activeSessionCount: activeSessionIds.length,
+      existingSessionCount: existingSessionIds.size,
+      conversationsNotInHistoryCount: conversationsNotInHistory.length
+    });
+
+    return conversationsNotInHistory;
+  }
+
+  /**
+   * Get conversation details if session is active but not in history
+   * Used by the conversation details endpoint
+   */
+  getActiveConversationDetails(sessionId: string): ConversationDetailsResponse | null {
+    const isActive = this.isSessionActive(sessionId);
+    const context = this.getConversationContext(sessionId);
+    
+    this.logger.debug('Checking for active conversation details', {
+      sessionId,
+      isActive,
+      hasContext: !!context
+    });
+    
+    if (!isActive || !context) {
+      return null;
+    }
+
+    // Create response for active session
+    const activeMessage: ConversationMessage = {
+      uuid: `active-${sessionId}-user`,
+      type: 'user',
+      message: {
+        role: 'user',
+        content: context.initialPrompt
+      },
+      timestamp: context.timestamp,
+      sessionId: sessionId,
+      cwd: context.workingDirectory
+    };
+    
+    const response: ConversationDetailsResponse = {
+      messages: [activeMessage],
+      summary: '', // No summary for active conversation
+      projectPath: context.workingDirectory,
+      metadata: {
+        totalDuration: 0,
+        model: context.model || 'unknown'
+      }
+    };
+    
+    this.logger.debug('Created active conversation details', {
+      sessionId,
+      workingDirectory: context.workingDirectory,
+      model: context.model
+    });
+    
+    return response;
   }
 
   /**

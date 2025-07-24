@@ -13,18 +13,17 @@ import {
 } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import { SessionInfoService } from '@/services/session-info-service';
-import { OptimisticConversationService } from '@/services/optimistic-conversation-service';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { createLogger } from '@/services/logger';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 
 export function createConversationRoutes(
   processManager: ClaudeProcessManager,
   historyReader: ClaudeHistoryReader,
-  statusTracker: ConversationStatusTracker,
+  statusTracker: ConversationStatusManager,
   sessionInfoService: SessionInfoService,
-  optimisticConversationService: OptimisticConversationService,
+  conversationStatusManager: ConversationStatusManager,
   toolMetricsService: ToolMetricsService
 ): Router {
   const router = Router();
@@ -198,23 +197,23 @@ export function createConversationRoutes(
 
       // Get all active sessions and add optimistic conversations for those not in history
       const existingSessionIds = new Set(conversationsWithStatus.map(c => c.sessionId));
-      const optimisticConversations = optimisticConversationService.getOptimisticConversations(existingSessionIds);
+      const conversationsNotInHistory = conversationStatusManager.getConversationsNotInHistory(existingSessionIds);
 
-      // Combine history conversations with optimistic ones
-      const allConversations = [...conversationsWithStatus, ...optimisticConversations];
+      // Combine history conversations with active ones not in history
+      const allConversations = [...conversationsWithStatus, ...conversationsNotInHistory];
       
       logger.debug('Conversations listed successfully', {
         requestId,
         conversationCount: allConversations.length,
         historyConversations: conversationsWithStatus.length,
-        optimisticConversations: optimisticConversations.length,
+        conversationsNotInHistory: conversationsNotInHistory.length,
         totalFound: result.total,
         activeConversations: allConversations.filter(c => c.status === 'ongoing').length
       });
       
       res.json({
         conversations: allConversations,
-        total: result.total + optimisticConversations.length // Update total to include optimistic conversations
+        total: result.total + conversationsNotInHistory.length // Update total to include conversations not in history
       });
     } catch (error) {
       logger.debug('List conversations failed', {
@@ -273,16 +272,16 @@ export function createConversationRoutes(
       } catch (historyError) {
         // If not found in history, check if it's an active session
         if (historyError instanceof CCUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
-          const optimisticDetails = optimisticConversationService.getOptimisticConversationDetails(sessionId);
+          const activeDetails = conversationStatusManager.getActiveConversationDetails(sessionId);
           
-          if (optimisticDetails) {
+          if (activeDetails) {
             logger.debug('Conversation details created for active session', {
               requestId,
               sessionId,
-              projectPath: optimisticDetails.projectPath
+              projectPath: activeDetails.projectPath
             });
             
-            res.json(optimisticDetails);
+            res.json(activeDetails);
           } else {
             // Not found in history and not active
             throw historyError;

@@ -1,10 +1,10 @@
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 
-describe('ConversationStatusTracker', () => {
-  let tracker: ConversationStatusTracker;
+describe('ConversationStatusManager', () => {
+  let tracker: ConversationStatusManager;
 
   beforeEach(() => {
-    tracker = new ConversationStatusTracker();
+    tracker = new ConversationStatusManager();
   });
 
   afterEach(() => {

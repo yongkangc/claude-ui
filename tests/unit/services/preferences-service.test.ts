@@ -43,7 +43,7 @@ describe('PreferencesService', () => {
     const service = PreferencesService.getInstance();
     await service.initialize();
     const prefs = await service.getPreferences();
-    expect(prefs.colorScheme).toBe('light');
+    expect(prefs.colorScheme).toBe('system');
     expect(prefs.language).toBe('en');
   });
 
