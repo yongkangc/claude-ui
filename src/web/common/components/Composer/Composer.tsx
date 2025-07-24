@@ -240,9 +240,16 @@ export function Composer({
       if (mostRecent) {
         setSelectedDirectory(mostRecent);
         onDirectoryChange?.(mostRecent);
+        
+        // Fetch file system entries for the auto-selected directory
+        if (enableFileAutocomplete && onFetchFileSystem) {
+          onFetchFileSystem(mostRecent)
+            .then(entries => setLocalFileSystemEntries(entries))
+            .catch(error => console.error('Failed to fetch file system entries:', error));
+        }
       }
     }
-  }, [workingDirectory, selectedDirectory, recentDirectories, getMostRecentWorkingDirectory, showDirectorySelector, onDirectoryChange]);
+  }, [workingDirectory, selectedDirectory, recentDirectories, getMostRecentWorkingDirectory, showDirectorySelector, onDirectoryChange, enableFileAutocomplete, onFetchFileSystem]);
 
   // Fetch file system entries when composer is focused (for autocomplete)
   useEffect(() => {
