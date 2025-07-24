@@ -103,19 +103,95 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
       return filterText;
     }, [filterText, filterTextRef]);
 
-    // Default filter predicate
-    const defaultFilterPredicate = useCallback((option: DropdownOption<T>, searchText: string) => {
-      return option.label.toLowerCase().includes(searchText.toLowerCase());
-    }, []);
+    // Fuzzy match function (fzf-style)
+    const fuzzyMatch = (text: string, pattern: string): boolean => {
+      const textLower = text.toLowerCase();
+      const patternLower = pattern.toLowerCase();
+      let patternIndex = 0;
+      
+      for (let i = 0; i < textLower.length && patternIndex < patternLower.length; i++) {
+        if (textLower[i] === patternLower[patternIndex]) {
+          patternIndex++;
+        }
+      }
+      
+      return patternIndex === patternLower.length;
+    };
 
-    // Filter options
-    const filteredOptions = options.filter(option => {
-      const searchText = getFilterText();
+    // Default filter predicate with fuzzy matching
+    const defaultFilterPredicate = useCallback((option: DropdownOption<T>, searchText: string) => {
+      // If search text is empty, show all options
       if (!searchText.trim()) return true;
       
+      // First try exact substring match (case-insensitive)
+      if (option.label.toLowerCase().includes(searchText.toLowerCase())) {
+        return true;
+      }
+      
+      // Then try fuzzy match
+      return fuzzyMatch(option.label, searchText);
+    }, []);
+
+    // Calculate match score for ranking (lower is better)
+    const calculateMatchScore = (text: string, pattern: string): number => {
+      const textLower = text.toLowerCase();
+      const patternLower = pattern.toLowerCase();
+      
+      // Exact match gets highest priority
+      if (textLower === patternLower) return -1000;
+      
+      // Substring match gets second priority
+      const substringIndex = textLower.indexOf(patternLower);
+      if (substringIndex !== -1) {
+        // Earlier matches are better
+        return substringIndex;
+      }
+      
+      // Fuzzy match - calculate based on character distances
+      let score = 1000;
+      let patternIndex = 0;
+      let lastMatchIndex = -1;
+      
+      for (let i = 0; i < textLower.length && patternIndex < patternLower.length; i++) {
+        if (textLower[i] === patternLower[patternIndex]) {
+          // Add distance from last match (closer consecutive matches are better)
+          if (lastMatchIndex !== -1) {
+            score += (i - lastMatchIndex - 1) * 10;
+          }
+          lastMatchIndex = i;
+          patternIndex++;
+        }
+      }
+      
+      // If not all pattern characters were found, return worst score
+      if (patternIndex !== patternLower.length) {
+        return Infinity;
+      }
+      
+      return score;
+    };
+
+    // Filter and sort options
+    const filteredOptions = (() => {
+      const searchText = getFilterText();
+      if (!searchText.trim()) return options;
+      
       const predicate = filterPredicate || defaultFilterPredicate;
-      return predicate(option, searchText);
-    });
+      
+      // Filter options
+      const filtered = options.filter(option => predicate(option, searchText));
+      
+      // Sort by match score if using default predicate
+      if (!filterPredicate) {
+        return filtered.sort((a, b) => {
+          const scoreA = calculateMatchScore(a.label, searchText);
+          const scoreB = calculateMatchScore(b.label, searchText);
+          return scoreA - scoreB;
+        });
+      }
+      
+      return filtered;
+    })();
 
     // Limit visible options based on maxVisibleItems
     const visibleOptions = (() => {

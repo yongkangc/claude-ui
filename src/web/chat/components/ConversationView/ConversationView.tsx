@@ -18,6 +18,7 @@ export function ConversationView() {
   const [conversationTitle, setConversationTitle] = useState<string>('Conversation');
   const [isPermissionDecisionLoading, setIsPermissionDecisionLoading] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
+  const [currentWorkingDirectory, setCurrentWorkingDirectory] = useState<string>('');
   const composerRef = useRef<ComposerRef>(null);
 
   // Use shared conversation messages hook
@@ -91,6 +92,15 @@ export function ConversationView() {
         const firstUserMessage = chatMessages.find(msg => msg.type === 'user');
         if (firstUserMessage && typeof firstUserMessage.content === 'string') {
           setConversationTitle(firstUserMessage.content.slice(0, 100));
+        }
+        
+        // Set working directory from the most recent message with a working directory
+        const messagesWithCwd = chatMessages.filter(msg => msg.workingDirectory);
+        if (messagesWithCwd.length > 0) {
+          const latestCwd = messagesWithCwd[messagesWithCwd.length - 1].workingDirectory;
+          if (latestCwd) {
+            setCurrentWorkingDirectory(latestCwd);
+          }
         }
         
         // Check if this conversation has an active stream
@@ -229,6 +239,21 @@ export function ConversationView() {
           permissionRequest={currentPermissionRequest}
           showPermissionUI={true}
           showStopButton={true}
+          enableFileAutocomplete={true}
+          dropdownPosition="above"
+          onFetchFileSystem={async (directory) => {
+            try {
+              const response = await api.listDirectory({
+                path: directory || currentWorkingDirectory,
+                recursive: true,
+                respectGitignore: true,
+              });
+              return response.entries;
+            } catch (error) {
+              console.error('Failed to fetch file system entries:', error);
+              return [];
+            }
+          }}
         />
       </div>
 

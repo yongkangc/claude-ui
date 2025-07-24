@@ -1,5 +1,6 @@
 .composer {
   width: 100%;
+  position: relative;
 }
 
 .container {
@@ -177,6 +178,16 @@
 .autocompleteDropdown {
   margin-top: 8px;
   width: 100%;
+}
+
+.autocompleteDropdownAbove {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  margin-bottom: 8px;
+  z-index: 100;
 }
 
 .pathAutocomplete {

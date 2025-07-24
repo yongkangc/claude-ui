@@ -55,6 +55,7 @@ export interface ComposerProps {
   // File autocomplete
   fileSystemEntries?: FileSystemEntry[];
   onFetchFileSystem?: (directory: string) => Promise<FileSystemEntry[]>;
+  dropdownPosition?: 'above' | 'below';
 }
 
 export interface ComposerRef {
@@ -136,6 +137,7 @@ interface AutocompleteDropdownProps {
   onClose: () => void;
   isOpen: boolean;
   focusedIndex: number;
+  position?: 'above' | 'below';
 }
 
 function AutocompleteDropdown({
@@ -144,11 +146,12 @@ function AutocompleteDropdown({
   onClose,
   isOpen,
   focusedIndex,
+  position = 'below',
 }: AutocompleteDropdownProps) {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.autocompleteDropdown}>
+    <div className={`${styles.autocompleteDropdown} ${position === 'above' ? styles.autocompleteDropdownAbove : ''}`}>
       <DropdownSelector
         options={suggestions.map((entry) => ({
           value: entry.name,
@@ -195,6 +198,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   onStop,
   fileSystemEntries = [],
   onFetchFileSystem,
+  dropdownPosition = 'below',
 }: ComposerProps, ref: React.Ref<ComposerRef>) {
   // Use controlled or uncontrolled value
   const [uncontrolledValue, setUncontrolledValue] = useState('');
@@ -465,6 +469,16 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
   return (
     <form className={styles.composer} onSubmit={handleSubmit}>
+      {enableFileAutocomplete && dropdownPosition === 'above' && (
+        <AutocompleteDropdown
+          suggestions={autocomplete.suggestions}
+          onSelect={handlePathSelection}
+          onClose={resetAutocomplete}
+          isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
+          focusedIndex={autocomplete.focusedIndex}
+          position={dropdownPosition}
+        />
+      )}
       <div className={styles.container}>
         <div className={`${styles.inputWrapper} ${permissionRequest && showPermissionUI ? styles.permissionMode : ''}`}>
           <div className={styles.textAreaContainer}>
@@ -583,13 +597,14 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
           </div>
         </div>
       </div>
-      {enableFileAutocomplete && (
+      {enableFileAutocomplete && dropdownPosition === 'below' && (
         <AutocompleteDropdown
           suggestions={autocomplete.suggestions}
           onSelect={handlePathSelection}
           onClose={resetAutocomplete}
           isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
           focusedIndex={autocomplete.focusedIndex}
+          position={dropdownPosition}
         />
       )}
     </form>
