@@ -130,23 +130,14 @@ export function ConversationView() {
 
     setError(null);
 
-    // Add user message immediately
-    const userMessage: ChatMessage = {
-      id: '', // Empty for pending user messages
-      messageId: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-    addMessage(userMessage);
-
     try {
       const response = await api.resumeConversation({
         sessionId,
         message,
       });
 
-      setStreamingId(response.streamingId);
+      // Navigate immediately to the new session
+      navigate(`/c/${response.sessionId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
     }
