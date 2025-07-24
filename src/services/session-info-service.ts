@@ -102,7 +102,7 @@ export class SessionInfoService {
 
   /**
    * Get session information for a given session ID
-   * Returns default values if session doesn't exist
+   * Creates entry with default values if session doesn't exist
    */
   async getSessionInfo(sessionId: string): Promise<SessionInfo> {
     // this.logger.debug('Getting session info', { sessionId });
@@ -117,7 +117,7 @@ export class SessionInfoService {
         return sessionInfo;
       }
 
-      // Return default session info if not found
+      // Create default session info for new session
       const defaultSessionInfo: SessionInfo = {
         custom_name: '',
         created_at: new Date().toISOString(),
@@ -129,8 +129,16 @@ export class SessionInfoService {
         initial_commit_head: ''
       };
 
-      // this.logger.debug('Using default session info', { sessionId, sessionInfo: defaultSessionInfo });
-      return defaultSessionInfo;
+      // Create entry in database for the new session
+      try {
+        this.logger.debug('Creating session info entry for unrecorded session', { sessionId });
+        const createdSessionInfo = await this.updateSessionInfo(sessionId, defaultSessionInfo);
+        return createdSessionInfo;
+      } catch (createError) {
+        // If creation fails, still return defaults to maintain backward compatibility
+        this.logger.warn('Failed to create session info entry, returning defaults', { sessionId, error: createError });
+        return defaultSessionInfo;
+      }
     } catch (error) {
       this.logger.error('Failed to get session info', { sessionId, error });
       // Return default on error to maintain graceful degradation

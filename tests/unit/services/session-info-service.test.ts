@@ -155,8 +155,9 @@ describe('SessionInfoService', () => {
       expect(sessionInfo.initial_commit_head).toBe('');
     });
 
-    it('should return default values for non-existent session', async () => {
-      const sessionInfo = await service.getSessionInfo('non-existent-session');
+    it('should create entry and return default values for non-existent session', async () => {
+      const sessionId = 'non-existent-session';
+      const sessionInfo = await service.getSessionInfo(sessionId);
       
       expect(sessionInfo.custom_name).toBe('');
       expect(sessionInfo.version).toBe(2);
@@ -166,9 +167,21 @@ describe('SessionInfoService', () => {
       expect(sessionInfo.initial_commit_head).toBe('');
       expect(sessionInfo.created_at).toBeDefined();
       expect(sessionInfo.updated_at).toBeDefined();
+      
+      // Verify the session was actually created in the database
+      const allSessions = await service.getAllSessionInfo();
+      expect(allSessions).toHaveProperty(sessionId);
+      expect(allSessions[sessionId]).toMatchObject({
+        custom_name: '',
+        version: 2,
+        pinned: false,
+        archived: false,
+        continuation_session_id: '',
+        initial_commit_head: ''
+      });
     });
 
-    it('should return default values on error', async () => {
+    it('should return default values on read error', async () => {
       // Mock JsonFileManager to throw error
       const mockError = new Error('Database error');
       jest.spyOn(service['jsonManager'], 'read').mockRejectedValue(mockError);
@@ -183,6 +196,39 @@ describe('SessionInfoService', () => {
       expect(sessionInfo.initial_commit_head).toBe('');
       
       // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+
+    it('should return default values when creation fails', async () => {
+      const sessionId = 'creation-fail-session';
+      
+      // Mock read to return empty sessions (session doesn't exist)
+      jest.spyOn(service['jsonManager'], 'read').mockResolvedValue({
+        sessions: {},
+        metadata: {
+          schema_version: 2,
+          created_at: new Date().toISOString(),
+          last_updated: new Date().toISOString()
+        }
+      });
+      
+      // Mock update to throw error (creation fails)
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(new Error('Update failed'));
+      
+      const sessionInfo = await service.getSessionInfo(sessionId);
+      
+      // Should still return default values
+      expect(sessionInfo.custom_name).toBe('');
+      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.pinned).toBe(false);
+      expect(sessionInfo.archived).toBe(false);
+      expect(sessionInfo.continuation_session_id).toBe('');
+      expect(sessionInfo.initial_commit_head).toBe('');
+      expect(sessionInfo.created_at).toBeDefined();
+      expect(sessionInfo.updated_at).toBeDefined();
+      
+      // Restore mocks
       jest.restoreAllMocks();
       jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
     });
