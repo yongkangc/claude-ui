@@ -6,10 +6,8 @@
  * Convert absolute path to relative path if it's a subpath of working directory
  */
 export function formatFilePath(path: string, workingDirectory?: string): string {
-  console.debug('formatFilePath called with:', { path, workingDirectory });
   
   if (!path) {
-    console.debug('formatFilePath: empty path, returning as-is');
     return path;
   }
   
@@ -19,7 +17,6 @@ export function formatFilePath(path: string, workingDirectory?: string): string 
     // Remove leading slash if present
     const cleaned = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
     const result = cleaned ? `./${cleaned}` : './';
-    console.debug('formatFilePath: converted to relative:', result);
     return result;
   }
   
@@ -29,12 +26,10 @@ export function formatFilePath(path: string, workingDirectory?: string): string 
   for (const homePattern of commonHomePaths) {
     if (path.startsWith(homePattern)) {
       const result = `~${path.slice(homePattern.length - 1)}`;
-      console.debug('formatFilePath: converted to home path:', result);
       return result;
     }
   }
   
-  console.debug('formatFilePath: no conversion applied, returning original path');
   return path;
 }
 

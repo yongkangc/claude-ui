@@ -10,7 +10,6 @@ interface ToolLabelProps {
 }
 
 export function ToolLabel({ toolName, toolInput, workingDirectory, onClick }: ToolLabelProps) {
-  console.debug('ToolLabel called with:', { toolName, toolInput, workingDirectory });
   
   const generateLabel = (): React.ReactNode => {
     switch (toolName) {

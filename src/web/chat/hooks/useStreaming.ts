@@ -44,16 +44,8 @@ export function useStreaming(
   const connect = useCallback(async () => {
     // Guard against multiple connections
     if (!streamingId || readerRef.current || abortControllerRef.current) {
-      console.debug('[useStreaming] Skipping connect:', { 
-        streamingId, 
-        hasReader: !!readerRef.current, 
-        hasAbortController: !!abortControllerRef.current,
-        isConnected 
-      });
       return;
     }
-
-    console.debug('[useStreaming] Connecting to stream:', streamingId);
 
     try {
       abortControllerRef.current = new AbortController();
@@ -73,7 +65,6 @@ export function useStreaming(
       const reader = response.body.getReader();
       readerRef.current = reader;
       setIsConnected(true);
-      console.debug('[useStreaming] Stream connected successfully');
       optionsRef.current.onConnect?.();
 
       const decoder = new TextDecoder();
@@ -123,15 +114,12 @@ export function useStreaming(
 
   useEffect(() => {
     if (streamingId) {
-      console.debug('[useStreaming] Effect triggered - connecting to stream:', streamingId);
       connect();
     } else {
-      console.debug('[useStreaming] Effect triggered - no streamingId, disconnecting');
       disconnect();
     }
 
     return () => {
-      console.debug('[useStreaming] Cleanup - disconnecting from stream:', streamingId);
       disconnect();
     };
   }, [streamingId]); // Only depend on streamingId, not the callbacks

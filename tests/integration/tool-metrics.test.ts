@@ -87,8 +87,6 @@ describe('Tool Metrics Integration', () => {
       const sessionId = startData.sessionId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
-      console.log('Start response data:', { streamingId, sessionId });
-      
       // 2. Connect to SSE stream and wait for tool messages
       const messages: any[] = [];
       let streamClosed = false;
@@ -107,12 +105,8 @@ describe('Tool Metrics Integration', () => {
         const metricsCheckInterval = setInterval(() => {
           checkCount++;
           const metrics = toolMetricsService.getMetrics(sessionId);
-          if (checkCount <= 5) {
-            console.log(`Metrics check ${checkCount} for sessionId ${sessionId}:`, metrics);
-          }
           if (metrics && metrics.editCount > 0) {
             metricsFound = true;
-            console.log('Metrics found during streaming:', metrics);
           }
         }, 100);
         
