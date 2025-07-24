@@ -223,16 +223,18 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     const newText = text.substring(0, autocomplete.triggerIndex + 1) + path + text.substring(cursorPos);
     setText(newText);
     
-    // Set cursor position after the inserted path
+    // Reset autocomplete state immediately
+    resetAutocomplete();
+    
+    // Set cursor position after the inserted path and adjust height
     setTimeout(() => {
       if (textareaRef.current) {
         const newCursorPos = autocomplete.triggerIndex + 1 + path.length;
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
         textareaRef.current.focus();
+        adjustTextareaHeight();
       }
     }, 0);
-    
-    resetAutocomplete();
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -325,6 +327,11 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     }
   };
 
+  // Adjust height whenever text changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [text]);
+
   // Re-adjust height on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -332,7 +339,7 @@ export function Composer({ workingDirectory = '', onSubmit, isSubmitting = false
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [text]);
+  }, []);
 
   return (
     <form className={styles.composer} onSubmit={handleSubmit}>
