@@ -307,6 +307,69 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Permission mode buttons */
+.permissionModeButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.permissionModeButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acceptEditsButton {
+  background-color: var(--color-success, #10b981);
+  color: white;
+}
+
+.acceptEditsButton:hover:not(:disabled) {
+  background-color: #059669;
+  opacity: 0.9;
+}
+
+.bypassPermissionsButton {
+  background-color: var(--color-warning, #f59e0b);
+  color: white;
+}
+
+.bypassPermissionsButton:hover:not(:disabled) {
+  background-color: #d97706;
+  opacity: 0.9;
+}
+
+.defaultButton {
+  background-color: var(--color-accent, #0066cc);
+  color: white;
+}
+
+.defaultButton:hover:not(:disabled) {
+  background-color: #0052a3;
+  opacity: 0.9;
+}
+
+.planButton {
+  background-color: var(--color-purple, #8b5cf6);
+  color: white;
+}
+
+.planButton:hover:not(:disabled) {
+  background-color: #7c3aed;
+  opacity: 0.9;
+}
+
+.permissionModeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .textAreaContainer {
@@ -328,5 +391,14 @@
   .footerActions {
     left: 10px;
     right: 50px;
+  }
+  
+  .permissionModeButtons {
+    gap: 6px;
+  }
+  
+  .permissionModeButton {
+    width: 28px;
+    height: 28px;
   }
 }

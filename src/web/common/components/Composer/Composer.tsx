@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, CheckCircle, Unlock, FileText, Lightbulb } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import type { PermissionRequest } from '@/types';
 import styles from './Composer.module.css';
@@ -22,7 +22,7 @@ export interface ComposerProps {
   // Core functionality
   value?: string;
   onChange?: (value: string) => void;
-  onSubmit: (message: string, workingDirectory?: string, model?: string) => void;
+  onSubmit: (message: string, workingDirectory?: string, model?: string, permissionMode?: string) => void;
   placeholder?: string;
   isLoading?: boolean;
   disabled?: boolean;
@@ -360,9 +360,7 @@ export function Composer({
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    
+  const handleSubmit = (permissionMode: string) => {
     const trimmedValue = value.trim();
     if (!trimmedValue || isLoading) return;
 
@@ -372,7 +370,8 @@ export function Composer({
     onSubmit(
       trimmedValue,
       showDirectorySelector ? selectedDirectory : undefined,
-      showModelSelector ? selectedModel : undefined
+      showModelSelector ? selectedModel : undefined,
+      permissionMode
     );
     
     setValue('');
@@ -422,7 +421,7 @@ export function Composer({
     } else if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
-        handleSubmit();
+        handleSubmit('default');
       }
     }
   };
@@ -560,21 +559,54 @@ export function Composer({
               >
                 <Square size={18} />
               </button>
+            ) : value.trim() ? (
+              <div className={styles.permissionModeButtons}>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.acceptEditsButton}`}
+                  title="Accept Edits - Allow Claude to make changes directly"
+                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                  onClick={() => handleSubmit('acceptEdits')}
+                >
+                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <CheckCircle size={18} />}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.bypassPermissionsButton}`}
+                  title="Bypass Permissions - Skip all permission prompts"
+                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                  onClick={() => handleSubmit('bypassPermissions')}
+                >
+                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Unlock size={18} />}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.defaultButton}`}
+                  title="Default - Ask for permissions as needed"
+                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                  onClick={() => handleSubmit('default')}
+                >
+                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Send size={18} />}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconButton} ${styles.permissionModeButton} ${styles.planButton}`}
+                  title="Plan Mode - Create a plan without executing"
+                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                  onClick={() => handleSubmit('plan')}
+                >
+                  {isLoading ? <Loader2 size={18} className={styles.spinning} /> : <Lightbulb size={18} />}
+                </button>
+              </div>
             ) : (
               <button
-                type={value.trim() ? "submit" : "button"}
+                type="button"
                 className={styles.iconButton}
-                aria-label={value.trim() ? "Send message" : "Dictate button"}
-                disabled={isLoading || disabled || (!!value.trim() && showDirectorySelector && selectedDirectory === 'Select directory')}
-                title={value.trim() ? "Send message (Ctrl/Cmd+Enter)" : "Voice input"}
+                aria-label="Dictate button"
+                disabled={isLoading || disabled}
+                title="Voice input"
               >
-                {isLoading && !showStopButton ? (
-                  <Loader2 size={18} className={styles.spinning} />
-                ) : value.trim() ? (
-                  <Send size={18} />
-                ) : (
-                  <Mic size={18} />
-                )}
+                <Mic size={18} />
               </button>
             )}
           </div>

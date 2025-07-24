@@ -90,7 +90,7 @@ export function Home() {
     ? conversations[0].projectPath 
     : undefined;
 
-  const handleComposerSubmit = async (text: string, workingDirectory: string, branch: string, model: string) => {
+  const handleComposerSubmit = async (text: string, workingDirectory: string, model: string, permissionMode: string) => {
     setIsSubmitting(true);
     
     try {
@@ -98,6 +98,7 @@ export function Home() {
         workingDirectory,
         initialPrompt: text,
         model: model === 'default' ? undefined : model,
+        permissionMode: permissionMode === 'default' ? undefined : permissionMode,
       });
       
       // Navigate to the conversation page

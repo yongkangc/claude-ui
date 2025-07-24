@@ -142,7 +142,7 @@ export function ConversationView() {
     },
   });
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, workingDirectory?: string, model?: string, permissionMode?: string) => {
     if (!sessionId) return;
 
     setError(null);
