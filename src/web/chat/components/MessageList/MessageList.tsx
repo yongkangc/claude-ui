@@ -24,20 +24,16 @@ export const MessageList: React.FC<MessageListProps> = ({
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const previousMessageCount = useRef(0);
   
   console.debug('[MessageList] Rendering with', messages.length, 'messages, isLoading:', isLoading, 'isStreaming:', isStreaming, 'toolResults:', Object.keys(toolResults).length);
 
-  // Auto-scroll to bottom when messages are first loaded (navigation to conversation)
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // Always scroll to bottom when going from 0 messages to some messages (initial load)
-    if (previousMessageCount.current === 0 && messages.length > 0 && containerRef.current) {
-      // Scroll to bottom without animation
+    if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      console.debug('[MessageList] Auto-scrolled to bottom on initial load');
+      console.debug('[MessageList] Auto-scrolled to bottom');
     }
-    previousMessageCount.current = messages.length;
-  }, [messages.length]);
+  }, [messages]);
 
   // Filter out user messages that only contain tool_result blocks
   const displayMessages = messages.filter(message => {

@@ -58,17 +58,16 @@ export function ConversationView() {
     }
   }, [location]);
 
-  // Clear messages and streaming when navigating away or sessionId changes
+  // Clear streaming when navigating away or sessionId changes
   useEffect(() => {
     // Clear streamingId when sessionId changes
     setStreamingId(null);
     
     return () => {
-      // Always clear messages when navigating away
-      clearMessages();
+      // Clear streaming when navigating away
       setStreamingId(null);
     };
-  }, [sessionId, clearMessages]);
+  }, [sessionId]);
 
   // Load conversation history
   useEffect(() => {
