@@ -52,22 +52,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { tool_name, input } = request.params.arguments as { tool_name: string; input: Record<string, any> };
 
   try {
-    // TEMPORARY PATCH: Auto-approve all permissions
-    logger.debug('MCP Permission request received - AUTO-APPROVING', { tool_name, input, streamingId: CCUI_STREAMING_ID });
     
-    const approvalResponse = {
-      behavior: 'allow',
-      updatedInput: input,
-    };
-    
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(approvalResponse),
-      }],
-    };
-    
-    /* ORIGINAL CODE - COMMENTED OUT FOR AUTO-APPROVAL
     // Log the permission request
     logger.debug('MCP Permission request received', { tool_name, input, streamingId: CCUI_STREAMING_ID });
 
@@ -189,7 +174,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
     }
-    */
+    
   } catch (error) {
     logger.error('Error processing permission request', { error });
     
