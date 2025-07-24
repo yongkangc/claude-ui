@@ -1,13 +1,12 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent } from '@/types';
+import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent, ConversationMessage } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
-import { ConversationStatusTracker } from './conversation-status-tracker';
-import { OptimisticConversationService } from './optimistic-conversation-service';
+import { ConversationStatusManager } from './conversation-status-manager';
 import { ToolMetricsService } from './ToolMetricsService';
 import { SessionInfoService } from './session-info-service';
 import { FileSystemService } from './file-system-service';
@@ -25,13 +24,13 @@ export class ClaudeProcessManager extends EventEmitter {
   private envOverrides: Record<string, string | undefined>;
   private historyReader: ClaudeHistoryReader;
   private mcpConfigPath?: string;
-  private statusTracker: ConversationStatusTracker;
-  private optimisticConversationService?: OptimisticConversationService;
+  private statusTracker: ConversationStatusManager;
+  private conversationStatusManager?: ConversationStatusManager;
   private toolMetricsService?: ToolMetricsService;
   private sessionInfoService?: SessionInfoService;
   private fileSystemService?: FileSystemService;
 
-  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusTracker, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService, sessionInfoService?: SessionInfoService, fileSystemService?: FileSystemService) {
+  constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusManager, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService, sessionInfoService?: SessionInfoService, fileSystemService?: FileSystemService) {
     super();
     this.historyReader = historyReader;
     this.statusTracker = statusTracker;
@@ -54,22 +53,23 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Set the optimistic conversation service
    */
-  setOptimisticConversationService(service: OptimisticConversationService): void {
-    this.optimisticConversationService = service;
-    this.logger.debug('Optimistic conversation service set');
+  setConversationStatusManager(service: ConversationStatusManager): void {
+    this.conversationStatusManager = service;
+    this.logger.debug('Conversation status manager set');
   }
 
 
   /**
    * Resume an existing Claude conversation
    */
-  async resumeConversation(config: { sessionId: string; message: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
+  async resumeConversation(config: { sessionId: string; message: string; previousMessages?: ConversationMessage[]; permissionMode?: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     const timestamp = new Date().toISOString();
     this.logger.info('Resume conversation requested', { 
       timestamp,
       sessionId: config.sessionId, 
       messageLength: config.message?.length,
       messagePreview: config.message?.substring(0, 50) + (config.message?.length > 50 ? '...' : ''),
+      previousMessageCount: config.previousMessages?.length || 0,
       activeProcessCount: this.processes.size,
       claudePath: this.claudeExecutablePath 
     });
@@ -93,7 +93,9 @@ export class ClaudeProcessManager extends EventEmitter {
     // Create a full ConversationConfig from the resume parameters
     const fullConfig: ConversationConfig = {
       workingDirectory,
-      initialPrompt: config.message
+      initialPrompt: config.message,
+      previousMessages: config.previousMessages,
+      permissionMode: config.permissionMode
     };
     
     const args = this.buildResumeArgs(config);
@@ -389,22 +391,24 @@ export class ClaudeProcessManager extends EventEmitter {
         // Include optimistic context if available
         const config = this.conversationConfigs.get(streamingId);
         
-        if (this.optimisticConversationService && config) {
+        if (this.conversationStatusManager && config) {
           const optimisticContext = {
             initialPrompt: config.initialPrompt || '',
             workingDirectory: config.workingDirectory || process.cwd(),
-            model: config.model,
-            timestamp: new Date().toISOString()
+            model: config.model || 'default',
+            timestamp: new Date().toISOString(),
+            inheritedMessages: config.previousMessages
           };
           
-          this.optimisticConversationService.registerOptimisticContext(
+          this.conversationStatusManager.registerActiveSession(
             streamingId, 
             systemInitMessage.session_id, 
             optimisticContext
           );
-          this.logger.debug('Registered optimistic context', {
+          this.logger.debug('Registered conversation context', {
             streamingId,
-            claudeSessionId: systemInitMessage.session_id
+            claudeSessionId: systemInitMessage.session_id,
+            inheritedMessageCount: config.previousMessages?.length || 0
           });
         } else {
           // Fallback to old behavior if service not set
@@ -572,7 +576,7 @@ export class ClaudeProcessManager extends EventEmitter {
     ];
   }
 
-  private buildResumeArgs(config: { sessionId: string; message: string }): string[] {
+  private buildResumeArgs(config: { sessionId: string; message: string; permissionMode?: string }): string[] {
     this.logger.debug('Building Claude resume args', { 
       sessionId: config.sessionId,
       messagePreview: config.message.substring(0, 50) + (config.message.length > 50 ? '...' : '')
@@ -585,6 +589,11 @@ export class ClaudeProcessManager extends EventEmitter {
       '--output-format', 'stream-json', // JSONL output format
       '--verbose' // Required when using stream-json with print mode
     );
+
+    // Add permission mode if provided
+    if (config.permissionMode) {
+      args.push('--permission-mode', config.permissionMode);
+    }
 
     // Add MCP config if available for resume
     if (this.mcpConfigPath) {
@@ -641,6 +650,11 @@ export class ClaudeProcessManager extends EventEmitter {
     // Add system prompt
     if (config.systemPrompt) {
       args.push('--system-prompt', config.systemPrompt);
+    }
+
+    // Add permission mode if provided
+    if (config.permissionMode) {
+      args.push('--permission-mode', config.permissionMode);
     }
 
     // Add MCP config if available

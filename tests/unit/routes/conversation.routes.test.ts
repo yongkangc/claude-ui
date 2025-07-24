@@ -3,9 +3,8 @@ import express from 'express';
 import { createConversationRoutes } from '@/routes/conversation.routes';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import { SessionInfoService } from '@/services/session-info-service';
-import { OptimisticConversationService } from '@/services/optimistic-conversation-service';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 
 jest.mock('@/services/logger');
@@ -30,7 +29,7 @@ describe('Conversation Routes - Resume Endpoint', () => {
     const mockServices = {
       historyReader: {} as any,
       statusTracker: {} as any,
-      optimisticConversationService: {} as any,
+      conversationStatusManager: {} as any,
       toolMetricsService: {} as any,
     };
 
@@ -39,7 +38,7 @@ describe('Conversation Routes - Resume Endpoint', () => {
       mockServices.historyReader,
       mockServices.statusTracker,
       sessionInfoService,
-      mockServices.optimisticConversationService,
+      mockServices.conversationStatusManager,
       mockServices.toolMetricsService
     ));
     

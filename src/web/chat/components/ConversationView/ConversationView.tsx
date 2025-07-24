@@ -34,6 +34,7 @@ export function ConversationView() {
     handleStreamMessage,
     toggleTaskExpanded,
     clearPermissionRequest,
+    setPermissionRequest,
   } = useConversationMessages({
     onResult: (newSessionId) => {
       // Navigate to the new session page if session changed
@@ -81,9 +82,7 @@ export function ConversationView() {
 
       try {
         const details = await api.getConversationDetails(sessionId);
-        console.debug('[ConversationView] Loaded conversation details with', details.messages.length, 'raw messages');
         const chatMessages = convertToChatlMessages(details);
-        console.debug('[ConversationView] Converted to', chatMessages.length, 'chat messages (after filtering sidechains)');
         
         // Always load fresh messages from backend
         setAllMessages(chatMessages);
@@ -113,9 +112,27 @@ export function ConversationView() {
           setConversationSummary(currentConversation);
           
           if (currentConversation.status === 'ongoing' && currentConversation.streamingId) {
-            // Automatically connect to the existing stream
-            console.debug(`[ConversationView] Auto-connecting to ongoing stream: ${currentConversation.streamingId}`);
+            // Active stream, check for existing pending permissions
             setStreamingId(currentConversation.streamingId);
+            
+            try {
+              const { permissions } = await api.getPermissions({ 
+                streamingId: currentConversation.streamingId, 
+                status: 'pending' 
+              });
+              
+              if (permissions.length > 0) {
+                // Take the most recent pending permission (by timestamp)
+                const mostRecentPermission = permissions.reduce((latest, current) => 
+                  new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest
+                );
+                
+                setPermissionRequest(mostRecentPermission);
+              }
+            } catch (permissionError) {
+              // Don't break conversation loading if permission fetching fails
+              console.warn('[ConversationView] Failed to fetch existing permissions:', permissionError);
+            }
           }
         }
       } catch (err: any) {

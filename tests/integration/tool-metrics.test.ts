@@ -1,5 +1,5 @@
 import { CCUIServer } from '@/ccui-server';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 import * as path from 'path';
 import { EventSource } from 'eventsource';
@@ -87,8 +87,6 @@ describe('Tool Metrics Integration', () => {
       const sessionId = startData.sessionId;
       const streamUrl = `${baseUrl}${startData.streamUrl}`;
       
-      console.log('Start response data:', { streamingId, sessionId });
-      
       // 2. Connect to SSE stream and wait for tool messages
       const messages: any[] = [];
       let streamClosed = false;
@@ -107,12 +105,8 @@ describe('Tool Metrics Integration', () => {
         const metricsCheckInterval = setInterval(() => {
           checkCount++;
           const metrics = toolMetricsService.getMetrics(sessionId);
-          if (checkCount <= 5) {
-            console.log(`Metrics check ${checkCount} for sessionId ${sessionId}:`, metrics);
-          }
           if (metrics && metrics.editCount > 0) {
             metricsFound = true;
-            console.log('Metrics found during streaming:', metrics);
           }
         }, 100);
         
@@ -339,12 +333,12 @@ describe('Tool Metrics Integration - Core Functionality', () => {
     const { ToolMetricsService } = await import('@/services/ToolMetricsService');
     const { ClaudeProcessManager } = await import('@/services/claude-process-manager');
     const { ClaudeHistoryReader } = await import('@/services/claude-history-reader');
-    const { ConversationStatusTracker } = await import('@/services/conversation-status-tracker');
+    const { ConversationStatusManager } = await import('@/services/conversation-status-manager');
     const EventEmitter = (await import('events')).EventEmitter;
     
     // Create services
     const historyReader = new ClaudeHistoryReader();
-    const statusTracker = new ConversationStatusTracker();
+    const statusTracker = new ConversationStatusManager();
     const toolMetricsService = new ToolMetricsService();
     const processManager = new ClaudeProcessManager(
       historyReader,

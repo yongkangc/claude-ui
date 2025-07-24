@@ -42,7 +42,7 @@ export class SessionInfoService {
     const defaultData: SessionInfoDatabase = {
       sessions: {},
       metadata: {
-        schema_version: 2,
+        schema_version: 3,
         created_at: new Date().toISOString(),
         last_updated: new Date().toISOString()
       }
@@ -102,7 +102,7 @@ export class SessionInfoService {
 
   /**
    * Get session information for a given session ID
-   * Returns default values if session doesn't exist
+   * Creates entry with default values if session doesn't exist
    */
   async getSessionInfo(sessionId: string): Promise<SessionInfo> {
     // this.logger.debug('Getting session info', { sessionId });
@@ -117,20 +117,29 @@ export class SessionInfoService {
         return sessionInfo;
       }
 
-      // Return default session info if not found
+      // Create default session info for new session
       const defaultSessionInfo: SessionInfo = {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       };
 
-      // this.logger.debug('Using default session info', { sessionId, sessionInfo: defaultSessionInfo });
-      return defaultSessionInfo;
+      // Create entry in database for the new session
+      try {
+        this.logger.debug('Creating session info entry for unrecorded session', { sessionId });
+        const createdSessionInfo = await this.updateSessionInfo(sessionId, defaultSessionInfo);
+        return createdSessionInfo;
+      } catch (createError) {
+        // If creation fails, still return defaults to maintain backward compatibility
+        this.logger.warn('Failed to create session info entry, returning defaults', { sessionId, error: createError });
+        return defaultSessionInfo;
+      }
     } catch (error) {
       this.logger.error('Failed to get session info', { sessionId, error });
       // Return default on error to maintain graceful degradation
@@ -138,11 +147,12 @@ export class SessionInfoService {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       };
     }
   }
@@ -176,11 +186,12 @@ export class SessionInfoService {
             custom_name: '',
             created_at: now,
             updated_at: now,
-            version: 2,
+            version: 3,
             pinned: false,
             archived: false,
             continuation_session_id: '',
             initial_commit_head: '',
+            permission_mode: 'default',
             ...updates  // Apply any provided updates
           };
           data.sessions[sessionId] = updatedSession;
@@ -311,6 +322,22 @@ export class SessionInfoService {
           data.metadata.schema_version = 2;
           data.metadata.last_updated = new Date().toISOString();
           this.logger.info('Migrated database to schema version 2');
+        }
+
+        if (data.metadata.schema_version < 3) {
+          // Migrate to version 3 - add permission_mode field to existing sessions
+          Object.keys(data.sessions).forEach(sessionId => {
+            const session = data.sessions[sessionId];
+            data.sessions[sessionId] = {
+              ...session,
+              permission_mode: session.permission_mode ?? 'default',
+              version: 3
+            };
+          });
+          
+          data.metadata.schema_version = 3;
+          data.metadata.last_updated = new Date().toISOString();
+          this.logger.info('Migrated database to schema version 3');
         }
 
         return data;

@@ -14,11 +14,12 @@ const createConversation = (overrides: Partial<ConversationSummary>): Conversati
     custom_name: '',
     created_at: '2024-01-01T10:00:00Z',
     updated_at: '2024-01-01T10:00:00Z',
-    version: 2,
+    version: 3,
     pinned: false,
     archived: false,
     continuation_session_id: '',
-    initial_commit_head: ''
+    initial_commit_head: '',
+    permission_mode: 'default'
   },
   createdAt: '2024-01-01T10:00:00Z',
   updatedAt: '2024-01-01T10:00:00Z',

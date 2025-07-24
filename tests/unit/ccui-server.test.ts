@@ -9,15 +9,15 @@ jest.mock('@/services/claude-history-reader', () => ({
 jest.mock('@/services/stream-manager', () => ({
   StreamManager: jest.fn()
 }));
-jest.mock('@/services/conversation-status-tracker', () => ({
-  ConversationStatusTracker: jest.fn()
+jest.mock('@/services/conversation-status-manager', () => ({
+  ConversationStatusManager: jest.fn()
 }));
 
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { StreamManager } from '@/services/stream-manager';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { CCUIError } from '@/types';
 import request from 'supertest';
 import { TestHelpers } from '../utils/test-helpers';
@@ -35,7 +35,7 @@ jest.mock('child_process', () => ({
 const MockedClaudeProcessManager = ClaudeProcessManager as jest.MockedClass<typeof ClaudeProcessManager>;
 const MockedClaudeHistoryReader = ClaudeHistoryReader as jest.MockedClass<typeof ClaudeHistoryReader>;
 const MockedStreamManager = StreamManager as jest.MockedClass<typeof StreamManager>;
-const MockedConversationStatusTracker = ConversationStatusTracker as jest.MockedClass<typeof ConversationStatusTracker>;
+const MockedConversationStatusManager = ConversationStatusManager as jest.MockedClass<typeof ConversationStatusManager>;
 
 // Get mock Claude executable path
 function getMockClaudeExecutablePath(): string {
@@ -51,7 +51,7 @@ describe('CCUIServer', () => {
   let mockProcessManager: jest.Mocked<ClaudeProcessManager>;
   let mockHistoryReader: jest.Mocked<ClaudeHistoryReader>;
   let mockStreamManager: jest.Mocked<StreamManager>;
-  let mockStatusTracker: jest.Mocked<ConversationStatusTracker>;
+  let mockStatusTracker: jest.Mocked<ConversationStatusManager>;
 
   // Track any running servers for cleanup
   const runningServers: CCUIServer[] = [];
@@ -67,7 +67,7 @@ describe('CCUIServer', () => {
       setMCPConfigPath: jest.fn(),
       setStreamManager: jest.fn(),
       setPermissionTracker: jest.fn(),
-      setOptimisticConversationService: jest.fn(),
+      setConversationStatusManager: jest.fn(),
       on: jest.fn(),
       emit: jest.fn()
     } as any;
@@ -107,13 +107,13 @@ describe('CCUIServer', () => {
     MockedClaudeProcessManager.mockClear();
     MockedClaudeHistoryReader.mockClear();
     MockedStreamManager.mockClear();
-    MockedConversationStatusTracker.mockClear();
+    MockedConversationStatusManager.mockClear();
     
     // Set up mock implementations
     MockedClaudeProcessManager.mockImplementation(() => mockProcessManager);
     MockedClaudeHistoryReader.mockImplementation(() => mockHistoryReader);
     MockedStreamManager.mockImplementation(() => mockStreamManager);
-    MockedConversationStatusTracker.mockImplementation(() => mockStatusTracker);
+    MockedConversationStatusManager.mockImplementation(() => mockStatusTracker);
   });
 
   afterEach(async () => {
@@ -813,7 +813,7 @@ describe('CCUIServer', () => {
 
         expect(response.body).toEqual({
           messages: [{
-            uuid: `optimistic-${sessionId}-user`,
+            uuid: `active-${sessionId}-user`,
             type: 'user',
             message: {
               role: 'user',
@@ -912,7 +912,7 @@ describe('CCUIServer', () => {
         });
 
         expect((server as any).historyReader.listConversations).toHaveBeenCalledWith({
-          limit: '10',
+          limit: 10,
           sortBy: 'updated',
           order: 'desc'
         });
@@ -1110,7 +1110,9 @@ describe('CCUIServer', () => {
         });
         expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({
           sessionId: 'test-session-123',
-          message: 'Continue with this message'
+          message: 'Continue with this message',
+          previousMessages: [],
+          permissionMode: 'default'
         });
       });
 
@@ -1237,7 +1239,9 @@ describe('CCUIServer', () => {
           // If it succeeds, verify only the correct parameters were passed to resumeConversation
           expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({
             sessionId: 'test-session-123',
-            message: 'Continue with this message'
+            message: 'Continue with this message',
+            previousMessages: [],
+            permissionMode: 'default'
           });
         } else {
           // Or it should fail with appropriate validation error

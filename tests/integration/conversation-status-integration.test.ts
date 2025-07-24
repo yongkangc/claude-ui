@@ -1,5 +1,5 @@
 import { CCUIServer } from '@/ccui-server';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import * as path from 'path';
 import { EventSource } from 'eventsource';
 
@@ -28,7 +28,7 @@ describe('Conversation Status Integration', () => {
     // Override the ProcessManager with one that uses mock Claude path
     const mockClaudePath = getMockClaudeExecutablePath();
     const { ClaudeProcessManager } = await import('@/services/claude-process-manager');
-    const statusTracker = new ConversationStatusTracker();
+    const statusTracker = new ConversationStatusManager();
     (server as any).processManager = new ClaudeProcessManager((server as any).historyReader, statusTracker, mockClaudePath);
     
     // Re-setup the ProcessManager integration since we replaced it

@@ -34,7 +34,6 @@ export function ToolContent({
 }: ToolContentProps) {
   // Extract result content - handle both string and ContentBlockParam[] formats
   const getResultContent = (): string => {
-    console.debug('toolResult', toolResult);
     if (!toolResult?.result) return '';
     
     if (typeof toolResult.result === 'string') {

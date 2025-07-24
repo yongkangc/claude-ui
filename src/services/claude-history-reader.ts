@@ -82,11 +82,12 @@ export class ClaudeHistoryReader {
               custom_name: '',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-              version: 2,
+              version: 3,
               pinned: false,
               archived: false,
               continuation_session_id: '',
-              initial_commit_head: ''
+              initial_commit_head: '',
+              permission_mode: 'default'
             };
           }
 
@@ -615,6 +616,24 @@ export class ClaudeHistoryReader {
     // Filter by project path
     if (filter.projectPath) {
       filtered = filtered.filter(c => c.projectPath === filter.projectPath);
+    }
+    
+    // Filter by continuation session
+    if (filter.hasContinuation !== undefined) {
+      filtered = filtered.filter(c => {
+        const hasContinuation = c.sessionInfo.continuation_session_id !== '';
+        return filter.hasContinuation ? hasContinuation : !hasContinuation;
+      });
+    }
+    
+    // Filter by archived status
+    if (filter.archived !== undefined) {
+      filtered = filtered.filter(c => c.sessionInfo.archived === filter.archived);
+    }
+    
+    // Filter by pinned status
+    if (filter.pinned !== undefined) {
+      filtered = filtered.filter(c => c.sessionInfo.pinned === filter.pinned);
     }
     
     // Sort

@@ -9,22 +9,22 @@ import {
   SessionRenameRequest,
   SessionRenameResponse,
   SessionUpdateRequest,
-  SessionUpdateResponse
+  SessionUpdateResponse,
+  ConversationMessage
 } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
-import { ConversationStatusTracker } from '@/services/conversation-status-tracker';
 import { SessionInfoService } from '@/services/session-info-service';
-import { OptimisticConversationService } from '@/services/optimistic-conversation-service';
+import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { createLogger } from '@/services/logger';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 
 export function createConversationRoutes(
   processManager: ClaudeProcessManager,
   historyReader: ClaudeHistoryReader,
-  statusTracker: ConversationStatusTracker,
+  statusTracker: ConversationStatusManager,
   sessionInfoService: SessionInfoService,
-  optimisticConversationService: OptimisticConversationService,
+  conversationStatusManager: ConversationStatusManager,
   toolMetricsService: ToolMetricsService
 ): Router {
   const router = Router();
@@ -50,7 +50,34 @@ export function createConversationRoutes(
         throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
       }
       
+      // Validate permissionMode if provided
+      if (req.body.permissionMode) {
+        const validModes = ['acceptEdits', 'bypassPermissions', 'default', 'plan'];
+        if (!validModes.includes(req.body.permissionMode)) {
+          throw new CCUIError('INVALID_PERMISSION_MODE', `permissionMode must be one of: ${validModes.join(', ')}`, 400);
+        }
+      }
+      
       const { streamingId, systemInit } = await processManager.startConversation(req.body);
+      
+      // Store permission mode in session info if provided
+      if (req.body.permissionMode) {
+        try {
+          await sessionInfoService.updateSessionInfo(systemInit.session_id, {
+            permission_mode: req.body.permissionMode
+          });
+          logger.debug('Stored permission mode in session info', {
+            sessionId: systemInit.session_id,
+            permissionMode: req.body.permissionMode
+          });
+        } catch (error) {
+          logger.warn('Failed to store permission mode in session info', {
+            sessionId: systemInit.session_id,
+            permissionMode: req.body.permissionMode,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
       
       logger.debug('Conversation started successfully', {
         requestId,
@@ -108,9 +135,48 @@ export function createConversationRoutes(
         throw new CCUIError('INVALID_FIELDS', `Invalid fields for resume: ${extraFields.join(', ')}. Only sessionId and message are allowed.`, 400);
       }
       
+      // Fetch previous session messages for context
+      let previousMessages: ConversationMessage[] = [];
+      try {
+        previousMessages = await historyReader.fetchConversation(req.body.sessionId);
+        logger.debug('Fetched previous session messages', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          messageCount: previousMessages.length
+        });
+      } catch (error) {
+        logger.warn('Failed to fetch previous session messages', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without previous messages - not a fatal error
+      }
+      
+      // Fetch permission mode from session info
+      let permissionMode: string | undefined;
+      try {
+        const sessionInfo = await sessionInfoService.getSessionInfo(req.body.sessionId);
+        permissionMode = sessionInfo.permission_mode;
+        logger.debug('Retrieved permission mode from session info', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          permissionMode
+        });
+      } catch (error) {
+        logger.warn('Failed to fetch permission mode from session info', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without permission mode - will use default
+      }
+      
       const { streamingId, systemInit } = await processManager.resumeConversation({
         sessionId: req.body.sessionId,
-        message: req.body.message
+        message: req.body.message,
+        previousMessages,
+        permissionMode
       });
 
       // Update original session with continuation session ID
@@ -129,13 +195,39 @@ export function createConversationRoutes(
         });
       }
       
+      // Register the resumed session with conversation status manager including previous messages
+      try {
+        conversationStatusManager.registerActiveSession(
+          streamingId,
+          systemInit.session_id,
+          {
+            initialPrompt: req.body.message,
+            workingDirectory: systemInit.cwd,
+            model: systemInit.model,
+            inheritedMessages: previousMessages.length > 0 ? previousMessages : undefined
+          }
+        );
+        logger.debug('Registered resumed session with inherited messages', {
+          requestId,
+          newSessionId: systemInit.session_id,
+          streamingId,
+          inheritedMessageCount: previousMessages.length
+        });
+      } catch (error) {
+        logger.warn('Failed to register resumed session with status manager', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      
       logger.debug('Conversation resumed successfully', {
         requestId,
         originalSessionId: req.body.sessionId,
         newStreamingId: streamingId,
         newSessionId: systemInit.session_id,
         model: systemInit.model,
-        cwd: systemInit.cwd
+        cwd: systemInit.cwd,
+        previousMessageCount: previousMessages.length
       });
       
       res.json({ 
@@ -198,23 +290,23 @@ export function createConversationRoutes(
 
       // Get all active sessions and add optimistic conversations for those not in history
       const existingSessionIds = new Set(conversationsWithStatus.map(c => c.sessionId));
-      const optimisticConversations = optimisticConversationService.getOptimisticConversations(existingSessionIds);
+      const conversationsNotInHistory = conversationStatusManager.getConversationsNotInHistory(existingSessionIds);
 
-      // Combine history conversations with optimistic ones
-      const allConversations = [...conversationsWithStatus, ...optimisticConversations];
+      // Combine history conversations with active ones not in history
+      const allConversations = [...conversationsWithStatus, ...conversationsNotInHistory];
       
       logger.debug('Conversations listed successfully', {
         requestId,
         conversationCount: allConversations.length,
         historyConversations: conversationsWithStatus.length,
-        optimisticConversations: optimisticConversations.length,
+        conversationsNotInHistory: conversationsNotInHistory.length,
         totalFound: result.total,
         activeConversations: allConversations.filter(c => c.status === 'ongoing').length
       });
       
       res.json({
         conversations: allConversations,
-        total: result.total + optimisticConversations.length // Update total to include optimistic conversations
+        total: result.total + conversationsNotInHistory.length // Update total to include conversations not in history
       });
     } catch (error) {
       logger.debug('List conversations failed', {
@@ -273,16 +365,16 @@ export function createConversationRoutes(
       } catch (historyError) {
         // If not found in history, check if it's an active session
         if (historyError instanceof CCUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
-          const optimisticDetails = optimisticConversationService.getOptimisticConversationDetails(sessionId);
+          const activeDetails = conversationStatusManager.getActiveConversationDetails(sessionId);
           
-          if (optimisticDetails) {
+          if (activeDetails) {
             logger.debug('Conversation details created for active session', {
               requestId,
               sessionId,
-              projectPath: optimisticDetails.projectPath
+              projectPath: activeDetails.projectPath
             });
             
-            res.json(optimisticDetails);
+            res.json(activeDetails);
           } else {
             // Not found in history and not active
             throw historyError;
@@ -445,6 +537,20 @@ export function createConversationRoutes(
       if (updates.archived !== undefined) sessionUpdates.archived = updates.archived;
       if (updates.continuationSessionId !== undefined) sessionUpdates.continuation_session_id = updates.continuationSessionId;
       if (updates.initialCommitHead !== undefined) sessionUpdates.initial_commit_head = updates.initialCommitHead;
+      if (updates.permissionMode !== undefined) {
+        // Validate permission mode
+        const validModes = ['acceptEdits', 'bypassPermissions', 'default', 'plan'];
+        if (!validModes.includes(updates.permissionMode)) {
+          logger.debug('Invalid permission mode', { requestId, permissionMode: updates.permissionMode });
+          return res.status(400).json({
+            success: false,
+            sessionId,
+            updatedFields: {} as any,
+            error: `Permission mode must be one of: ${validModes.join(', ')}`
+          } as any);
+        }
+        sessionUpdates.permission_mode = updates.permissionMode;
+      }
       
       // Update session info
       const updatedFields = await sessionInfoService.updateSessionInfo(sessionId, sessionUpdates);

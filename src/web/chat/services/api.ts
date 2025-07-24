@@ -6,6 +6,7 @@ import type {
   ConversationDetailsResponse,
   ApiError,
   WorkingDirectoriesResponse,
+  PermissionRequest,
   PermissionDecisionRequest,
   PermissionDecisionResponse,
   FileSystemListQuery,
@@ -23,7 +24,7 @@ class ApiService {
     const method = options?.method || 'GET';
     
     // Log request
-    console.log(`[API] ${method} ${fullUrl}`, options?.body ? JSON.parse(options.body as string) : '');
+    // console.log(`[API] ${method} ${fullUrl}`, options?.body ? JSON.parse(options.body as string) : '');
     
     try {
       const response = await fetch(fullUrl, {
@@ -37,7 +38,7 @@ class ApiService {
       const data = await response.json();
       
       // Log response
-      console.log(`[API Response] ${fullUrl}:`, data);
+      // console.log(`[API Response] ${fullUrl}:`, data);
 
       if (!response.ok) {
         throw new Error((data as ApiError).error || `HTTP ${response.status}`);
@@ -54,11 +55,17 @@ class ApiService {
     limit?: number;
     offset?: number;
     projectPath?: string;
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
   }): Promise<{ conversations: ConversationSummary[]; total: number }> {
     const searchParams = new URLSearchParams();
     if (params?.limit) searchParams.append('limit', params.limit.toString());
     if (params?.offset) searchParams.append('offset', params.offset.toString());
     if (params?.projectPath) searchParams.append('projectPath', params.projectPath);
+    if (params?.hasContinuation !== undefined) searchParams.append('hasContinuation', params.hasContinuation.toString());
+    if (params?.archived !== undefined) searchParams.append('archived', params.archived.toString());
+    if (params?.pinned !== undefined) searchParams.append('pinned', params.pinned.toString());
     searchParams.append('sortBy', 'updated');
     searchParams.append('order', 'desc');
 
@@ -96,6 +103,17 @@ class ApiService {
 
   async getWorkingDirectories(): Promise<WorkingDirectoriesResponse> {
     return this.apiCall('/api/working-directories');
+  }
+
+  async getPermissions(params?: { 
+    streamingId?: string; 
+    status?: 'pending' | 'approved' | 'denied' 
+  }): Promise<{ permissions: PermissionRequest[] }> {
+    const searchParams = new URLSearchParams();
+    if (params?.streamingId) searchParams.append('streamingId', params.streamingId);
+    if (params?.status) searchParams.append('status', params.status);
+    
+    return this.apiCall(`/api/permissions?${searchParams}`);
   }
 
   async sendPermissionDecision(

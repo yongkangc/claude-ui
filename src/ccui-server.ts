@@ -2,7 +2,6 @@ import express, { Express } from 'express';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
-import { ConversationStatusTracker } from './services/conversation-status-tracker';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
@@ -10,7 +9,7 @@ import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
 import { PreferencesService } from './services/preferences-service';
-import { OptimisticConversationService } from './services/optimistic-conversation-service';
+import { ConversationStatusManager } from './services/conversation-status-manager';
 import { WorkingDirectoriesService } from './services/working-directories-service';
 import { ToolMetricsService } from './services/ToolMetricsService';
 import { 
@@ -30,6 +29,7 @@ import { createPreferencesRoutes } from './routes/preferences.routes';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
+import { queryParser } from './middleware/query-parser';
 
 // Conditionally import ViteExpress only in non-test environments
 let ViteExpress: any;
@@ -46,14 +46,14 @@ export class CCUIServer {
   private processManager: ClaudeProcessManager;
   private streamManager: StreamManager;
   private historyReader: ClaudeHistoryReader;
-  private statusTracker: ConversationStatusTracker;
+  private statusTracker: ConversationStatusManager;
   private permissionTracker: PermissionTracker;
   private mcpConfigGenerator: MCPConfigGenerator;
   private fileSystemService: FileSystemService;
   private configService: ConfigService;
   private sessionInfoService: SessionInfoService;
   private preferencesService: PreferencesService;
-  private optimisticConversationService: OptimisticConversationService;
+  private conversationStatusManager: ConversationStatusManager;
   private workingDirectoriesService: WorkingDirectoriesService;
   private toolMetricsService: ToolMetricsService;
   private logger: Logger;
@@ -85,7 +85,9 @@ export class CCUIServer {
     // Initialize services
     this.logger.debug('Initializing services');
     this.historyReader = new ClaudeHistoryReader();
-    this.statusTracker = new ConversationStatusTracker();
+    // Create a single instance of ConversationStatusManager for both statusTracker and conversationStatusManager
+    this.conversationStatusManager = new ConversationStatusManager();
+    this.statusTracker = this.conversationStatusManager; // Use the same instance for backward compatibility
     this.toolMetricsService = new ToolMetricsService();
     this.fileSystemService = new FileSystemService();
     this.sessionInfoService = SessionInfoService.getInstance();
@@ -94,7 +96,6 @@ export class CCUIServer {
     this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
-    this.optimisticConversationService = new OptimisticConversationService(this.statusTracker);
     this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
     this.logger.debug('Services initialized successfully');
     
@@ -102,7 +103,7 @@ export class CCUIServer {
     // Routes will be set up in start() to allow tests to override services
     this.setupProcessManagerIntegration();
     this.setupPermissionTrackerIntegration();
-    this.processManager.setOptimisticConversationService(this.optimisticConversationService);
+    this.processManager.setConversationStatusManager(this.conversationStatusManager);
   }
 
   /**
@@ -326,6 +327,9 @@ export class CCUIServer {
     // Request logging
     this.app.use(requestLogger);
     
+    // Query parameter parsing - convert strings to proper types
+    this.app.use(queryParser);
+    
   }
 
   private setupRoutes(): void {
@@ -339,7 +343,7 @@ export class CCUIServer {
       this.historyReader,
       this.statusTracker,
       this.sessionInfoService,
-      this.optimisticConversationService,
+      this.conversationStatusManager,
       this.toolMetricsService
     ));
     
@@ -404,8 +408,7 @@ export class CCUIServer {
       this.logger.debug('Unregistering session from status tracker', { streamingId });
       this.statusTracker.unregisterActiveSession(streamingId);
       
-      // Clean up optimistic context
-      this.optimisticConversationService.cleanupOptimisticContext(streamingId);
+      // Clean up conversation context (handled automatically in unregisterActiveSession)
       
       // Clean up permissions for this streaming session
       const removedCount = this.permissionTracker.removePermissionsByStreamingId(streamingId);
@@ -432,8 +435,7 @@ export class CCUIServer {
       this.logger.debug('Unregistering session from status tracker due to error', { streamingId });
       this.statusTracker.unregisterActiveSession(streamingId);
       
-      // Clean up optimistic context on error
-      this.optimisticConversationService.cleanupOptimisticContext(streamingId);
+      // Clean up conversation context on error (handled automatically in unregisterActiveSession)
       
       const errorEvent: StreamEvent = {
         type: 'error' as const,

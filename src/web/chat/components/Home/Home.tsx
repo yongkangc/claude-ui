@@ -31,11 +31,25 @@ export function Home() {
     conversationCountRef.current = conversations.length;
   }, [conversations.length]);
 
+  // Get filter parameters based on active tab
+  const getFiltersForTab = (tab: 'tasks' | 'history' | 'archive') => {
+    switch (tab) {
+      case 'tasks':
+        return { archived: false, hasContinuation: false };
+      case 'history':
+        return { hasContinuation: true };
+      case 'archive':
+        return { archived: true, hasContinuation: false };
+      default:
+        return {};
+    }
+  };
+
   // Auto-refresh on navigation back to Home
   useEffect(() => {
     // Refresh on component mount if we have conversations
     if (conversationCountRef.current > 0) {
-      loadConversations(conversationCountRef.current);
+      loadConversations(conversationCountRef.current, getFiltersForTab(activeTab));
     }
     
     // Focus the input after a brief delay to ensure DOM is ready
@@ -47,18 +61,24 @@ export function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array means this runs only on mount
 
+  // Reload conversations when tab changes
+  useEffect(() => {
+    loadConversations(undefined, getFiltersForTab(activeTab));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   // Auto-refresh on focus
   useEffect(() => {
     const handleFocus = () => {
       // Only refresh if we have loaded conversations before
       if (conversationCountRef.current > 0) {
-        loadConversations(conversationCountRef.current);
+        loadConversations(conversationCountRef.current, getFiltersForTab(activeTab));
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && conversationCountRef.current > 0) {
-        loadConversations(conversationCountRef.current);
+        loadConversations(conversationCountRef.current, getFiltersForTab(activeTab));
       }
     };
 
@@ -71,7 +91,7 @@ export function Home() {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadConversations]);
+  }, [loadConversations, activeTab]);
 
   // Get the most recent working directory from conversations
   const recentWorkingDirectory = conversations.length > 0 
@@ -156,7 +176,7 @@ export function Home() {
               hasMore={hasMore}
               error={error}
               activeTab={activeTab}
-              onLoadMore={loadMoreConversations}
+              onLoadMore={(filters) => loadMoreConversations(filters)}
             />
           </div>
         </div>

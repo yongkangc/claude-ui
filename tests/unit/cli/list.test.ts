@@ -51,11 +51,12 @@ describe('CLI List Command', () => {
         custom_name: '',
         created_at: '2024-01-01T10:00:00Z',
         updated_at: '2024-01-01T10:00:00Z',
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       },
       createdAt: '2024-01-01T10:00:00Z',
       updatedAt: '2024-01-01T10:30:00Z',
@@ -73,11 +74,12 @@ describe('CLI List Command', () => {
         custom_name: '',
         created_at: '2024-01-02T14:00:00Z',
         updated_at: '2024-01-02T14:00:00Z',
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       },
       createdAt: '2024-01-02T14:00:00Z',
       updatedAt: '2024-01-02T15:30:00Z',
@@ -95,11 +97,12 @@ describe('CLI List Command', () => {
         custom_name: '',
         created_at: '2024-01-03T09:00:00Z',
         updated_at: '2024-01-03T09:00:00Z',
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       },
       createdAt: '2024-01-03T09:00:00Z',
       updatedAt: '2024-01-03T11:00:00Z',
@@ -194,11 +197,12 @@ describe('CLI List Command', () => {
           custom_name: '',
           created_at: '2024-01-01T10:00:00Z',
           updated_at: '2024-01-01T10:00:00Z',
-          version: 2,
+          version: 3,
           pinned: false,
           archived: false,
           continuation_session_id: '',
-          initial_commit_head: ''
+          initial_commit_head: '',
+          permission_mode: 'default'
         },
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
@@ -254,11 +258,12 @@ describe('CLI List Command', () => {
           custom_name: '',
           created_at: '2024-01-01T10:00:00Z',
           updated_at: '2024-01-01T10:00:00Z',
-          version: 2,
+          version: 3,
           pinned: false,
           archived: false,
           continuation_session_id: '',
-          initial_commit_head: ''
+          initial_commit_head: '',
+          permission_mode: 'default'
         },
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
@@ -451,11 +456,12 @@ describe('CLI List Command', () => {
           custom_name: '',
           created_at: '2024-01-01T10:00:00Z',
           updated_at: '2024-01-01T10:00:00Z',
-          version: 2,
+          version: 3,
           pinned: false,
           archived: false,
           continuation_session_id: '',
-          initial_commit_head: ''
+          initial_commit_head: '',
+          permission_mode: 'default'
         },
         createdAt: '2024-01-01T10:00:00Z',
         updatedAt: '2024-01-01T10:30:00Z',
@@ -511,11 +517,12 @@ describe('CLI List Command', () => {
           custom_name: '',
           created_at: '2024-12-31T23:59:59Z',
           updated_at: '2024-12-31T23:59:59Z',
-          version: 2,
+          version: 3,
           pinned: false,
           archived: false,
           continuation_session_id: '',
-          initial_commit_head: ''
+          initial_commit_head: '',
+          permission_mode: 'default'
         },
         createdAt: '2024-12-31T23:59:59Z',
         updatedAt: '2024-12-31T23:59:59Z',

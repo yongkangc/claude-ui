@@ -423,7 +423,7 @@ Sessions are automatically migrated to include these fields when the schema vers
 
 ## Workflow Guidelines
 
-- Always update cc-workfiles/knowledge/API.md and tests if make any changes to api endpoint.
+- Always update tests if make any changes to api endpoint.
 
 ## Development Gotchas
 
