@@ -11,7 +11,6 @@ export interface MessageListProps {
   onToggleTaskExpanded?: (toolUseId: string) => void;
   isLoading?: boolean;
   isStreaming?: boolean;
-  preserveScroll?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({ 
@@ -21,45 +20,24 @@ export const MessageList: React.FC<MessageListProps> = ({
   expandedTasks = new Set(), 
   onToggleTaskExpanded,
   isLoading, 
-  isStreaming, 
-  preserveScroll = false 
+  isStreaming
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
-  const scrollPositionRef = useRef<number>(0);
-  const isPreservingScrollRef = useRef(false);
   
-  console.debug('[MessageList] Rendering with', messages.length, 'messages, isLoading:', isLoading, 'isStreaming:', isStreaming, 'toolResults:', Object.keys(toolResults).length, 'preserveScroll:', preserveScroll);
-
-  // Save scroll position before messages update if preserveScroll is enabled
-  useEffect(() => {
-    if (preserveScroll && containerRef.current && messages.length > 0) {
-      scrollPositionRef.current = containerRef.current.scrollTop;
-      isPreservingScrollRef.current = true;
-      console.debug('[MessageList] Saved scroll position:', scrollPositionRef.current);
-    }
-  }, [messages, preserveScroll]);
+  console.debug('[MessageList] Rendering with', messages.length, 'messages, isLoading:', isLoading, 'isStreaming:', isStreaming, 'toolResults:', Object.keys(toolResults).length);
 
   // Auto-scroll to bottom when messages are first loaded (navigation to conversation)
   useEffect(() => {
-    // Only scroll if we're going from 0 messages to some messages (initial load) and not preserving scroll
-    if (previousMessageCount.current === 0 && messages.length > 0 && containerRef.current && !preserveScroll) {
+    // Always scroll to bottom when going from 0 messages to some messages (initial load)
+    if (previousMessageCount.current === 0 && messages.length > 0 && containerRef.current) {
       // Scroll to bottom without animation
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
       console.debug('[MessageList] Auto-scrolled to bottom on initial load');
     }
     previousMessageCount.current = messages.length;
-  }, [messages.length, preserveScroll]);
-
-  // Restore scroll position after render if we were preserving scroll
-  useEffect(() => {
-    if (isPreservingScrollRef.current && containerRef.current) {
-      containerRef.current.scrollTop = scrollPositionRef.current;
-      isPreservingScrollRef.current = false;
-      console.debug('[MessageList] Restored scroll position:', scrollPositionRef.current);
-    }
-  });
+  }, [messages.length]);
 
   // Filter out user messages that only contain tool_result blocks
   const displayMessages = messages.filter(message => {

@@ -36,11 +36,7 @@ export function ConversationView() {
     onResult: (newSessionId) => {
       // Navigate to the new session page if session changed
       if (newSessionId && newSessionId !== sessionId) {
-        navigate(`/c/${newSessionId}`, {
-          state: {
-            fromConversation: true
-          }
-        });
+        navigate(`/c/${newSessionId}`);
       }
     },
     onError: (err) => {
@@ -54,9 +50,7 @@ export function ConversationView() {
 
   // Clear navigation state to prevent issues on refresh
   useEffect(() => {
-    const state = location.state as { 
-      fromConversation?: boolean;
-    } | null;
+    const state = location.state;
     
     if (state) {
       // Clear the state to prevent issues on refresh
@@ -66,20 +60,15 @@ export function ConversationView() {
 
   // Clear messages and streaming when navigating away or sessionId changes
   useEffect(() => {
-    // Check if we're navigating from another conversation
-    const isFromConversation = location.state?.fromConversation === true;
-    
     // Clear streamingId when sessionId changes
     setStreamingId(null);
     
     return () => {
-      // Only clear messages if not navigating to another conversation
-      if (!isFromConversation) {
-        clearMessages();
-      }
+      // Always clear messages when navigating away
+      clearMessages();
       setStreamingId(null);
     };
-  }, [sessionId, clearMessages, location.state]);
+  }, [sessionId, clearMessages]);
 
   // Load conversation history
   useEffect(() => {
@@ -230,7 +219,6 @@ export function ConversationView() {
         onToggleTaskExpanded={toggleTaskExpanded}
         isLoading={isLoading}
         isStreaming={!!streamingId}
-        preserveScroll={!!location.state?.fromConversation}
       />
 
       <InputArea
