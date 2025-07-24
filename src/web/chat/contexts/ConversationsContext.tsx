@@ -136,7 +136,12 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
       if (data.conversations.length === 0) {
         setHasMore(false);
       } else {
-        setConversations(prev => [...prev, ...data.conversations]);
+        setConversations(prev => {
+          // Create a set of existing session IDs to avoid duplicates
+          const existingIds = new Set(prev.map(conv => conv.sessionId));
+          const newConversations = data.conversations.filter(conv => !existingIds.has(conv.sessionId));
+          return [...prev, ...newConversations];
+        });
         // When loading more, we don't need to fetch API directories again
         updateRecentDirectories([...conversations, ...data.conversations]);
         setHasMore(data.conversations.length === LOAD_MORE_LIMIT);
