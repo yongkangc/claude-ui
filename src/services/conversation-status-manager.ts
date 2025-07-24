@@ -243,11 +243,12 @@ export class ConversationStatusManager extends EventEmitter {
               custom_name: '', // No custom name yet
               created_at: context.timestamp,
               updated_at: context.timestamp,
-              version: 2,
+              version: 3,
               pinned: false,
               archived: false,
               continuation_session_id: '',
-              initial_commit_head: ''
+              initial_commit_head: '',
+              permission_mode: 'default'
             },
             createdAt: context.timestamp,
             updatedAt: context.timestamp,

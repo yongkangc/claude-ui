@@ -1,0 +1,262 @@
+==== dialog wide mode ====
+
+
+<div role="dialog" id="radix-«r16q»" aria-labelledby="radix-«r16r»" data-state="open"
+    class="fixed left-[50%] top-[50%] z-[100] translate-x-[-50%] translate-y-[-50%] gap-4 dark:border dark:border-border-l1 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] focus:outline-none bg-background rounded-3xl transition-all duration-150 ease-in-out outline-none w-full flex flex-col md:w-[calc(100dvw-32px)] lg:w-5/6 max-w-[1600px]"
+    tabindex="-1" style="pointer-events: auto;">
+    <div class="flex flex-col space-y-1.5 text-center sm:text-left sr-only">
+        <h2 id="radix-«r16r»" class="text-lg font-semibold leading-none tracking-tight sr-only">Command Menu</h2>
+    </div>
+    <div tabindex="-1" class="flex flex-col w-full focus-visible:outline-none" cmdk-root=""><label cmdk-label="" for="«r16v»" id="«r16u»"
+            style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;">Command
+            Menu</label>
+        <div class="flex items-center gap-3 px-5 border-b border-border h-14">
+            <div class="flex items-center w-full gap-2" style="opacity: 1;"><input placeholder="Search..."
+                    class="flex-grow w-full bg-transparent placeholder:text-fg-secondary focus-visible:outline-none" cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true" aria-controls="«r16t»" aria-labelledby="«r16u»" id="«r16v»" type="text"
+                    value="">
+                <div class="flex-shrink-0" style="opacity: 1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search size-5 text-fg-secondary">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg></div>
+            </div>
+        </div>
+        <div cmdk-list="" role="listbox" aria-label="Suggestions" id="«r16t»" style="--cmdk-list-height: 682.0px;">
+            <div cmdk-list-sizer="">
+                <div class="w-full relative" style="height: 80dvh;">
+                    <div class="grid h-full relative grid-cols-2 xl:grid-cols-5">
+                        <div class="col-span-1 xl:col-span-2 h-full overflow-auto space-y-3 p-3 border-r border-border" style="scroll-padding-block: 1rem;">
+                            <div cmdk-group="" role="presentation" data-value="ActionsShow All">
+                                <div cmdk-group-heading="" aria-hidden="true" id="«r176»">
+                                    <div class="text-secondary px-3 pb-1.5 pt-2 text-sm">
+                                        <div class="flex justify-between gap-3 items-center">
+                                            <div>Actions</div>
+                                            <div class="text-xs hover:text-primary transition-colors cursor-pointer">Show All</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div cmdk-group-items="" role="group" aria-labelledby="«r176»">
+                                    <div class="flex cursor-pointer h-[48px] items-center gap-2 rounded-2xl px-3 data-[selected=true]:bg-button-ghost-hover" id="«r177»"
+                                        cmdk-item="" role="option" aria-disabled="false" aria-selected="true" data-disabled="false" data-selected="true"
+                                        data-value="action:new-private-chat">
+                                        <div class="flex flex-grow items-center justify-between gap-2 min-w-0">
+                                            <div class="flex flex-grow items-center gap-2 min-w-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-subtle flex-shrink-0 h-4 w-4">
+                                                    <ellipse cx="10" cy="10.25" rx="1.25" ry="1.75" fill="currentColor"></ellipse>
+                                                    <ellipse cx="14" cy="10.25" rx="1.25" ry="1.75" fill="currentColor"></ellipse>
+                                                    <path
+                                                        d="M12 4C4 4 8.07627 10.7212 3 13C3 14.6491 4.40343 14.5 4.93 15.77C5.37046 16.8323 4.27588 18.9597 4 20H8L12 21L16 20H20C19.6222 18.7198 18.8092 17.1437 19.075 15.7742C19.3479 14.3681 21 14.742 21 13C15.9237 10.7212 20 4 12 4Z"
+                                                        stroke="currentColor"></path>
+                                                </svg>
+                                                <div class="truncate">Create New Private Chat</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div cmdk-group="" role="presentation" data-value="Last 7 Days">
+                                <div cmdk-group-heading="" aria-hidden="true" id="«r179»">
+                                    <div class="text-secondary px-3 pb-1.5 pt-2 text-sm">Last 7 Days</div>
+                                </div>
+                                <div cmdk-group-items="" role="group" aria-labelledby="«r179»">
+                                    <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 data-[selected=true]:bg-button-ghost-hover" id="«r17a»" cmdk-item="" role="option"
+                                        aria-disabled="false" aria-selected="false" data-disabled="false" data-selected="false"
+                                        data-value="conversation:97f53dad-4fcf-47c0-9b80-8ba6e8a4db93"><a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                                            href="/chat/97f53dad-4fcf-47c0-9b80-8ba6e8a4db93"></a>
+                                        <div class="flex cursor-pointer items-center gap-2 px-3 col-start-1 col-end-2 row-start-1 row-end-2">
+                                            <div class="flex-grow min-w-0">
+                                                <div class="flex items-center gap-2 w-full">
+                                                    <div class="truncate text-primary">盲人开门：拉还是推？</div>
+                                                </div>
+                                            </div>
+                                            <div class="z-20"><span
+                                                    class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">2
+                                                    days ago</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 data-[selected=true]:bg-button-ghost-hover" id="«r17b»" cmdk-item="" role="option"
+                                        aria-disabled="false" aria-selected="false" data-disabled="false" data-selected="false"
+                                        data-value="conversation:6f405abd-8490-4ee3-9b4d-f240df618758"><a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                                            href="/chat/6f405abd-8490-4ee3-9b4d-f240df618758"></a>
+                                        <div class="flex cursor-pointer items-center gap-2 px-3 col-start-1 col-end-2 row-start-1 row-end-2">
+                                            <div class="flex-grow min-w-0">
+                                                <div class="flex items-center gap-2 w-full">
+                                                    <div class="truncate text-primary">New conversation</div>
+                                                </div>
+                                            </div>
+                                            <div class="z-20"><span
+                                                    class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">6
+                                                    days ago</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-[1px] flex justify-center !m-0 !p-0"></div>
+                        </div>
+                        <div class="col-span-1 xl:col-span-3 flex items-center justify-center overflow-auto h-full relative py-0.5 @container/preview">
+                            <div class="absolute z-10 inset-x-0 bottom-0 h-6 bg-gradient-to-t from-background to-transparent"></div>
+                            <div class="absolute z-10 inset-x-0 top-0 h-6 bg-gradient-to-b from-background to-transparent"></div>
+                            <div class="text-secondary flex items-center gap-3" style="opacity: 1;">Select a conversation to preview</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center w-full h-12 gap-2 px-2 py-1 border-t border-border-l1 justify-between"><button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-8 w-8 rounded-full transition-colors text-secondary hover:text-primary"
+                type="button" aria-label="Hide Conversation Previews" data-state="closed"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-minimize2">
+                    <polyline points="4 14 10 14 10 20"></polyline>
+                    <polyline points="20 10 14 10 14 4"></polyline>
+                    <line x1="14" x2="21" y1="10" y2="3"></line>
+                    <line x1="3" x2="10" y1="21" y2="14"></line>
+                </svg></button>
+            <div class="flex items-center gap-2"></div>
+        </div>
+    </div>
+</div>
+
+
+==== dialog mobile mode ====
+
+<div role="dialog" id="radix-«r1cl»" aria-labelledby="radix-«r1cm»" data-state="open" vaul-drawer="" vaul-drawer-direction="bottom" vaul-drawer-visible="true"
+    class="fixed inset-x-0 bottom-0 z-50 mt-24 h-auto dark:border dark:border-border-l1 focus:outline-none bg-background rounded-3xl transition-all duration-150 ease-in-out outline-none w-full md:w-5/6 lg:w-3/5 flex flex-col rounded-b-none max-w-none !rounded-b-none"
+    tabindex="-1" style="pointer-events: auto; height: 753.59375px; bottom: 0px;">
+    <div class="flex-shrink-0 w-12 h-1 mx-auto mt-3 mb-0 rounded-full bg-secondary/80"></div>
+    <div class="grid gap-1.5 sm:text-left p-0 text-left sr-only">
+        <h2 id="radix-«r1cm»" class="text-lg font-semibold leading-none tracking-tight sr-only vaul-scrollable">Command Menu</h2>
+    </div>
+    <div tabindex="-1" class="flex flex-col w-full focus-visible:outline-none" cmdk-root=""><label cmdk-label="" for="«r1cq»" id="«r1cp»"
+            style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+            class="vaul-scrollable">Command Menu</label>
+        <div class="flex items-center gap-3 px-5 border-b border-border h-14">
+            <div class="flex items-center w-full gap-2" style="opacity: 1;"><input placeholder="Search..."
+                    class="flex-grow w-full bg-transparent placeholder:text-fg-secondary focus-visible:outline-none" cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true" aria-controls="«r1co»" aria-labelledby="«r1cp»" id="«r1cq»" type="text"
+                    value="">
+                <div class="flex-shrink-0" style="opacity: 1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search size-5 text-fg-secondary">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg></div>
+            </div>
+        </div>
+        <div cmdk-list="" role="listbox" aria-label="Suggestions" id="«r1co»" style="--cmdk-list-height: 682.0px;">
+            <div cmdk-list-sizer="">
+                <div class="w-full relative" style="height: 80dvh;">
+                    <div class="grid h-full relative">
+                        <div class="col-span-1 xl:col-span-2 h-full overflow-auto space-y-3 p-3" style="scroll-padding-block: 1rem;">
+                            <div cmdk-group="" role="presentation" data-value="ActionsShow All">
+                                <div cmdk-group-heading="" aria-hidden="true" id="«r1d1»">
+                                    <div class="text-secondary px-3 pb-1.5 pt-2 text-sm">
+                                        <div class="flex justify-between gap-3 items-center">
+                                            <div>Actions</div>
+                                            <div class="text-xs hover:text-primary transition-colors cursor-pointer">Show All</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div cmdk-group-items="" role="group" aria-labelledby="«r1d1»">
+                                    <div class="flex cursor-pointer h-[48px] items-center gap-2 rounded-2xl px-3 data-[selected=true]:bg-button-ghost-hover" id="«r1d2»"
+                                        cmdk-item="" role="option" aria-disabled="false" aria-selected="false" data-disabled="false" data-selected="false"
+                                        data-value="action:new-private-chat">
+                                        <div class="flex flex-grow items-center justify-between gap-2 min-w-0">
+                                            <div class="flex flex-grow items-center gap-2 min-w-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-subtle flex-shrink-0 h-4 w-4">
+                                                    <ellipse cx="10" cy="10.25" rx="1.25" ry="1.75" fill="currentColor"></ellipse>
+                                                    <ellipse cx="14" cy="10.25" rx="1.25" ry="1.75" fill="currentColor"></ellipse>
+                                                    <path
+                                                        d="M12 4C4 4 8.07627 10.7212 3 13C3 14.6491 4.40343 14.5 4.93 15.77C5.37046 16.8323 4.27588 18.9597 4 20H8L12 21L16 20H20C19.6222 18.7198 18.8092 17.1437 19.075 15.7742C19.3479 14.3681 21 14.742 21 13C15.9237 10.7212 20 4 12 4Z"
+                                                        stroke="currentColor"></path>
+                                                </svg>
+                                                <div class="truncate">Create New Private Chat</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div cmdk-group="" role="presentation" data-value="Last 7 Days">
+                                <div cmdk-group-heading="" aria-hidden="true" id="«r1d4»">
+                                    <div class="text-secondary px-3 pb-1.5 pt-2 text-sm">Last 7 Days</div>
+                                </div>
+                                <div cmdk-group-items="" role="group" aria-labelledby="«r1d4»">
+                                    <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 data-[selected=true]:bg-button-ghost-hover" id="«r1d5»" cmdk-item="" role="option"
+                                        aria-disabled="false" aria-selected="false" data-disabled="false" data-selected="false"
+                                        data-value="conversation:97f53dad-4fcf-47c0-9b80-8ba6e8a4db93"><a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                                            href="/chat/97f53dad-4fcf-47c0-9b80-8ba6e8a4db93"></a>
+                                        <div class="flex cursor-pointer items-center gap-2 px-3 col-start-1 col-end-2 row-start-1 row-end-2">
+                                            <div class="flex-grow min-w-0">
+                                                <div class="flex items-center gap-2 w-full">
+                                                    <div class="truncate text-primary">盲人开门：拉还是推？</div>
+                                                </div>
+                                            </div>
+                                            <div class="z-20">
+                                                <div class="flex items-center gap-2"><button
+                                                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-8 w-8 rounded-lg"
+                                                        type="button" aria-label="Rename" tabindex="-1" data-state="closed"><svg width="16" height="16" viewBox="0 0 24 24"
+                                                            fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-primary">
+                                                            <path
+                                                                d="M18.25 5.75C16.8693 4.36929 14.6307 4.36929 13.25 5.75L10.125 8.875L5.52404 13.476C4.86236 14.1376 4.45361 15.0104 4.36889 15.9423L4 20.0001L8.0578 19.6311C8.98967 19.5464 9.86234 19.1377 10.524 18.476L18.25 10.75C19.6307 9.36929 19.6307 7.13071 18.25 5.75V5.75Z"
+                                                                stroke="currentColor"></path>
+                                                            <path d="M12.5 7.5L16.5 11.5" stroke="currentColor"></path>
+                                                        </svg></button><button
+                                                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-8 w-8 rounded-lg"
+                                                        type="button" aria-label="Delete" tabindex="-1" data-state="closed"><svg width="16" height="16" viewBox="0 0 24 24"
+                                                            fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-primary">
+                                                            <path d="M2.99561 7H20.9956" stroke="currentColor"></path>
+                                                            <path d="M9.99561 11V17M13.9956 11V17" stroke="currentColor"></path>
+                                                            <path
+                                                                d="M8 6.5L8.68917 4.08792C8.87315 3.44397 9.46173 3 10.1315 3H13.8685C14.5383 3 15.1268 3.44397 15.3108 4.08792L16 6.5"
+                                                                stroke="currentColor"></path>
+                                                            <path
+                                                                d="M5 7L5.80098 18.2137C5.91312 19.7837 7.21944 21 8.79336 21H15.2066C16.7806 21 18.0869 19.7837 18.199 18.2137L19 7"
+                                                                stroke="currentColor"></path>
+                                                        </svg></button></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 data-[selected=true]:bg-button-ghost-hover" id="«r1d6»" cmdk-item="" role="option"
+                                        aria-disabled="false" aria-selected="false" data-disabled="false" data-selected="false"
+                                        data-value="conversation:6f405abd-8490-4ee3-9b4d-f240df618758"><a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                                            href="/chat/6f405abd-8490-4ee3-9b4d-f240df618758"></a>
+                                        <div class="flex cursor-pointer items-center gap-2 px-3 col-start-1 col-end-2 row-start-1 row-end-2">
+                                            <div class="flex-grow min-w-0">
+                                                <div class="flex items-center gap-2 w-full">
+                                                    <div class="truncate text-primary">New conversation</div>
+                                                </div>
+                                            </div>
+                                            <div class="z-20">
+                                                <div class="flex items-center gap-2"><button
+                                                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-8 w-8 rounded-lg"
+                                                        type="button" aria-label="Rename" tabindex="-1" data-state="closed"><svg width="16" height="16" viewBox="0 0 24 24"
+                                                            fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-primary">
+                                                            <path
+                                                                d="M18.25 5.75C16.8693 4.36929 14.6307 4.36929 13.25 5.75L10.125 8.875L5.52404 13.476C4.86236 14.1376 4.45361 15.0104 4.36889 15.9423L4 20.0001L8.0578 19.6311C8.98967 19.5464 9.86234 19.1377 10.524 18.476L18.25 10.75C19.6307 9.36929 19.6307 7.13071 18.25 5.75V5.75Z"
+                                                                stroke="currentColor"></path>
+                                                            <path d="M12.5 7.5L16.5 11.5" stroke="currentColor"></path>
+                                                        </svg></button><button
+                                                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-8 w-8 rounded-lg"
+                                                        type="button" aria-label="Delete" tabindex="-1" data-state="closed"><svg width="16" height="16" viewBox="0 0 24 24"
+                                                            fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-primary">
+                                                            <path d="M2.99561 7H20.9956" stroke="currentColor"></path>
+                                                            <path d="M9.99561 11V17M13.9956 11V17" stroke="currentColor"></path>
+                                                            <path
+                                                                d="M8 6.5L8.68917 4.08792C8.87315 3.44397 9.46173 3 10.1315 3H13.8685C14.5383 3 15.1268 3.44397 15.3108 4.08792L16 6.5"
+                                                                stroke="currentColor"></path>
+                                                            <path
+                                                                d="M5 7L5.80098 18.2137C5.91312 19.7837 7.21944 21 8.79336 21H15.2066C16.7806 21 18.0869 19.7837 18.199 18.2137L19 7"
+                                                                stroke="currentColor"></path>
+                                                        </svg></button></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-[1px] flex justify-center !m-0 !p-0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

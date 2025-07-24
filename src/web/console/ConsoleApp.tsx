@@ -34,6 +34,7 @@ function ConsoleApp() {
   const [model, setModel] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [claudeExecutablePath, setClaudeExecutablePath] = useState('');
+  const [permissionMode, setPermissionMode] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [resumeMessage, setResumeMessage] = useState('');
   const [streamingId, setStreamingId] = useState('');
@@ -57,6 +58,7 @@ function ConsoleApp() {
   const [sessionArchived, setSessionArchived] = useState(false);
   const [continuationSessionId, setContinuationSessionId] = useState('');
   const [initialCommitHead, setInitialCommitHead] = useState('');
+  const [sessionPermissionMode, setSessionPermissionMode] = useState('');
   
   // Permission decision states
   const [permissionRequestId, setPermissionRequestId] = useState('');
@@ -151,6 +153,7 @@ function ConsoleApp() {
       if (model) body.model = model;
       if (systemPrompt) body.systemPrompt = systemPrompt;
       if (claudeExecutablePath) body.claudeExecutablePath = claudeExecutablePath;
+      if (permissionMode) body.permissionMode = permissionMode;
 
       const response = await fetch('/api/conversations/start', {
         method: 'POST',
@@ -368,6 +371,7 @@ function ConsoleApp() {
       updateData.archived = sessionArchived;
       if (continuationSessionId.trim() !== '') updateData.continuationSessionId = continuationSessionId.trim();
       if (initialCommitHead.trim() !== '') updateData.initialCommitHead = initialCommitHead.trim();
+      if (sessionPermissionMode.trim() !== '') updateData.permissionMode = sessionPermissionMode.trim();
       
       const response = await fetch(`/api/conversations/${renameSessionId}/update`, {
         method: 'PUT',
@@ -566,6 +570,16 @@ function ConsoleApp() {
               <div className="field-label">Claude Executable Path <span className="optional">(optional)</span></div>
               <input type="text" value={claudeExecutablePath} onChange={(e) => setClaudeExecutablePath(e.target.value)} placeholder="/usr/local/bin/claude" />
             </div>
+            <div className="field-group">
+              <div className="field-label">Permission Mode <span className="optional">(optional)</span></div>
+              <select value={permissionMode} onChange={(e) => setPermissionMode(e.target.value)}>
+                <option value="">Default</option>
+                <option value="default">default</option>
+                <option value="acceptEdits">acceptEdits</option>
+                <option value="bypassPermissions">bypassPermissions</option>
+                <option value="plan">plan</option>
+              </select>
+            </div>
             <button onClick={startConversation}>Start Conversation</button>
             <div id="startResult" className="json-viewer-container">
               {results.startResult && <JsonViewer data={results.startResult} resultId="startResult" />}
@@ -591,6 +605,7 @@ function ConsoleApp() {
                   if (session.sessionInfo?.archived) sessionFlags.push('📦');
                   if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
                   if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  if (session.sessionInfo?.permission_mode && session.sessionInfo.permission_mode !== 'default') sessionFlags.push(`🔒${session.sessionInfo.permission_mode}`);
                   const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
@@ -680,6 +695,7 @@ function ConsoleApp() {
                   if (session.sessionInfo?.archived) sessionFlags.push('📦');
                   if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
                   if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
+                  if (session.sessionInfo?.permission_mode && session.sessionInfo.permission_mode !== 'default') sessionFlags.push(`🔒${session.sessionInfo.permission_mode}`);
                   const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
                   const displayName = customName ? `[${customName}] ${summary}` : summary;
                   const date = new Date(session.updatedAt).toLocaleString();
@@ -720,6 +736,16 @@ function ConsoleApp() {
             <div className="field-group">
               <div className="field-label">Initial Commit HEAD <span className="optional">(optional)</span></div>
               <input type="text" value={initialCommitHead} onChange={(e) => setInitialCommitHead(e.target.value)} placeholder="git commit hash" />
+            </div>
+            <div className="field-group">
+              <div className="field-label">Permission Mode <span className="optional">(optional)</span></div>
+              <select value={sessionPermissionMode} onChange={(e) => setSessionPermissionMode(e.target.value)}>
+                <option value="">Keep current</option>
+                <option value="default">default</option>
+                <option value="acceptEdits">acceptEdits</option>
+                <option value="bypassPermissions">bypassPermissions</option>
+                <option value="plan">plan</option>
+              </select>
             </div>
             <button onClick={renameSession}>Update Session</button>
             <div id="renameResult" className="json-viewer-container">

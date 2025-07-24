@@ -109,6 +109,7 @@ export interface ConversationConfig {
   systemPrompt?: string;
   claudeExecutablePath?: string;
   previousMessages?: ConversationMessage[]; // Messages from previous session for resume context
+  permissionMode?: string; // Permission mode: "acceptEdits" | "bypassPermissions" | "default" | "plan"
 }
 
 // API request/response types
@@ -119,6 +120,7 @@ export interface StartConversationRequest {
   allowedTools?: string[];
   disallowedTools?: string[];
   systemPrompt?: string;
+  permissionMode?: string; // Permission mode: "acceptEdits" | "bypassPermissions" | "default" | "plan"
 }
 
 export interface ResumeConversationRequest {
@@ -265,6 +267,7 @@ export interface SessionInfo {
   archived: boolean;            // Whether session is archived, default: false
   continuation_session_id: string; // ID of the continuation session if exists, default: ""
   initial_commit_head: string;  // Git commit HEAD when session started, default: ""
+  permission_mode: string;      // Permission mode used for the session, default: "default"
 }
 
 export interface DatabaseMetadata {
@@ -296,6 +299,7 @@ export interface SessionUpdateRequest {
   archived?: boolean;            // Optional: update archived status
   continuationSessionId?: string; // Optional: update continuation session
   initialCommitHead?: string;    // Optional: update initial commit head
+  permissionMode?: string;       // Optional: update permission mode
 }
 
 export interface SessionUpdateResponse {

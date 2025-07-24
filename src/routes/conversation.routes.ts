@@ -50,7 +50,34 @@ export function createConversationRoutes(
         throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
       }
       
+      // Validate permissionMode if provided
+      if (req.body.permissionMode) {
+        const validModes = ['acceptEdits', 'bypassPermissions', 'default', 'plan'];
+        if (!validModes.includes(req.body.permissionMode)) {
+          throw new CCUIError('INVALID_PERMISSION_MODE', `permissionMode must be one of: ${validModes.join(', ')}`, 400);
+        }
+      }
+      
       const { streamingId, systemInit } = await processManager.startConversation(req.body);
+      
+      // Store permission mode in session info if provided
+      if (req.body.permissionMode) {
+        try {
+          await sessionInfoService.updateSessionInfo(systemInit.session_id, {
+            permission_mode: req.body.permissionMode
+          });
+          logger.debug('Stored permission mode in session info', {
+            sessionId: systemInit.session_id,
+            permissionMode: req.body.permissionMode
+          });
+        } catch (error) {
+          logger.warn('Failed to store permission mode in session info', {
+            sessionId: systemInit.session_id,
+            permissionMode: req.body.permissionMode,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
       
       logger.debug('Conversation started successfully', {
         requestId,
@@ -126,10 +153,30 @@ export function createConversationRoutes(
         // Continue without previous messages - not a fatal error
       }
       
+      // Fetch permission mode from session info
+      let permissionMode: string | undefined;
+      try {
+        const sessionInfo = await sessionInfoService.getSessionInfo(req.body.sessionId);
+        permissionMode = sessionInfo.permission_mode;
+        logger.debug('Retrieved permission mode from session info', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          permissionMode
+        });
+      } catch (error) {
+        logger.warn('Failed to fetch permission mode from session info', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without permission mode - will use default
+      }
+      
       const { streamingId, systemInit } = await processManager.resumeConversation({
         sessionId: req.body.sessionId,
         message: req.body.message,
-        previousMessages
+        previousMessages,
+        permissionMode
       });
 
       // Update original session with continuation session ID
@@ -490,6 +537,20 @@ export function createConversationRoutes(
       if (updates.archived !== undefined) sessionUpdates.archived = updates.archived;
       if (updates.continuationSessionId !== undefined) sessionUpdates.continuation_session_id = updates.continuationSessionId;
       if (updates.initialCommitHead !== undefined) sessionUpdates.initial_commit_head = updates.initialCommitHead;
+      if (updates.permissionMode !== undefined) {
+        // Validate permission mode
+        const validModes = ['acceptEdits', 'bypassPermissions', 'default', 'plan'];
+        if (!validModes.includes(updates.permissionMode)) {
+          logger.debug('Invalid permission mode', { requestId, permissionMode: updates.permissionMode });
+          return res.status(400).json({
+            success: false,
+            sessionId,
+            updatedFields: {} as any,
+            error: `Permission mode must be one of: ${validModes.join(', ')}`
+          } as any);
+        }
+        sessionUpdates.permission_mode = updates.permissionMode;
+      }
       
       // Update session info
       const updatedFields = await sessionInfoService.updateSessionInfo(sessionId, sessionUpdates);

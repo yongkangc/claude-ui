@@ -36,9 +36,9 @@ export function Home() {
       case 'tasks':
         return { archived: false, hasContinuation: false };
       case 'history':
-        return { archived: false, hasContinuation: true };
+        return { hasContinuation: true };
       case 'archive':
-        return { archived: true };
+        return { archived: true, hasContinuation: false };
       default:
         return {};
     }

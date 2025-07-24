@@ -1110,7 +1110,9 @@ describe('CCUIServer', () => {
         });
         expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({
           sessionId: 'test-session-123',
-          message: 'Continue with this message'
+          message: 'Continue with this message',
+          previousMessages: [],
+          permissionMode: 'default'
         });
       });
 
@@ -1237,7 +1239,9 @@ describe('CCUIServer', () => {
           // If it succeeds, verify only the correct parameters were passed to resumeConversation
           expect((server as any).processManager.resumeConversation).toHaveBeenCalledWith({
             sessionId: 'test-session-123',
-            message: 'Continue with this message'
+            message: 'Continue with this message',
+            previousMessages: [],
+            permissionMode: 'default'
           });
         } else {
           // Or it should fail with appropriate validation error

@@ -62,7 +62,7 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Resume an existing Claude conversation
    */
-  async resumeConversation(config: { sessionId: string; message: string; previousMessages?: ConversationMessage[] }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
+  async resumeConversation(config: { sessionId: string; message: string; previousMessages?: ConversationMessage[]; permissionMode?: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     const timestamp = new Date().toISOString();
     this.logger.info('Resume conversation requested', { 
       timestamp,
@@ -94,7 +94,8 @@ export class ClaudeProcessManager extends EventEmitter {
     const fullConfig: ConversationConfig = {
       workingDirectory,
       initialPrompt: config.message,
-      previousMessages: config.previousMessages
+      previousMessages: config.previousMessages,
+      permissionMode: config.permissionMode
     };
     
     const args = this.buildResumeArgs(config);
@@ -575,7 +576,7 @@ export class ClaudeProcessManager extends EventEmitter {
     ];
   }
 
-  private buildResumeArgs(config: { sessionId: string; message: string }): string[] {
+  private buildResumeArgs(config: { sessionId: string; message: string; permissionMode?: string }): string[] {
     this.logger.debug('Building Claude resume args', { 
       sessionId: config.sessionId,
       messagePreview: config.message.substring(0, 50) + (config.message.length > 50 ? '...' : '')
@@ -588,6 +589,11 @@ export class ClaudeProcessManager extends EventEmitter {
       '--output-format', 'stream-json', // JSONL output format
       '--verbose' // Required when using stream-json with print mode
     );
+
+    // Add permission mode if provided
+    if (config.permissionMode) {
+      args.push('--permission-mode', config.permissionMode);
+    }
 
     // Add MCP config if available for resume
     if (this.mcpConfigPath) {
@@ -644,6 +650,11 @@ export class ClaudeProcessManager extends EventEmitter {
     // Add system prompt
     if (config.systemPrompt) {
       args.push('--system-prompt', config.systemPrompt);
+    }
+
+    // Add permission mode if provided
+    if (config.permissionMode) {
+      args.push('--permission-mode', config.permissionMode);
     }
 
     // Add MCP config if available

@@ -82,7 +82,7 @@ describe('SessionInfoService', () => {
       
       expect(dbData.sessions).toHaveProperty('test-session');
       expect(dbData.metadata).toMatchObject({
-        schema_version: 2,
+        schema_version: 3,
         created_at: expect.any(String),
         last_updated: expect.any(String)
       });
@@ -146,7 +146,7 @@ describe('SessionInfoService', () => {
       const sessionInfo = await service.getSessionInfo(testSessionId);
       
       expect(sessionInfo.custom_name).toBe(testCustomName);
-      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.version).toBe(3);
       expect(sessionInfo.created_at).toBeDefined();
       expect(sessionInfo.updated_at).toBeDefined();
       expect(sessionInfo.pinned).toBe(false);
@@ -160,7 +160,7 @@ describe('SessionInfoService', () => {
       const sessionInfo = await service.getSessionInfo(sessionId);
       
       expect(sessionInfo.custom_name).toBe('');
-      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.version).toBe(3);
       expect(sessionInfo.pinned).toBe(false);
       expect(sessionInfo.archived).toBe(false);
       expect(sessionInfo.continuation_session_id).toBe('');
@@ -173,11 +173,12 @@ describe('SessionInfoService', () => {
       expect(allSessions).toHaveProperty(sessionId);
       expect(allSessions[sessionId]).toMatchObject({
         custom_name: '',
-        version: 2,
+        version: 3,
         pinned: false,
         archived: false,
         continuation_session_id: '',
-        initial_commit_head: ''
+        initial_commit_head: '',
+        permission_mode: 'default'
       });
     });
 
@@ -189,7 +190,7 @@ describe('SessionInfoService', () => {
       const sessionInfo = await service.getSessionInfo('test-session');
       
       expect(sessionInfo.custom_name).toBe('');
-      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.version).toBe(3);
       expect(sessionInfo.pinned).toBe(false);
       expect(sessionInfo.archived).toBe(false);
       expect(sessionInfo.continuation_session_id).toBe('');
@@ -207,7 +208,7 @@ describe('SessionInfoService', () => {
       jest.spyOn(service['jsonManager'], 'read').mockResolvedValue({
         sessions: {},
         metadata: {
-          schema_version: 2,
+          schema_version: 3,
           created_at: new Date().toISOString(),
           last_updated: new Date().toISOString()
         }
@@ -220,7 +221,7 @@ describe('SessionInfoService', () => {
       
       // Should still return default values
       expect(sessionInfo.custom_name).toBe('');
-      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.version).toBe(3);
       expect(sessionInfo.pinned).toBe(false);
       expect(sessionInfo.archived).toBe(false);
       expect(sessionInfo.continuation_session_id).toBe('');
@@ -250,7 +251,7 @@ describe('SessionInfoService', () => {
       
       const sessionInfo = await service.getSessionInfo(testSessionId);
       expect(sessionInfo.custom_name).toBe(testCustomName);
-      expect(sessionInfo.version).toBe(2);
+      expect(sessionInfo.version).toBe(3);
       expect(sessionInfo.pinned).toBe(false);
       expect(sessionInfo.archived).toBe(false);
       expect(sessionInfo.continuation_session_id).toBe('');
@@ -351,7 +352,7 @@ describe('SessionInfoService', () => {
       expect(result.archived).toBe(false);
       expect(result.continuation_session_id).toBe('other-session');
       expect(result.initial_commit_head).toBe('abc123def');
-      expect(result.version).toBe(2);
+      expect(result.version).toBe(3);
     });
 
     it('should partially update existing session', async () => {
