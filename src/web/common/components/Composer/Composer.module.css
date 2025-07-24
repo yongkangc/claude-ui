@@ -1,49 +1,25 @@
-.container {
-  position: sticky;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  z-index: 10;
-  /* Add semi-transparent fade border */
-}
-
-[data-theme="dark"] .container {
-  background-color: rgba(30, 30, 30, 0.8);
-  background-image: linear-gradient(to bottom, transparent, rgba(30, 30, 30, 0.8) 12px);
-}
-
-.composerWrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0 var(--spacing-sm) var(--spacing-lg);
-}
-
 .composer {
   width: 100%;
-  max-width: 48rem;
 }
 
-.composerInner {
-  position: relative;
+.container {
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-light);
-  border-radius: 28px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  cursor: text;
   transition: box-shadow 300ms ease,
               border-color 300ms ease,
               background-color 300ms ease;
-  cursor: text;
 }
 
-.composerInner:focus-within {
-  /* Removed highlight border */
-}
-
-[data-theme="dark"] .composerInner {
-  background-color: #303030;
+[data-theme="dark"] .container {
+  background: #303030;
 }
 
 .inputWrapper {
@@ -64,20 +40,20 @@
 }
 
 .textarea {
-  flex: 1;
   width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  padding: 16px 60px 50px 0;
-  min-height: 50px;
+  min-height: 80px;
   max-height: 80vh;
+  padding: 16px 60px 50px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
   overflow-y: auto;
+  scrollbar-width: thin;
   transition: opacity var(--transition-fast) ease;
 }
 
@@ -92,76 +68,84 @@
 
 .footerActions {
   position: absolute;
-  bottom: 10px;
-  left: 20px;
+  bottom: 8px;
+  left: calc(2.5 * var(--spacing));
   right: 60px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  opacity: 1;
+  justify-content: center;
+  overflow: visible;
 }
 
 .actionButtons {
   display: flex;
   gap: 8px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 16px;
 }
 
 .actionButton {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  background-color: transparent;
+  gap: 6px;
+  padding: 8px 8px;
   border: none;
-  border-radius: 20px;
+  background: transparent;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
+  border-radius: 9999px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .actionButton:hover {
-  background-color: var(--color-bg-tertiary);
+  background: var(--color-bg-tertiary);
 }
 
 .buttonText {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+  padding-left: 4px;
 }
 
-.actionButton svg:first-child {
-  color: var(--color-accent);
-}
-
-.actionButton svg:last-child {
-  opacity: 0.6;
-  margin-left: -2px;
+.buttonLabel {
+  display: block;
+  max-width: 128px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .voiceButton {
   position: absolute;
   right: 10px;
-  bottom: 10px;
+  bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 .iconButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: none;
   background: var(--color-text-primary);
   color: var(--color-bg-primary);
   border-radius: 50%;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .iconButton:hover:not(:disabled) {
@@ -175,58 +159,35 @@
   opacity: 1;
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .composerWrapper {
-    padding: var(--spacing-sm);
+/* Spinning animation for loader */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
-  
-  .textAreaContainer {
-    margin: 0 16px;
-  }
-  
-  .textarea {
-    padding: 12px 50px 12px 0;
-  }
-  
-  .buttonText {
-    display: none;
-  }
-  
-  .actionButton {
-    padding: 6px;
-  }
-  
-  .footerActions {
-    left: 10px;
-    right: 50px;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-/* Focus styles for accessibility */
-.iconButton:focus-visible,
-.actionButton:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+/* Autocomplete styles */
+.autocompleteDropdown {
+  margin-top: 8px;
+  width: 100%;
 }
 
-/* Dark mode specific adjustments */
-[data-theme="dark"] .composerInner {
-  background-color: var(--color-bg-primary);
-}
-
-[data-theme="dark"] .actionButton {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="dark"] .actionButton:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.pathAutocomplete {
+  /* Additional styling if needed */
 }
 
 /* Permission mode styles */
-.composerInner.permissionMode {
+.inputWrapper.permissionMode {
   border: 2px solid var(--color-warning, #f59e0b);
   background-color: var(--color-warning-bg, rgba(245, 158, 11, 0.1));
+  border-radius: var(--radius-xl);
 }
 
 .permissionContent {
@@ -318,8 +279,15 @@
   color: white;
 }
 
-/* Dark mode adjustments */
-[data-theme="dark"] .composerInner.permissionMode {
+/* Focus styles for accessibility */
+.iconButton:focus-visible,
+.actionButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Dark mode specific adjustments */
+[data-theme="dark"] .inputWrapper.permissionMode {
   background-color: rgba(245, 158, 11, 0.05);
 }
 
@@ -331,4 +299,34 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+[data-theme="dark"] .actionButton {
+  background-color: rgba(255, 255, 255, 0.05);
+}
 
+[data-theme="dark"] .actionButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .textAreaContainer {
+    margin: 0 16px;
+  }
+  
+  .textarea {
+    padding: 12px 50px 12px 0;
+  }
+  
+  .buttonText {
+    display: none;
+  }
+  
+  .actionButton {
+    padding: 6px;
+  }
+  
+  .footerActions {
+    left: 10px;
+    right: 50px;
+  }
+}

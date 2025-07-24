@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useConversations } from '../../contexts/ConversationsContext';
 import { api } from '../../services/api';
 import { Header } from './Header';
-import { Composer } from './Composer';
+import { Composer } from '@/web/common/components/Composer';
 import { TaskTabs } from './TaskTabs';
 import { TaskList } from './TaskList';
 import styles from './Home.module.css';
@@ -17,7 +17,9 @@ export function Home() {
     hasMore, 
     error, 
     loadConversations, 
-    loadMoreConversations 
+    loadMoreConversations,
+    recentDirectories,
+    getMostRecentWorkingDirectory 
   } = useConversations();
   const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'archive'>('tasks');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +104,21 @@ export function Home() {
                 <Composer 
                   workingDirectory={recentWorkingDirectory}
                   onSubmit={handleComposerSubmit}
-                  isSubmitting={isSubmitting}
+                  isLoading={isSubmitting}
+                  placeholder="Describe another task"
+                  showDirectorySelector={true}
+                  showModelSelector={true}
+                  enableFileAutocomplete={true}
+                  recentDirectories={recentDirectories}
+                  getMostRecentWorkingDirectory={getMostRecentWorkingDirectory}
+                  onFetchFileSystem={async (directory) => {
+                    const response = await api.listDirectory({
+                      path: directory,
+                      recursive: true,
+                      respectGitignore: true,
+                    });
+                    return response.entries;
+                  }}
                 />
               </div>
 

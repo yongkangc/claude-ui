@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { MessageList } from '../MessageList/MessageList';
-import { InputArea } from '../InputArea/InputArea';
+import { Composer } from '@/web/common/components/Composer';
 import { ConversationHeader } from '../ConversationHeader/ConversationHeader';
 import { api } from '../../services/api';
 import { useStreaming, useConversationMessages } from '../../hooks';
@@ -211,14 +211,18 @@ export function ConversationView() {
         isStreaming={!!streamingId}
       />
 
-      <InputArea
-        onSubmit={handleSendMessage}
-        onStop={handleStop}
-        onPermissionDecision={handlePermissionDecision}
-        isLoading={isConnected || isPermissionDecisionLoading}
-        placeholder="Continue the conversation..."
-        permissionRequest={currentPermissionRequest}
-      />
+      <div className={styles.composerWrapper}>
+        <Composer
+          onSubmit={handleSendMessage}
+          onStop={handleStop}
+          onPermissionDecision={handlePermissionDecision}
+          isLoading={isConnected || isPermissionDecisionLoading}
+          placeholder="Continue the conversation..."
+          permissionRequest={currentPermissionRequest}
+          showPermissionUI={true}
+          showStopButton={true}
+        />
+      </div>
 
     </div>
   );
