@@ -27,7 +27,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
   // Clear messages
   const clearMessages = useCallback(() => {
     setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → 0 (reason: Clearing all messages)`);
       return [];
     });
     setToolResults({});
@@ -40,7 +39,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
   // Add a message
   const addMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${prev.length + 1} (reason: Adding new message)`);
       return [...prev, message];
     });
 
@@ -63,7 +61,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           });
           return { ...prev, ...updates };
         });
-        console.debug(`[useConversationMessages] Tracked ${toolUseIds.length} new tool uses:`, toolUseIds);
       }
     }
   }, []);
@@ -77,7 +74,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       
       case 'system_init':
         // Capture working directory from system init
-        console.debug('[useConversationMessages] System init event, working directory:', event.cwd);
         setCurrentWorkingDirectory(event.cwd);
         break;
 
@@ -110,7 +106,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
           
           if (hasToolResults) {
             setToolResults(prev => ({ ...prev, ...toolResultUpdates }));
-            console.debug(`[useConversationMessages] Updated tool results:`, Object.keys(toolResultUpdates));
             // Tool result messages should not be added as child messages - return early
             break;
           }
@@ -137,7 +132,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
               newChildren[userParentToolUseId] = [];
             }
             newChildren[userParentToolUseId] = [...newChildren[userParentToolUseId], userMessage];
-            console.debug(`[useConversationMessages] Added child user message to parent ${userParentToolUseId}`);
             return newChildren;
           });
         }
@@ -164,7 +158,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
               newChildren[parentToolUseId] = [];
             }
             newChildren[parentToolUseId] = [...newChildren[parentToolUseId], assistantMessage];
-            console.debug(`[useConversationMessages] Added child message to parent ${parentToolUseId}`);
             return newChildren;
           });
         } else {
@@ -205,7 +198,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
 
       case 'permission_request':
         // Handle permission request
-        console.debug('[useConversationMessages] Permission request received:', event.data);
         setCurrentPermissionRequest(event.data);
         options.onPermissionRequest?.(event.data);
         break;
@@ -232,12 +224,10 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     });
     
     setMessages(prev => {
-      console.debug(`[useConversationMessages] Message list length changed: ${prev.length} → ${parentMessages.length} (reason: Loading conversation from API, filtering out ${Object.values(newChildrenMessages).flat().length} child messages)`);
       return parentMessages;
     });
     
     setChildrenMessages(newChildrenMessages);
-    console.debug(`[useConversationMessages] Loaded ${Object.keys(newChildrenMessages).length} parent tools with children`);
 
     // Extract the working directory from the loaded messages (use the most recent one)
     const mostRecentWorkingDir = newMessages
@@ -246,7 +236,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
       .find(msg => msg.workingDirectory)?.workingDirectory;
     
     if (mostRecentWorkingDir) {
-      console.debug('[useConversationMessages] Set working directory from loaded messages:', mostRecentWorkingDir);
       setCurrentWorkingDirectory(mostRecentWorkingDir);
     }
 
@@ -277,7 +266,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
               } else if (Array.isArray(block.content)) {
                 result = block.content;
               }
-              console.debug('Adding tool result', block);
               
               newToolResults[toolUseId] = {
                 status: 'completed',
@@ -291,7 +279,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     });
 
     setToolResults(newToolResults);
-    console.debug(`[useConversationMessages] Built tool results from ${Object.keys(newToolResults).length} tool uses`);
   }, []);
 
   // Toggle task expansion
@@ -312,6 +299,11 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     setCurrentPermissionRequest(null);
   }, []);
 
+  // Set permission request (for loading existing permissions)
+  const setPermissionRequest = useCallback((permission: PermissionRequest) => {
+    setCurrentPermissionRequest(permission);
+  }, []);
+
   return {
     messages,
     toolResults,
@@ -324,5 +316,6 @@ export function useConversationMessages(options: UseConversationMessagesOptions 
     setAllMessages,
     toggleTaskExpanded,
     clearPermissionRequest,
+    setPermissionRequest,
   };
 }
