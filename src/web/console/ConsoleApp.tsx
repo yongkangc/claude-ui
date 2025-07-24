@@ -25,6 +25,7 @@ function ConsoleApp() {
     listDir: true,
     readFile: true,
     workingDirs: true,
+    bulkOperations: true,
   });
 
   // Form states
@@ -382,6 +383,24 @@ function ConsoleApp() {
       }
     } catch (e: any) {
       showJson('renameResult', { error: e.message });
+    }
+  };
+  
+  const archiveAllSessions = async () => {
+    try {
+      const response = await fetch('/api/conversations/archive-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      showJson('archiveAllResult', data);
+      
+      // Refresh available sessions to show updated archive status
+      if (data.success) {
+        loadAvailableSessions();
+      }
+    } catch (e: any) {
+      showJson('archiveAllResult', { error: e.message });
     }
   };
   
@@ -812,6 +831,25 @@ function ConsoleApp() {
             <button onClick={readFile}>Read File</button>
             <div id="readResult" className="json-viewer-container">
               {results.readResult && <JsonViewer data={results.readResult} resultId="readResult" />}
+            </div>
+          </div>
+        </div>
+
+        {/* Bulk Operations */}
+        <div className="section">
+          <div className={`endpoint collapsible ${collapsed.bulkOperations ? 'collapsed' : ''}`} onClick={() => toggleCollapse('bulkOperations')}>
+            Bulk Operations
+          </div>
+          <div className="collapsible-content">
+            <div style={{ marginBottom: '10px' }}>
+              <h4 style={{ margin: '5px 0' }}>Archive All Sessions</h4>
+              <p style={{ fontSize: '12px', color: '#666', margin: '5px 0' }}>
+                Archive all non-archived sessions at once. This action cannot be undone.
+              </p>
+              <button onClick={archiveAllSessions} style={{ background: '#e74c3c' }}>Archive All Sessions</button>
+              <div id="archiveAllResult" className="json-viewer-container">
+                {results.archiveAllResult && <JsonViewer data={results.archiveAllResult} resultId="archiveAllResult" />}
+              </div>
             </div>
           </div>
         </div>
