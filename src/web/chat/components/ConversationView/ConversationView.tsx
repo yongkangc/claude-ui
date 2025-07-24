@@ -184,6 +184,7 @@ export function ConversationView() {
     <div className={styles.container}>
       <ConversationHeader 
         title={conversationTitle}
+        sessionId={sessionId}
         subtitle={conversationSummary ? {
           date: new Date(conversationSummary.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           repo: conversationSummary.projectPath.split('/').pop() || 'project',
