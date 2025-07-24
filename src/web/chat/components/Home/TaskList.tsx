@@ -69,7 +69,7 @@ export function TaskList({
       await api.updateSession(sessionId, { archived: true });
       
       // Refresh the conversations list to ensure consistency
-      loadConversations();
+      loadConversations(undefined, getFiltersForTab(activeTab));
     } catch (error) {
       console.error('Failed to archive task:', error);
       // Restore visibility if the API call fails

@@ -14,7 +14,11 @@ interface ConversationsContextType {
   hasMore: boolean;
   error: string | null;
   recentDirectories: Record<string, RecentDirectory>;
-  loadConversations: (limit?: number) => Promise<void>;
+  loadConversations: (limit?: number, filters?: {
+    hasContinuation?: boolean;
+    archived?: boolean;
+    pinned?: boolean;
+  }) => Promise<void>;
   loadMoreConversations: () => Promise<void>;
   getMostRecentWorkingDirectory: () => string | null;
 }
@@ -155,10 +159,6 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     
     return sorted[0]?.projectPath || null;
   };
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
 
   return (
     <ConversationsContext.Provider 
