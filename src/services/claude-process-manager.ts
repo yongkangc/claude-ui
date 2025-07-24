@@ -62,13 +62,14 @@ export class ClaudeProcessManager extends EventEmitter {
   /**
    * Resume an existing Claude conversation
    */
-  async resumeConversation(config: { sessionId: string; message: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
+  async resumeConversation(config: { sessionId: string; message: string; previousMessages?: ConversationMessage[] }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
     const timestamp = new Date().toISOString();
     this.logger.info('Resume conversation requested', { 
       timestamp,
       sessionId: config.sessionId, 
       messageLength: config.message?.length,
       messagePreview: config.message?.substring(0, 50) + (config.message?.length > 50 ? '...' : ''),
+      previousMessageCount: config.previousMessages?.length || 0,
       activeProcessCount: this.processes.size,
       claudePath: this.claudeExecutablePath 
     });
@@ -92,7 +93,8 @@ export class ClaudeProcessManager extends EventEmitter {
     // Create a full ConversationConfig from the resume parameters
     const fullConfig: ConversationConfig = {
       workingDirectory,
-      initialPrompt: config.message
+      initialPrompt: config.message,
+      previousMessages: config.previousMessages
     };
     
     const args = this.buildResumeArgs(config);
@@ -393,7 +395,8 @@ export class ClaudeProcessManager extends EventEmitter {
             initialPrompt: config.initialPrompt || '',
             workingDirectory: config.workingDirectory || process.cwd(),
             model: config.model || 'default',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            inheritedMessages: config.previousMessages
           };
           
           this.conversationStatusManager.registerActiveSession(
@@ -403,7 +406,8 @@ export class ClaudeProcessManager extends EventEmitter {
           );
           this.logger.debug('Registered conversation context', {
             streamingId,
-            claudeSessionId: systemInitMessage.session_id
+            claudeSessionId: systemInitMessage.session_id,
+            inheritedMessageCount: config.previousMessages?.length || 0
           });
         } else {
           // Fallback to old behavior if service not set

@@ -108,6 +108,7 @@ export interface ConversationConfig {
   disallowedTools?: string[];
   systemPrompt?: string;
   claudeExecutablePath?: string;
+  previousMessages?: ConversationMessage[]; // Messages from previous session for resume context
 }
 
 // API request/response types

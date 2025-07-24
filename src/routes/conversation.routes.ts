@@ -107,9 +107,28 @@ export function createConversationRoutes(
         throw new CCUIError('INVALID_FIELDS', `Invalid fields for resume: ${extraFields.join(', ')}. Only sessionId and message are allowed.`, 400);
       }
       
+      // Fetch previous session messages for context
+      let previousMessages: ConversationMessage[] = [];
+      try {
+        previousMessages = await historyReader.fetchConversation(req.body.sessionId);
+        logger.debug('Fetched previous session messages', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          messageCount: previousMessages.length
+        });
+      } catch (error) {
+        logger.warn('Failed to fetch previous session messages', {
+          requestId,
+          originalSessionId: req.body.sessionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without previous messages - not a fatal error
+      }
+      
       const { streamingId, systemInit } = await processManager.resumeConversation({
         sessionId: req.body.sessionId,
-        message: req.body.message
+        message: req.body.message,
+        previousMessages
       });
 
       // Update original session with continuation session ID
@@ -128,13 +147,39 @@ export function createConversationRoutes(
         });
       }
       
+      // Register the resumed session with conversation status manager including previous messages
+      try {
+        conversationStatusManager.registerActiveSession(
+          streamingId,
+          systemInit.session_id,
+          {
+            initialPrompt: req.body.message,
+            workingDirectory: systemInit.cwd,
+            model: systemInit.model,
+            inheritedMessages: previousMessages.length > 0 ? previousMessages : undefined
+          }
+        );
+        logger.debug('Registered resumed session with inherited messages', {
+          requestId,
+          newSessionId: systemInit.session_id,
+          streamingId,
+          inheritedMessageCount: previousMessages.length
+        });
+      } catch (error) {
+        logger.warn('Failed to register resumed session with status manager', {
+          requestId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      
       logger.debug('Conversation resumed successfully', {
         requestId,
         originalSessionId: req.body.sessionId,
         newStreamingId: streamingId,
         newSessionId: systemInit.session_id,
         model: systemInit.model,
-        cwd: systemInit.cwd
+        cwd: systemInit.cwd,
+        previousMessageCount: previousMessages.length
       });
       
       res.json({ 

@@ -10,6 +10,7 @@ export interface ConversationStatusContext {
   workingDirectory: string;
   model: string;
   timestamp: string;
+  inheritedMessages?: ConversationMessage[]; // Messages from previous session when resuming
 }
 
 /**
@@ -40,7 +41,7 @@ export class ConversationStatusManager extends EventEmitter {
    * Register a new active streaming session with optional conversation context
    * This is called when we extract the session_id from the first stream message
    */
-  registerActiveSession(streamingId: string, claudeSessionId: string, conversationContext?: { initialPrompt: string; workingDirectory: string; model?: string }): void {
+  registerActiveSession(streamingId: string, claudeSessionId: string, conversationContext?: { initialPrompt: string; workingDirectory: string; model?: string; inheritedMessages?: ConversationMessage[] }): void {
     this.logger.debug('Registering active session', { 
       streamingId, 
       claudeSessionId,
@@ -80,7 +81,8 @@ export class ConversationStatusManager extends EventEmitter {
         initialPrompt: conversationContext.initialPrompt,
         workingDirectory: conversationContext.workingDirectory,
         model: conversationContext.model || 'default',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        inheritedMessages: conversationContext.inheritedMessages
       };
       this.sessionContext.set(claudeSessionId, context);
       
@@ -88,7 +90,8 @@ export class ConversationStatusManager extends EventEmitter {
         claudeSessionId,
         hasInitialPrompt: !!context.initialPrompt,
         workingDirectory: context.workingDirectory,
-        model: context.model
+        model: context.model,
+        inheritedMessageCount: context.inheritedMessages?.length || 0
       });
     }
 
@@ -296,7 +299,15 @@ export class ConversationStatusManager extends EventEmitter {
       return null;
     }
 
-    // Create response for active session
+    // Create messages array
+    const messages: ConversationMessage[] = [];
+    
+    // Add inherited messages first (if any)
+    if (context.inheritedMessages) {
+      messages.push(...context.inheritedMessages);
+    }
+    
+    // Add the current initial prompt message
     const activeMessage: ConversationMessage = {
       uuid: `active-${sessionId}-user`,
       type: 'user',
@@ -308,9 +319,10 @@ export class ConversationStatusManager extends EventEmitter {
       sessionId: sessionId,
       cwd: context.workingDirectory
     };
+    messages.push(activeMessage);
     
     const response: ConversationDetailsResponse = {
-      messages: [activeMessage],
+      messages,
       summary: '', // No summary for active conversation
       projectPath: context.workingDirectory,
       metadata: {
@@ -322,7 +334,9 @@ export class ConversationStatusManager extends EventEmitter {
     this.logger.debug('Created active conversation details', {
       sessionId,
       workingDirectory: context.workingDirectory,
-      model: context.model
+      model: context.model,
+      totalMessageCount: messages.length,
+      inheritedMessageCount: context.inheritedMessages?.length || 0
     });
     
     return response;
