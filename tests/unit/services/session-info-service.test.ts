@@ -514,6 +514,129 @@ describe('SessionInfoService', () => {
     });
   });
 
+  describe('archiveAllSessions', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should archive all non-archived sessions', async () => {
+      // Create some sessions with mixed archived states
+      await service.updateSessionInfo('session-1', {
+        custom_name: 'Session 1',
+        archived: false
+      });
+      await service.updateSessionInfo('session-2', {
+        custom_name: 'Session 2',
+        archived: true  // Already archived
+      });
+      await service.updateSessionInfo('session-3', {
+        custom_name: 'Session 3',
+        archived: false
+      });
+
+      // Archive all sessions
+      const archivedCount = await service.archiveAllSessions();
+
+      // Should have archived 2 sessions (not the already archived one)
+      expect(archivedCount).toBe(2);
+
+      // Verify all sessions are now archived
+      const session1 = await service.getSessionInfo('session-1');
+      const session2 = await service.getSessionInfo('session-2');
+      const session3 = await service.getSessionInfo('session-3');
+
+      expect(session1.archived).toBe(true);
+      expect(session2.archived).toBe(true);
+      expect(session3.archived).toBe(true);
+    });
+
+    it('should return 0 when all sessions are already archived', async () => {
+      // Create sessions that are already archived
+      await service.updateSessionInfo('session-1', {
+        custom_name: 'Session 1',
+        archived: true
+      });
+      await service.updateSessionInfo('session-2', {
+        custom_name: 'Session 2',
+        archived: true
+      });
+
+      // Archive all sessions
+      const archivedCount = await service.archiveAllSessions();
+
+      // Should have archived 0 sessions
+      expect(archivedCount).toBe(0);
+    });
+
+    it('should return 0 when there are no sessions', async () => {
+      // Archive all sessions when none exist
+      const archivedCount = await service.archiveAllSessions();
+
+      // Should have archived 0 sessions
+      expect(archivedCount).toBe(0);
+    });
+
+    it('should update timestamps for archived sessions', async () => {
+      // Create a session
+      await service.updateSessionInfo('session-1', {
+        custom_name: 'Session 1',
+        archived: false
+      });
+
+      const beforeArchive = await service.getSessionInfo('session-1');
+      
+      // Wait a bit to ensure timestamps are different
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Archive all sessions
+      await service.archiveAllSessions();
+
+      const afterArchive = await service.getSessionInfo('session-1');
+
+      // Check that updated_at changed but created_at remained the same
+      expect(afterArchive.created_at).toBe(beforeArchive.created_at);
+      expect(new Date(afterArchive.updated_at).getTime()).toBeGreaterThan(new Date(beforeArchive.updated_at).getTime());
+    });
+
+    it('should preserve other session fields when archiving', async () => {
+      // Create a session with various fields set
+      await service.updateSessionInfo('session-1', {
+        custom_name: 'Important Session',
+        pinned: true,
+        archived: false,
+        continuation_session_id: 'next-session',
+        initial_commit_head: 'abc123'
+      });
+
+      // Archive all sessions
+      await service.archiveAllSessions();
+
+      const session = await service.getSessionInfo('session-1');
+
+      // All fields should be preserved except archived
+      expect(session.custom_name).toBe('Important Session');
+      expect(session.pinned).toBe(true);
+      expect(session.archived).toBe(true);  // This should be updated
+      expect(session.continuation_session_id).toBe('next-session');
+      expect(session.initial_commit_head).toBe('abc123');
+    });
+
+    it('should throw error on archive failure', async () => {
+      // Mock JsonFileManager to throw error
+      const mockError = new Error('Archive error');
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
+
+      await expect(service.archiveAllSessions()).rejects.toThrow('Failed to archive all sessions');
+
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
   describe('singleton behavior', () => {
     it('should return the same instance across multiple calls', () => {
       const instance1 = SessionInfoService.getInstance();

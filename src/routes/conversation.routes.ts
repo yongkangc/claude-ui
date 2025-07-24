@@ -471,5 +471,36 @@ export function createConversationRoutes(
     }
   });
 
+  // Archive all sessions
+  router.post('/archive-all', async (req, res, next) => {
+    const requestId = (req as any).requestId;
+    
+    logger.debug('Archive all sessions request', {
+      requestId
+    });
+    
+    try {
+      // Archive all sessions
+      const archivedCount = await sessionInfoService.archiveAllSessions();
+      
+      logger.info('All sessions archived successfully', {
+        requestId,
+        archivedCount
+      });
+      
+      res.json({
+        success: true,
+        archivedCount,
+        message: `Successfully archived ${archivedCount} session${archivedCount !== 1 ? 's' : ''}`
+      });
+    } catch (error) {
+      logger.debug('Archive all sessions failed', {
+        requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      next(error);
+    }
+  });
+
   return router;
 }

@@ -108,4 +108,70 @@ describe('Conversation Routes - Resume Endpoint', () => {
       expect(response.body.error).toContain('message is required');
     });
   });
+
+  describe('POST /api/conversations/archive-all', () => {
+    beforeEach(() => {
+      sessionInfoService.archiveAllSessions = jest.fn();
+    });
+
+    it('should archive all sessions successfully', async () => {
+      sessionInfoService.archiveAllSessions.mockResolvedValue(5);
+
+      const response = await request(app)
+        .post('/api/conversations/archive-all')
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        archivedCount: 5,
+        message: 'Successfully archived 5 sessions'
+      });
+      expect(sessionInfoService.archiveAllSessions).toHaveBeenCalled();
+    });
+
+    it('should handle archiving zero sessions', async () => {
+      sessionInfoService.archiveAllSessions.mockResolvedValue(0);
+
+      const response = await request(app)
+        .post('/api/conversations/archive-all')
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        archivedCount: 0,
+        message: 'Successfully archived 0 sessions'
+      });
+      expect(sessionInfoService.archiveAllSessions).toHaveBeenCalled();
+    });
+
+    it('should handle archiving one session with singular message', async () => {
+      sessionInfoService.archiveAllSessions.mockResolvedValue(1);
+
+      const response = await request(app)
+        .post('/api/conversations/archive-all')
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        archivedCount: 1,
+        message: 'Successfully archived 1 session'
+      });
+      expect(sessionInfoService.archiveAllSessions).toHaveBeenCalled();
+    });
+
+    it('should handle service errors', async () => {
+      sessionInfoService.archiveAllSessions.mockRejectedValue(new Error('Database error'));
+
+      const response = await request(app)
+        .post('/api/conversations/archive-all')
+        .send();
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Database error');
+      expect(sessionInfoService.archiveAllSessions).toHaveBeenCalled();
+    });
+  });
 });

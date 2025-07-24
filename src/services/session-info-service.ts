@@ -352,4 +352,44 @@ export class SessionInfoService {
   getConfigDir(): string {
     return this.configDir;
   }
+
+  /**
+   * Archive all sessions that aren't already archived
+   * Returns the number of sessions that were archived
+   */
+  async archiveAllSessions(): Promise<number> {
+    this.logger.info('Archiving all sessions');
+
+    try {
+      let archivedCount = 0;
+      
+      await this.jsonManager.update((data) => {
+        const now = new Date().toISOString();
+        
+        Object.keys(data.sessions).forEach(sessionId => {
+          const session = data.sessions[sessionId];
+          if (!session.archived) {
+            data.sessions[sessionId] = {
+              ...session,
+              archived: true,
+              updated_at: now
+            };
+            archivedCount++;
+          }
+        });
+
+        if (archivedCount > 0) {
+          data.metadata.last_updated = now;
+        }
+
+        return data;
+      });
+
+      this.logger.info('Sessions archived successfully', { archivedCount });
+      return archivedCount;
+    } catch (error) {
+      this.logger.error('Failed to archive all sessions', error);
+      throw new Error(`Failed to archive all sessions: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 }
