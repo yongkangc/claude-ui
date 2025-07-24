@@ -229,18 +229,24 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
           style={{ ...style, margin: 0 }}
         >
           <code className={styles.codeContent}>
-            {tokens.map((line, i) => (
-              <div key={i} {...getLineProps({ line, key: i })} className={styles.line}>
-                {showLineNumbers && (
-                  <span className={styles.lineNumber}>{i + 1}</span>
-                )}
-                <span className={styles.lineContent}>
-                  {line.map((token, key) => (
-                    <span key={key} {...getTokenProps({ token, key })} />
-                  ))}
-                </span>
-              </div>
-            ))}
+            {tokens.map((line, i) => {
+              const { key, ...lineProps } = getLineProps({ line, key: i });
+              return (
+                <div key={i} {...lineProps} className={styles.line}>
+                  {showLineNumbers && (
+                    <span className={styles.lineNumber}>{i + 1}</span>
+                  )}
+                  <span className={styles.lineContent}>
+                    {line.map((token, key) => {
+                      const { key: tokenKey, ...tokenProps } = getTokenProps({ token, key });
+                      return (
+                        <span key={key} {...tokenProps} />
+                      );
+                    })}
+                  </span>
+                </div>
+              );
+            })}
           </code>
         </pre>
       )}
