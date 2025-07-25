@@ -164,9 +164,12 @@ export function ConversationView() {
     setError(null);
 
     try {
-      const response = await api.resumeConversation({
-        sessionId,
-        message,
+      const response = await api.startConversation({
+        resumedSessionId: sessionId,
+        initialPrompt: message,
+        workingDirectory: workingDirectory || currentWorkingDirectory,
+        model,
+        permissionMode
       });
 
       // Navigate immediately to the new session

@@ -234,9 +234,10 @@ describe('ClaudeProcessManager', () => {
         }
       });
 
-      await manager.resumeConversation({
-        sessionId: 'test-session-id',
-        message: 'resume test'
+      await manager.startConversation({
+        resumedSessionId: 'test-session-id',
+        initialPrompt: 'resume test',
+        workingDirectory: testDir
       });
       
       // Wait for the system init message
