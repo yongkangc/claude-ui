@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styles from './PreferencesModal.module.css';
 import { api } from '../../services/api';
 import type { Preferences } from '../../types';
+import { Dialog } from '../Dialog';
 
 interface Props {
   onClose: () => void;
@@ -55,12 +56,13 @@ export function PreferencesModal({ onClose }: Props) {
   };
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <h2>Preferences</h2>
-        <label>
+    <Dialog open={true} onClose={onClose} title="Preferences">
+      <div className={styles.content}>
+        <h2 className={styles.heading}>Preferences</h2>
+        <label className={styles.label}>
           Color Scheme:
           <select
+            className={styles.select}
             value={prefs.colorScheme}
             onChange={(e) => update({ colorScheme: e.target.value as 'light' | 'dark' | 'system' })}
           >
@@ -69,38 +71,25 @@ export function PreferencesModal({ onClose }: Props) {
             <option value="system">System</option>
           </select>
         </label>
-        <label>
+        <label className={styles.label}>
           Language:
           <input
+            className={styles.input}
             value={prefs.language}
             onChange={(e) => update({ language: e.target.value })}
           />
         </label>
         
-        <div style={{ marginTop: '20px', borderTop: '1px solid var(--color-border)', paddingTop: '20px' }}>
-          <h3 style={{ marginBottom: '10px' }}>Session Management</h3>
+        <div className={styles.sessionSection}>
+          <h3 className={styles.sectionTitle}>Session Management</h3>
           <button 
             onClick={handleArchiveAll}
-            style={{ 
-              backgroundColor: '#e74c3c',
-              color: 'white',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginBottom: '10px'
-            }}
+            className={styles.archiveButton}
           >
             Archive All Sessions
           </button>
           {archiveStatus && (
-            <div style={{ 
-              marginTop: '10px', 
-              padding: '8px',
-              backgroundColor: archiveStatus.startsWith('Error') ? '#ffe6e6' : '#e6ffe6',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
+            <div className={`${styles.statusMessage} ${archiveStatus.startsWith('Error') ? styles.error : styles.success}`}>
               {archiveStatus}
             </div>
           )}
@@ -108,6 +97,6 @@ export function PreferencesModal({ onClose }: Props) {
         
         <button onClick={onClose} className={styles.closeButton}>Close</button>
       </div>
-    </div>
+    </Dialog>
   );
 }
