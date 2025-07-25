@@ -12,7 +12,7 @@ describe('streamEventMapper', () => {
 
       const result = mapStreamEventToStatus(event);
 
-      expect(result.currentStatus).toBe('Connected');
+      expect(result.currentStatus).toBe('Running');
       expect(result.connectionState).toBe('connected');
       expect(result.lastEvent).toEqual(event);
     });
@@ -120,7 +120,7 @@ describe('streamEventMapper', () => {
 
       const result = mapStreamEventToStatus(event);
 
-      expect(result.currentStatus).toBe('Processing input...');
+      expect(result.currentStatus).toBe('Processing...');
     });
 
     it('should map result success event', () => {

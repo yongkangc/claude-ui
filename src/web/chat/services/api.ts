@@ -24,7 +24,7 @@ class ApiService {
     const method = options?.method || 'GET';
     
     // Log request
-    // console.log(`[API] ${method} ${fullUrl}`, options?.body ? JSON.parse(options.body as string) : '');
+    console.log(`[API] ${method} ${fullUrl}`, options?.body ? JSON.parse(options.body as string) : '');
     
     try {
       const response = await fetch(fullUrl, {

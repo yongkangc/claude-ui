@@ -13,7 +13,7 @@ export function mapStreamEventToStatus(event: StreamEvent, currentStatus?: Strea
     case 'connected':
       return {
         ...updates,
-        currentStatus: 'Connected',
+        currentStatus: 'Running',
         connectionState: 'connected',
       };
 
@@ -27,14 +27,15 @@ export function mapStreamEventToStatus(event: StreamEvent, currentStatus?: Strea
       }
       break;
 
+    case 'user':
+      // Don't update status for user messages - just update the last event info
+      return {
+        lastEvent: event,
+        lastEventTime: new Date().toISOString(),
+      };
+
     case 'assistant':
       return mapAssistantMessage(event, updates);
-
-    case 'user':
-      return {
-        ...updates,
-        currentStatus: 'Processing input...',
-      };
 
     case 'result':
       return mapResultMessage(event, updates);
@@ -56,7 +57,7 @@ export function mapStreamEventToStatus(event: StreamEvent, currentStatus?: Strea
     case 'permission_request':
       return {
         ...updates,
-        currentStatus: `Requesting permission: ${event.data.toolName}`,
+        currentStatus: `Awaiting approval...`,
       };
   }
 
@@ -156,8 +157,8 @@ function getToolStatusMessage(toolName: string): string {
     'WebSearch': 'Searching web...',
     
     // Todo operations
-    'TodoRead': 'Reading tasks...',
-    'TodoWrite': 'Updating tasks...',
+    'TodoRead': 'Reading To-Do...',
+    'TodoWrite': 'Updating To-Do...',
     
     // Planning
     'exit_plan_mode': 'Finalizing plan...',

@@ -22,7 +22,7 @@ export function StreamStatusProvider({ children }: { children: ReactNode }) {
   const handleStreamMessage = useCallback((streamingId: string, event: StreamEvent) => {
     const currentStatus = streamStatusesRef.current.get(streamingId) || {
       connectionState: 'connected' as const,
-      currentStatus: 'Connected',
+      currentStatus: 'Running',
     };
 
     // Use the streamEventMapper utility to map event to status
@@ -60,7 +60,7 @@ export function StreamStatusProvider({ children }: { children: ReactNode }) {
   const handleStreamConnect = useCallback((streamingId: string) => {
     const updatedStatus: StreamStatus = {
       connectionState: 'connected',
-      currentStatus: 'Connected',
+      currentStatus: 'Running',
       lastEventTime: new Date().toISOString(),
     };
 
