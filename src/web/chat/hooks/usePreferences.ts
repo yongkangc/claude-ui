@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import type { Preferences } from '../types';
+import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export function usePreferences() {
-  const [prefs, setPrefs] = useState<Preferences | null>(null);
+  const { preferences, updatePreferences } = usePreferencesContext();
 
-  useEffect(() => {
-    api.getPreferences().then(setPrefs).catch(() => {});
-  }, []);
-
-  const update = async (updates: Partial<Preferences>) => {
-    const updated = await api.updatePreferences(updates);
-    setPrefs(updated);
-  };
-
-  return { preferences: prefs, update };
+  return { preferences, update: updatePreferences };
 }

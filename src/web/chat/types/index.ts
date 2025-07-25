@@ -88,7 +88,7 @@ export interface WorkingDirectoriesResponse {
 }
 
 export interface Preferences {
-  colorScheme: 'light' | 'dark';
+  colorScheme: 'light' | 'dark' | 'system';
   language: string;
 }
 
