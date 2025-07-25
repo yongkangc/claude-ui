@@ -199,12 +199,12 @@ export function ConversationView() {
     }
   };
 
-  const handlePermissionDecision = async (requestId: string, action: 'approve' | 'deny') => {
+  const handlePermissionDecision = async (requestId: string, action: 'approve' | 'deny', denyReason?: string) => {
     if (isPermissionDecisionLoading) return;
 
     setIsPermissionDecisionLoading(true);
     try {
-      await api.sendPermissionDecision(requestId, { action });
+      await api.sendPermissionDecision(requestId, { action, denyReason });
       // Clear the permission request after successful decision
       clearPermissionRequest();
     } catch (err: any) {

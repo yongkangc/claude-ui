@@ -265,6 +265,7 @@ export interface SessionInfo {
   continuation_session_id: string; // ID of the continuation session if exists, default: ""
   initial_commit_head: string;  // Git commit HEAD when session started, default: ""
   permission_mode: string;      // Permission mode used for the session, default: "default"
+  notifications_muted: boolean; // Whether notifications are muted for this session
 }
 
 export interface DatabaseMetadata {

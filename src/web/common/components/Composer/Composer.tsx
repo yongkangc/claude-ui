@@ -3,6 +3,7 @@ import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } f
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
 import type { PermissionRequest } from '@/types';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 import styles from './Composer.module.css';
 
 export interface FileSystemEntry {
@@ -48,7 +49,7 @@ export interface ComposerProps {
 
   // Permission handling
   permissionRequest?: PermissionRequest | null;
-  onPermissionDecision?: (requestId: string, action: 'approve' | 'deny') => void;
+  onPermissionDecision?: (requestId: string, action: 'approve' | 'deny', denyReason?: string) => void;
 
   // Stop functionality
   onStop?: () => void;
@@ -178,6 +179,11 @@ function AutocompleteDropdown({
   );
 }
 
+interface ComposerCache {
+  selectedPermissionMode: string;
+  draft: string;
+}
+
 export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer({
   value: controlledValue,
   onChange: onControlledChange,
@@ -204,8 +210,14 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   onFetchFileSystem,
   dropdownPosition = 'below',
 }: ComposerProps, ref: React.Ref<ComposerRef>) {
+  // Load cached state
+  const [cachedState, setCachedState] = useLocalStorage<ComposerCache>('ccui-composer', {
+    selectedPermissionMode: 'default',
+    draft: '',
+  });
+
   // Use controlled or uncontrolled value
-  const [uncontrolledValue, setUncontrolledValue] = useState('');
+  const [uncontrolledValue, setUncontrolledValue] = useState(cachedState.draft);
   const value = controlledValue !== undefined ? controlledValue : uncontrolledValue;
   const setValue = (newValue: string) => {
     if (controlledValue === undefined) {
@@ -216,7 +228,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
   const [selectedModel, setSelectedModel] = useState(model);
-  const [selectedPermissionMode, setSelectedPermissionMode] = useState<string>('default');
+  const [selectedPermissionMode, setSelectedPermissionMode] = useState<string>(cachedState.selectedPermissionMode);
   const [isPermissionDropdownOpen, setIsPermissionDropdownOpen] = useState(false);
   const [localFileSystemEntries, setLocalFileSystemEntries] = useState<FileSystemEntry[]>(fileSystemEntries);
   const [autocomplete, setAutocomplete] = useState<AutocompleteState>({
@@ -255,6 +267,14 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       setLocalFileSystemEntries(fileSystemEntries);
     }
   }, [fileSystemEntries]);
+
+  // Update cache when state changes
+  useEffect(() => {
+    setCachedState({
+      selectedPermissionMode,
+      draft: value,
+    });
+  }, [selectedPermissionMode, value, setCachedState]);
 
   // Auto-select most recent directory on mount (for Home usage)
   useEffect(() => {
@@ -338,6 +358,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       case 'default': return 'Code';
       case 'acceptEdits': return 'Auto';
       case 'bypassPermissions': return 'Yolo';
+      case 'plan': return 'Plan';
       default: return 'Code';
     }
   };
@@ -347,6 +368,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       case 'default': return 'Code - Ask for permissions as needed';
       case 'acceptEdits': return 'Auto - Allow Claude to make changes directly';
       case 'bypassPermissions': return 'Yolo - Skip all permission prompts';
+      case 'plan': return 'Plan - Create a plan without executing';
       default: return 'Code - Ask for permissions as needed';
     }
   };
@@ -459,7 +481,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     } else if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
-        handleSubmit('default');
+        handleSubmit(selectedPermissionMode);
       }
     }
   };
@@ -498,7 +520,10 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   };
 
   return (
-    <form className={styles.composer} onSubmit={handleSubmit}>
+    <form className={styles.composer} onSubmit={(e) => {
+      e.preventDefault();
+      handleSubmit(selectedPermissionMode);
+    }}>
       {enableFileAutocomplete && dropdownPosition === 'above' && (
         <AutocompleteDropdown
           suggestions={autocomplete.suggestions}
@@ -515,12 +540,12 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
             <textarea
               ref={textareaRef}
               className={styles.textarea}
-              placeholder={placeholder}
+              placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
               value={value}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               rows={1}
-              disabled={isLoading || disabled}
+              disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
             />
           </div>
 
@@ -579,7 +604,11 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary} ${styles.denyButton}`}
-                  onClick={() => onPermissionDecision?.(permissionRequest.id, 'deny')}
+                  onClick={() => {
+                    const denyReason = value.trim();
+                    onPermissionDecision?.(permissionRequest.id, 'deny', denyReason || undefined);
+                    setValue('');
+                  }}
                 >
                   <div className={styles.btnContent}>
                     <X size={14} />
@@ -598,19 +627,6 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               </button>
             ) : value.trim() ? (
               <div className={styles.permissionModeButtons}>
-                {/* Separate Plan Button */}
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.btnSecondary}`}
-                  title="Plan Mode - Create a plan without executing"
-                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
-                  onClick={() => handleSubmit('plan')}
-                >
-                  <div className={styles.btnContent}>
-                    {isLoading ? <Loader2 size={14} className={styles.spinning} /> : 'Plan'}
-                  </div>
-                </button>
-                
                 {/* Combined Permission Mode Button with Dropdown */}
                 <div className={styles.combinedPermissionButton}>
                   <button
@@ -629,6 +645,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                       { value: 'default', label: 'Code' },
                       { value: 'acceptEdits', label: 'Auto' },
                       { value: 'bypassPermissions', label: 'Yolo' },
+                      { value: 'plan', label: 'Plan' },
                     ]}
                     value={selectedPermissionMode}
                     onChange={setSelectedPermissionMode}

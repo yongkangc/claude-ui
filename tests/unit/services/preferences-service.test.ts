@@ -45,6 +45,8 @@ describe('PreferencesService', () => {
     const prefs = await service.getPreferences();
     expect(prefs.colorScheme).toBe('system');
     expect(prefs.language).toBe('en');
+    expect(prefs.notificationsEnabled).toBe(false);
+    expect(prefs.pushSubscriptions).toEqual([]);
   });
 
   it('updates preferences', async () => {

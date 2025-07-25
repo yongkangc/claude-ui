@@ -1,0 +1,30 @@
+{
+  "name": "Claude Code Web UI",
+  "short_name": "CCUI",
+  "description": "Web interface for Claude CLI tool with real-time streaming",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a1a1a",
+  "background_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "categories": ["developer", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

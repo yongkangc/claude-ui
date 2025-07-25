@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { CCUIConfig, DEFAULT_CONFIG } from '@/types/config';
+import { CCUIConfig, DEFAULT_CONFIG, VapidConfig } from '@/types/config';
 import { generateMachineId } from '@/utils/machine-id';
 import { createLogger, type Logger } from './logger';
+import webpush from 'web-push';
 
 /**
  * ConfigService manages CCUI configuration
@@ -130,6 +131,100 @@ export class ConfigService {
       this.logger.debug('Configuration loaded', { config });
     } catch (error) {
       throw new Error(`Failed to load config: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get VAPID configuration
+   * Falls back to environment variables if not in config
+   * Generates new keys if neither exists
+   */
+  async getVapidConfig(): Promise<VapidConfig> {
+    // First check config file
+    if (this.config?.vapid) {
+      this.logger.debug('Using VAPID keys from config');
+      return this.config.vapid;
+    }
+
+    // Then check environment variables
+    const envPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const envPrivateKey = process.env.VAPID_PRIVATE_KEY;
+    const envEmail = process.env.VAPID_EMAIL || 'notifications@ccui.local';
+
+    if (envPublicKey && envPrivateKey) {
+      this.logger.debug('Using VAPID keys from environment variables');
+      return {
+        publicKey: envPublicKey,
+        privateKey: envPrivateKey,
+        email: envEmail
+      };
+    }
+
+    // Generate new keys if neither exists
+    this.logger.info('No VAPID keys found, generating new keys');
+    const vapidKeys = webpush.generateVAPIDKeys();
+    const vapidConfig: VapidConfig = {
+      publicKey: vapidKeys.publicKey,
+      privateKey: vapidKeys.privateKey,
+      email: envEmail
+    };
+
+    // Save to config
+    await this.saveVapidConfig(vapidConfig);
+    return vapidConfig;
+  }
+
+  /**
+   * Save VAPID configuration to config file
+   */
+  async saveVapidConfig(vapidConfig: VapidConfig): Promise<void> {
+    if (!this.config) {
+      throw new Error('Configuration not initialized');
+    }
+
+    this.logger.info('Saving VAPID configuration');
+    
+    // Update in-memory config
+    this.config.vapid = vapidConfig;
+    
+    // Write to file
+    try {
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        'utf-8'
+      );
+      this.logger.info('VAPID configuration saved successfully');
+    } catch (error) {
+      this.logger.error('Failed to save VAPID configuration', error);
+      throw new Error(`Failed to save VAPID config: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Update configuration
+   */
+  async updateConfig(updates: Partial<CCUIConfig>): Promise<void> {
+    if (!this.config) {
+      throw new Error('Configuration not initialized');
+    }
+
+    this.logger.info('Updating configuration', { updates });
+    
+    // Update in-memory config
+    this.config = { ...this.config, ...updates };
+    
+    // Write to file
+    try {
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        'utf-8'
+      );
+      this.logger.info('Configuration updated successfully');
+    } catch (error) {
+      this.logger.error('Failed to update configuration', error);
+      throw new Error(`Failed to update config: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

@@ -82,12 +82,13 @@ export class ClaudeHistoryReader {
               custom_name: '',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-              version: 3,
+              version: 4,
               pinned: false,
               archived: false,
               continuation_session_id: '',
               initial_commit_head: '',
-              permission_mode: 'default'
+              permission_mode: 'default',
+              notifications_muted: false
             };
           }
 

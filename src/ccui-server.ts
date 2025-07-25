@@ -26,6 +26,8 @@ import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
 import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
 import { createPreferencesRoutes } from './routes/preferences.routes';
+import { createNotificationRoutes } from './routes/notification.routes';
+import { NotificationService } from './services/notification-service';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
@@ -53,6 +55,7 @@ export class CCUIServer {
   private configService: ConfigService;
   private sessionInfoService: SessionInfoService;
   private preferencesService: PreferencesService;
+  private notificationService: NotificationService;
   private conversationStatusManager: ConversationStatusManager;
   private workingDirectoriesService: WorkingDirectoriesService;
   private toolMetricsService: ToolMetricsService;
@@ -92,6 +95,7 @@ export class CCUIServer {
     this.fileSystemService = new FileSystemService();
     this.sessionInfoService = SessionInfoService.getInstance();
     this.preferencesService = PreferencesService.getInstance();
+    this.notificationService = NotificationService.getInstance();
     this.processManager = new ClaudeProcessManager(this.historyReader, this.statusTracker, undefined, undefined, this.toolMetricsService, this.sessionInfoService, this.fileSystemService);
     this.streamManager = new StreamManager();
     this.permissionTracker = new PermissionTracker();
@@ -125,6 +129,10 @@ export class CCUIServer {
       this.logger.debug('Initializing preferences service');
       await this.preferencesService.initialize();
       this.logger.debug('Preferences service initialized successfully');
+
+      this.logger.debug('Initializing notification service');
+      await this.notificationService.initialize();
+      this.logger.debug('Notification service initialized successfully');
       
       // Apply overrides if provided (for tests and CLI options)
       this.port = this.configOverrides?.port ?? config.server.port;
@@ -353,6 +361,7 @@ export class CCUIServer {
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
+    this.app.use('/api/notifications', createNotificationRoutes(this.notificationService));
     
     // ViteExpress handles React app routing automatically
     
@@ -397,7 +406,7 @@ export class CCUIServer {
 
     // Handle process closure
     this.processManager.on('process-closed', ({ streamingId, code }) => {
-      this.logger.debug('Received process-closed event, closing StreamManager session', { 
+      this.logger.debug('Received process-closed event, closing StreamManager session', {
         streamingId,
         exitCode: code,
         clientCount: this.streamManager.getClientCount(streamingId),
@@ -413,12 +422,28 @@ export class CCUIServer {
       // Clean up permissions for this streaming session
       const removedCount = this.permissionTracker.removePermissionsByStreamingId(streamingId);
       if (removedCount > 0) {
-        this.logger.debug('Cleaned up permissions for closed session', { 
-          streamingId, 
-          removedPermissions: removedCount 
+        this.logger.debug('Cleaned up permissions for closed session', {
+          streamingId,
+          removedPermissions: removedCount
         });
       }
-      
+
+      if (code === 0) {
+        const sessionId = this.conversationStatusManager.getSessionId(streamingId);
+        if (sessionId) {
+          this.sessionInfoService.getSessionInfo(sessionId).then(info => {
+            if (!info.notifications_muted) {
+              this.notificationService.sendNotification({
+                type: 'session_complete',
+                sessionId,
+                sessionName: info.custom_name || sessionId,
+                timestamp: new Date().toISOString()
+              });
+            }
+          }).catch(() => {});
+        }
+      }
+
       this.streamManager.closeSession(streamingId);
     });
 
@@ -478,8 +503,23 @@ export class CCUIServer {
           streamingId: request.streamingId,
           timestamp: new Date().toISOString()
         };
-        
+
         this.streamManager.broadcast(request.streamingId, event);
+
+        const sessionId = this.conversationStatusManager.getSessionId(request.streamingId);
+        if (sessionId) {
+          this.sessionInfoService.getSessionInfo(sessionId).then(info => {
+            if (!info.notifications_muted) {
+              this.notificationService.sendNotification({
+                type: 'permission_request',
+                sessionId,
+                sessionName: info.custom_name || sessionId,
+                timestamp: new Date().toISOString(),
+                details: { toolName: request.toolName }
+              });
+            }
+          }).catch(() => {});
+        }
       }
     });
     

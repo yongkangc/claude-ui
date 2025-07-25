@@ -42,7 +42,7 @@ export class SessionInfoService {
     const defaultData: SessionInfoDatabase = {
       sessions: {},
       metadata: {
-        schema_version: 3,
+        schema_version: 4,
         created_at: new Date().toISOString(),
         last_updated: new Date().toISOString()
       }
@@ -113,7 +113,7 @@ export class SessionInfoService {
       const sessionInfo = data.sessions[sessionId];
       
       if (sessionInfo) {
-        this.logger.debug('Found existing session info', { sessionId, sessionInfo });
+        // this.logger.debug('Found existing session info', { sessionId, sessionInfo });
         return sessionInfo;
       }
 
@@ -122,12 +122,13 @@ export class SessionInfoService {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 3,
+        version: 4,
         pinned: false,
         archived: false,
         continuation_session_id: '',
         initial_commit_head: '',
-        permission_mode: 'default'
+        permission_mode: 'default',
+        notifications_muted: false
       };
 
       // Create entry in database for the new session
@@ -147,12 +148,13 @@ export class SessionInfoService {
         custom_name: '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        version: 3,
+        version: 4,
         pinned: false,
         archived: false,
         continuation_session_id: '',
         initial_commit_head: '',
-        permission_mode: 'default'
+        permission_mode: 'default',
+        notifications_muted: false
       };
     }
   }
@@ -186,12 +188,13 @@ export class SessionInfoService {
             custom_name: '',
             created_at: now,
             updated_at: now,
-            version: 3,
+            version: 4,
             pinned: false,
             archived: false,
             continuation_session_id: '',
             initial_commit_head: '',
             permission_mode: 'default',
+            notifications_muted: false,
             ...updates  // Apply any provided updates
           };
           data.sessions[sessionId] = updatedSession;
@@ -334,10 +337,26 @@ export class SessionInfoService {
               version: 3
             };
           });
-          
+
           data.metadata.schema_version = 3;
           data.metadata.last_updated = new Date().toISOString();
           this.logger.info('Migrated database to schema version 3');
+        }
+
+        if (data.metadata.schema_version < 4) {
+          // Migrate to version 4 - add notifications_muted field
+          Object.keys(data.sessions).forEach(sessionId => {
+            const session = data.sessions[sessionId];
+            data.sessions[sessionId] = {
+              ...session,
+              notifications_muted: session.notifications_muted ?? false,
+              version: 4
+            };
+          });
+
+          data.metadata.schema_version = 4;
+          data.metadata.last_updated = new Date().toISOString();
+          this.logger.info('Migrated database to schema version 4');
         }
 
         return data;

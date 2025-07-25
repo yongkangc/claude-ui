@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Archive, Share, Github, Bell } from 'lucide-react';
+import { ArrowLeft, Archive, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import styles from './ConversationHeader.module.css';
@@ -86,23 +86,6 @@ export function ConversationHeader({ title, sessionId, isArchived = false, subti
           <Archive size={20} />
           <span>{isArchived ? 'Unarchive' : 'Archive'}</span>
         </button>
-        
-        <button className={styles.actionButton} aria-label="Share task">
-          <Share size={20} />
-          <span>Share</span>
-        </button>
-        
-        <div className={styles.createPRButton}>
-          <button className={styles.primaryButton}>
-            <Github size={20} />
-            <span>Create PR</span>
-          </button>
-          <button className={styles.dropdownButton} aria-label="Open git action menu">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4.5 5.5L8 9L11.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
-          </button>
-        </div>
         
         <button className={styles.notificationButton} aria-label="Open notifications">
           <Bell size={20} />
