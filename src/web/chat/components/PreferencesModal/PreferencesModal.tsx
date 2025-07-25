@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Settings, Bell, Shield } from 'lucide-react';
 import styles from './PreferencesModal.module.css';
 import { api } from '../../services/api';
 import type { Preferences } from '../../types';
@@ -8,8 +9,23 @@ interface Props {
   onClose: () => void;
 }
 
+type TabId = 'general' | 'notifications' | 'dataControls';
+
+interface Tab {
+  id: TabId;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const tabs: Tab[] = [
+  { id: 'general', label: 'General', icon: <Settings size={18} /> },
+  { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+  { id: 'dataControls', label: 'Data controls', icon: <Shield size={18} /> },
+];
+
 export function PreferencesModal({ onClose }: Props) {
-  const [prefs, setPrefs] = useState<Preferences>({ colorScheme: 'light', language: 'en' });
+  const [prefs, setPrefs] = useState<Preferences>({ colorScheme: 'system', language: 'auto-detect' });
+  const [activeTab, setActiveTab] = useState<TabId>('general');
   const [archiveStatus, setArchiveStatus] = useState<string>('');
 
   useEffect(() => {
@@ -45,7 +61,6 @@ export function PreferencesModal({ onClose }: Props) {
       
       if (data.success) {
         setArchiveStatus(data.message);
-        // Clear the status after 3 seconds
         setTimeout(() => setArchiveStatus(''), 3000);
       } else {
         setArchiveStatus(`Error: ${data.error || 'Failed to archive sessions'}`);
@@ -55,47 +70,99 @@ export function PreferencesModal({ onClose }: Props) {
     }
   };
 
-  return (
-    <Dialog open={true} onClose={onClose} title="Preferences">
-      <div className={styles.content}>
-        <h2 className={styles.heading}>Preferences</h2>
-        <label className={styles.label}>
-          Color Scheme:
-          <select
-            className={styles.select}
-            value={prefs.colorScheme}
-            onChange={(e) => update({ colorScheme: e.target.value as 'light' | 'dark' | 'system' })}
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
-        </label>
-        <label className={styles.label}>
-          Language:
-          <input
-            className={styles.input}
-            value={prefs.language}
-            onChange={(e) => update({ language: e.target.value })}
-          />
-        </label>
-        
-        <div className={styles.sessionSection}>
-          <h3 className={styles.sectionTitle}>Session Management</h3>
-          <button 
-            onClick={handleArchiveAll}
-            className={styles.archiveButton}
-          >
-            Archive All Sessions
-          </button>
-          {archiveStatus && (
-            <div className={`${styles.statusMessage} ${archiveStatus.startsWith('Error') ? styles.error : styles.success}`}>
-              {archiveStatus}
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'general':
+        return (
+          <div className={styles.tabContent}>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Theme</div>
+              <select
+                className={styles.dropdown}
+                value={prefs.colorScheme}
+                onChange={(e) => update({ colorScheme: e.target.value as 'light' | 'dark' | 'system' })}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
             </div>
-          )}
-        </div>
+
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Language</div>
+              <select
+                className={styles.dropdown}
+                value={prefs.language}
+                onChange={(e) => update({ language: e.target.value })}
+              >
+                <option value="auto-detect">Auto-detect</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+              </select>
+            </div>
+          </div>
+        );
+
+      case 'dataControls':
+        return (
+          <div className={styles.tabContent}>
+            <div className={styles.sessionSection}>
+              <h3 className={styles.sectionTitle}>Session Management</h3>
+              <button onClick={handleArchiveAll} className={styles.archiveButton}>
+                Archive All Sessions
+              </button>
+              {archiveStatus && (
+                <div className={`${styles.statusMessage} ${archiveStatus.startsWith('Error') ? styles.error : styles.success}`}>
+                  {archiveStatus}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className={styles.tabContent}>
+            <div className={styles.comingSoon}>
+              {tabs.find(tab => tab.id === activeTab)?.label} settings coming soon...
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <Dialog open={true} onClose={onClose} title="">
+      <div className={styles.modal}>
+        <header className={styles.header}>
+          <h2 className={styles.title}>Settings</h2>
+          <button onClick={onClose} className={styles.closeButton} aria-label="Close">
+            ✕
+          </button>
+        </header>
         
-        <button onClick={onClose} className={styles.closeButton}>Close</button>
+        <div className={styles.content}>
+          <div className={styles.sidebar}>
+            <div className={styles.sidebarTabs}>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${styles.tab} ${activeTab === tab.id ? styles.activeTab : ''}`}
+                >
+                  <span className={styles.tabIcon}>{tab.icon}</span>
+                  <span className={styles.tabLabel}>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className={styles.mainContent}>
+            {renderTabContent()}
+          </div>
+        </div>
       </div>
     </Dialog>
   );

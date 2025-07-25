@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Settings } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { PreferencesModal } from '../PreferencesModal/PreferencesModal';
 import styles from './Header.module.css';
@@ -34,12 +35,9 @@ export function Header() {
               </a>
             </div>
 
-            {/* Profile Button */}
-            <button className={styles.profileButton} aria-label="Open Profile Menu" onClick={() => setShowPrefs(true)}>
-              <div className={styles.profileImage}>
-                <div className={styles.profilePlaceholder}>U</div>
-              </div>
-              <span className={styles.plusBadge}>PLUS</span>
+            {/* Settings Button */}
+            <button className={styles.settingButton} aria-label="Open Settings" onClick={() => setShowPrefs(true)}>
+              <Settings size={18} />
             </button>
           </nav>
         </div>

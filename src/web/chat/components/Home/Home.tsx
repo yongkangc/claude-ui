@@ -127,7 +127,7 @@ export function Home() {
         <div className={styles.mainContent}>
           <div className={styles.contentWrapper}>
             <div className={styles.inputSection}>
-              <h1 className={styles.heading}>What are we coding next?</h1>
+              <h1 className={styles.heading}>Where are we heading next?</h1>
               
               <div className={styles.composerWrapper}>
                 <Composer 

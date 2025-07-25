@@ -82,13 +82,13 @@
   text-decoration: underline;
 }
 
-.profileButton {
+.settingButton {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   padding: 4px;
   border: none;
   background: transparent;
@@ -98,30 +98,13 @@
   transition: all 0.15s ease;
 }
 
-.profileButton:hover {
+.settingButton:hover {
   color: var(--color-text-primary);
   background: var(--color-bg-hover);
 }
 
-.profileButton:focus-visible {
+.settingButton:focus-visible {
   outline: none;
-}
-
-.profileImage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: rgba(128, 128, 128, 0.3);
-}
-
-.profilePlaceholder {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-primary);
 }
 
 .plusBadge {
