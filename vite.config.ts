@@ -23,6 +23,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
-    allowedHosts: ['wenbo-macbook.dala-cobia.ts.net', 'ccui.wenbo.io', 'localhost', '127.0.0.1', 'e.wenbo.io'],
+    allowedHosts: ['wenbo-macbook.dala-cobia.ts.net', 'ccui.wenbo.io', 'localhost', '127.0.0.1', 'cui1.wenbo.io', 'cui2.wenbo.io' ],
   }
 })
