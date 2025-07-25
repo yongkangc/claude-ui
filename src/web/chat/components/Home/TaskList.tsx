@@ -148,6 +148,7 @@ export function TaskList({
             status={conversation.status}
             messageCount={conversation.messageCount}
             toolMetrics={conversation.toolMetrics}
+            liveStatus={conversation.liveStatus}
             onClick={() => handleTaskClick(conversation.sessionId)}
             onCancel={
               conversation.status === 'ongoing' 
