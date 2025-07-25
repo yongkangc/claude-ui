@@ -202,6 +202,7 @@ export function ConversationView() {
       <ConversationHeader 
         title={conversationTitle}
         sessionId={sessionId}
+        isArchived={conversationSummary?.sessionInfo.archived || false}
         subtitle={conversationSummary ? {
           date: new Date(conversationSummary.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           repo: conversationSummary.projectPath.split('/').pop() || 'project',

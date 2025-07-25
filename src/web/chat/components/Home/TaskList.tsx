@@ -171,6 +171,7 @@ export function TaskList({
             messageCount={conversation.messageCount}
             toolMetrics={conversation.toolMetrics}
             liveStatus={conversation.liveStatus}
+            isArchived={activeTab === 'archive'}
             onClick={() => handleTaskClick(conversation.sessionId)}
             onCancel={
               conversation.status === 'ongoing' 
@@ -178,8 +179,13 @@ export function TaskList({
                 : undefined
             }
             onArchive={
-              conversation.status === 'completed'
+              conversation.status === 'completed' && activeTab !== 'archive'
                 ? () => handleArchiveTask(conversation.sessionId)
+                : undefined
+            }
+            onUnarchive={
+              conversation.status === 'completed' && activeTab === 'archive'
+                ? () => handleUnarchiveTask(conversation.sessionId)
                 : undefined
             }
           />
