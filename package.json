@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:web": "vite",
     "build": "npm run build:web && tsc && tsc-alias && npm run build:mcp",
-    "build:web": "vite build",
+    "build:web": "vite build && vite build --config vite-sw.config.ts",
     "build:mcp": "chmod +x dist/mcp-server/index.js",
     "test": "jest",
     "test:debug": "LOG_LEVEL=debug jest",
@@ -39,7 +39,8 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.22.0",
     "uuid": "^9.0.1",
-    "vite-express": "^0.16.0"
+    "vite-express": "^0.16.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "^1.0.19",
