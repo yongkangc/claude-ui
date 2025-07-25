@@ -14,15 +14,18 @@ html {
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
-  min-height: -webkit-fill-available;
-  /* Allow scrolling on body for Safari iOS */
+  /* min-height: 100%; */
+  /* min-height: -webkit-fill-available; */
+  /* Prevent scrolling on body */
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   /* Prevent elastic scrolling beyond boundaries */
   overscroll-behavior: none;
   /* iOS specific */
   -webkit-overflow-scrolling: touch;
+}
+
+html, body {
 }
 
 body {
@@ -39,11 +42,6 @@ body {
 
 #root {
   width: 100%;
-  height: 100vh;
-  height: -webkit-fill-available;
-  height: 100dvh;
-  /* Use actual viewport height from JavaScript if available */
-  height: var(--actual-vh, 100vh);
   /* Ensure root takes full viewport */
   display: flex;
   flex-direction: column;
