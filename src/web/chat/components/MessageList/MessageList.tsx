@@ -79,6 +79,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 onToggleTaskExpanded={onToggleTaskExpanded}
                 isFirstInGroup={messageIndex === 0}
                 isLastInGroup={messageIndex === group.messages.length - 1}
+                isStreaming={isStreaming}
               />
             ))}
             {((groupIndex < messageGroups.length - 1 && 
@@ -102,15 +103,32 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         )}
         
-        {!isLoading && isStreaming && messageGroups.length > 0 && (
-          <div className={styles.streamingIndicator}>
-            <div className={styles.timelineIcon}>
-              <div className={styles.streamingDot} />
-              {/* Connector from last message */}
-              <div className={styles.streamingConnector} />
+        {!isLoading && isStreaming && messageGroups.length > 0 && (() => {
+          // Check if any tool use blocks are currently loading
+          const hasLoadingToolUse = displayMessages.some(message => {
+            if (message.type === 'assistant' && Array.isArray(message.content)) {
+              return message.content.some((block: any) => {
+                if (block.type === 'tool_use') {
+                  const toolResult = toolResults[block.id];
+                  return !toolResult || toolResult.status === 'pending';
+                }
+                return false;
+              });
+            }
+            return false;
+          });
+          
+          // Only show streaming dots when no tool use icons are blinking
+          return !hasLoadingToolUse ? (
+            <div className={styles.streamingIndicator}>
+              <div className={styles.timelineIcon}>
+                <div className={styles.streamingDot} />
+                {/* Connector from last message */}
+                <div className={styles.streamingConnector} />
+              </div>
             </div>
-          </div>
-        )}
+          ) : null;
+        })()}
         
         <div ref={bottomRef} />
       </div>

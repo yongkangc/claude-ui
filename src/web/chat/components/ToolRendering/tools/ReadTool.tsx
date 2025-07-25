@@ -8,8 +8,6 @@ import styles from '../ToolRendering.module.css';
 interface ReadToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   workingDirectory?: string;
 }
 
@@ -24,29 +22,8 @@ function cleanFileContent(content: string): string {
   return cleaned.trimEnd();
 }
 
-export function ReadTool({ input, result, isError, isPending, workingDirectory }: ReadToolProps) {
+export function ReadTool({ input, result, workingDirectory }: ReadToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          Reading file...
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || 'Error reading file'}
-        </div>
-      </div>
-    );
-  }
 
   const cleanedContent = cleanFileContent(result);
   const lineCount = countLines(cleanedContent);

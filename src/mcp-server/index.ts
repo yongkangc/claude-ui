@@ -83,7 +83,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // Poll for permission decision
     const POLL_INTERVAL = 1000; // 1 second
-    const TIMEOUT = 10 * 60 * 1000; // 10 minutes
+    const TIMEOUT = 60 * 60 * 1000; // 1 hour
     const startTime = Date.now();
 
     while (true) {

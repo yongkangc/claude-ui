@@ -7,8 +7,6 @@ import styles from '../ToolRendering.module.css';
 interface TaskToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   toolUseId?: string;
   childrenMessages?: Record<string, ChatMessage[]>;
   toolResults?: Record<string, any>;
@@ -17,8 +15,6 @@ interface TaskToolProps {
 export function TaskTool({ 
   input, 
   result, 
-  isError, 
-  isPending, 
   toolUseId, 
   childrenMessages = {}, 
   toolResults = {}
@@ -37,16 +33,6 @@ export function TaskTool({
       });
     }
   }, [children.length, isFullHeight]);
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || 'Task failed'}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -75,13 +61,11 @@ export function TaskTool({
           </div>
         </div>
       )}
-      {!isPending && (
-        <div className={styles.toolContent}>
-          <div className={styles.toolSummary}>
-            <CornerDownRight size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Task completed
-          </div>
+      <div className={styles.toolContent}>
+        <div className={styles.toolSummary}>
+          <CornerDownRight size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Task completed
         </div>
-      )}
+      </div>
     </>
   );
 }

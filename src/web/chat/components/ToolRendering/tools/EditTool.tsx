@@ -7,37 +7,14 @@ import styles from '../ToolRendering.module.css';
 interface EditToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   isMultiEdit?: boolean;
   workingDirectory?: string;
 }
 
-export function EditTool({ input, result, isError, isPending, isMultiEdit = false, workingDirectory }: EditToolProps) {
+export function EditTool({ input, result, isMultiEdit = false, workingDirectory }: EditToolProps) {
   // 从文件路径检测语言
   const filePath = input?.file_path || '';
   const language = detectLanguageFromPath(filePath);
-  if (isPending) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.loadingSpinner}></span>
-          {isMultiEdit ? 'Applying multiple edits...' : 'Applying edit...'}
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || 'Error applying edit'}
-        </div>
-      </div>
-    );
-  }
-
   // For MultiEdit, process all edits
   if (isMultiEdit && input.edits && Array.isArray(input.edits)) {
     return (

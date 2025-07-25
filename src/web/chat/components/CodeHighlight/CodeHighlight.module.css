@@ -1,3 +1,30 @@
+.codeContainer {
+  position: relative;
+}
+
+.expandButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: opacity 0.15s ease;
+}
+
+.expandButton:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
 .codeBlock {
   background-color: var(--color-bg-code);
   color: var(--color-text-primary);
@@ -61,6 +88,11 @@
   width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.ellipsis {
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 /* Since we're using a custom theme in the component, we don't need these overrides anymore */

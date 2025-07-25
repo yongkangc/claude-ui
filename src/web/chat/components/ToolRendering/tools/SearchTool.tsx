@@ -6,27 +6,11 @@ import styles from '../ToolRendering.module.css';
 interface SearchToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   toolType: 'Grep' | 'Glob' | 'LS';
 }
 
-export function SearchTool({ input, result, isError, isPending, toolType }: SearchToolProps) {
+export function SearchTool({ input, result, toolType }: SearchToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  if (isPending) {
-    return <div className={styles.toolContent} />;
-  }
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || `Error in ${toolType} operation`}
-        </div>
-      </div>
-    );
-  }
 
   const getSummaryText = (): string => {
     switch (toolType) {

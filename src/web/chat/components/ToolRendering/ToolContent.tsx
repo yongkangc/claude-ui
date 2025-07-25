@@ -56,6 +56,17 @@ export function ToolContent({
   const isError = toolResult?.is_error === true;
   const isPending = toolResult?.status === 'pending';
 
+  // Handle pending display at root level
+  if (isPending) {
+    return (
+      <div className={styles.toolContent}>
+        <div className={styles.pendingContent}>
+          <span className={styles.pendingText}>Waiting approval...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Handle error display at root level
   if (isError) {
     const errorMessage = resultContent || 'Tool execution failed';
@@ -93,8 +104,6 @@ export function ToolContent({
         <ReadTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           workingDirectory={workingDirectory}
         />
       );
@@ -105,8 +114,6 @@ export function ToolContent({
         <EditTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           isMultiEdit={toolName === 'MultiEdit'}
           workingDirectory={workingDirectory}
         />
@@ -117,8 +124,6 @@ export function ToolContent({
         <WriteTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           workingDirectory={workingDirectory}
         />
       );
@@ -128,8 +133,6 @@ export function ToolContent({
         <BashTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
         />
       );
     
@@ -140,8 +143,6 @@ export function ToolContent({
         <SearchTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           toolType={toolName}
         />
       );
@@ -152,8 +153,6 @@ export function ToolContent({
         <TodoTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           isWrite={toolName === 'TodoWrite'}
         />
       );
@@ -164,8 +163,6 @@ export function ToolContent({
         <WebTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           toolType={toolName}
         />
       );
@@ -175,8 +172,6 @@ export function ToolContent({
         <TaskTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
           toolUseId={toolUseId}
           childrenMessages={childrenMessages}
           toolResults={toolResults}
@@ -188,8 +183,6 @@ export function ToolContent({
         <PlanTool
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
         />
       );
     
@@ -199,8 +192,6 @@ export function ToolContent({
           toolName={toolName}
           input={toolInput}
           result={resultContent}
-          isError={isError}
-          isPending={isPending}
         />
       );
   }

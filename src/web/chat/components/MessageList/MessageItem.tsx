@@ -16,6 +16,7 @@ interface MessageItemProps {
   onToggleTaskExpanded?: (toolUseId: string) => void;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
+  isStreaming?: boolean;
 }
 
 function getToolIcon(toolName: string) {
@@ -81,7 +82,8 @@ export function MessageItem({
   expandedTasks = new Set(), 
   onToggleTaskExpanded,
   isFirstInGroup = true, 
-  isLastInGroup = true 
+  isLastInGroup = true,
+  isStreaming = false
 }: MessageItemProps) {
   const [copiedBlocks, setCopiedBlocks] = useState<Set<string>>(new Set());
 
@@ -170,10 +172,11 @@ export function MessageItem({
           if (block.type === 'tool_use') {
             const toolResult = toolResults[block.id];
             const isLoading = !toolResult || toolResult.status === 'pending';
+            const shouldBlink = isLoading && isStreaming;
             
             return (
               <div key={blockId} className={styles.assistantBlock}>
-                <div className={`${styles.timelineIcon} ${isLoading ? styles.timelineIconLoading : ''}`}>
+                <div className={`${styles.timelineIcon} ${shouldBlink ? styles.timelineIconLoading : ''}`}>
                   {getToolIcon(block.name)}
                 </div>
                 <div className={styles.toolUseContent}>

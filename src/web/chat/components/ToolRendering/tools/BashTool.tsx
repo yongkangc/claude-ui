@@ -5,22 +5,17 @@ import styles from '../ToolRendering.module.css';
 interface BashToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
+  workingDirectory?: string;
 }
 
-export function BashTool({ input, result, isError, isPending }: BashToolProps) {
-  if (isPending) {
-    return <div className={styles.toolContent} />;
-  }
-
+export function BashTool({ input, result }: BashToolProps) {
   return (
     <div className={styles.toolContent}>
       <CodeHighlight
         code={result || '(No content)'}
         language="text"
         showLineNumbers={false}
-        className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}
+        className={styles.codeBlock}
       />
     </div>
   );

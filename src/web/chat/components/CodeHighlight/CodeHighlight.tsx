@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Highlight, Language } from 'prism-react-renderer';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import styles from './CodeHighlight.module.css';
 
@@ -8,6 +9,7 @@ interface CodeHighlightProps {
   language: string;
   showLineNumbers?: boolean;
   className?: string;
+  isExpand?: boolean;
 }
 
 // Map our language identifiers to prism-react-renderer language names
@@ -85,7 +87,7 @@ const darkTheme = {
       types: ['comment', 'prolog', 'doctype', 'cdata'],
       style: {
         color: '#6c7986',
-        fontStyle: 'italic',
+        fontStyle: 'italic' as const,
       },
     },
     {
@@ -122,7 +124,7 @@ const darkTheme = {
       types: ['atrule', 'attr-value', 'keyword'],
       style: {
         color: '#fc5fa3',
-        fontWeight: 'bold',
+        fontWeight: 'bold' as const,
       },
     },
     {
@@ -150,7 +152,7 @@ const lightTheme = {
       types: ['comment', 'prolog', 'doctype', 'cdata'],
       style: {
         color: '#5d6c79',
-        fontStyle: 'italic',
+        fontStyle: 'italic' as const,
       },
     },
     {
@@ -187,7 +189,7 @@ const lightTheme = {
       types: ['atrule', 'attr-value', 'keyword'],
       style: {
         color: '#aa0d91',
-        fontWeight: 'bold',
+        fontWeight: 'bold' as const,
       },
     },
     {
@@ -210,9 +212,11 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   language,
   showLineNumbers = false,
   className = '',
+  isExpand = false,
 }) => {
   const theme = useTheme();
   const currentTheme = theme.mode === 'dark' ? darkTheme : lightTheme;
+  const [isExpanded, setIsExpanded] = useState(isExpand);
   
   // Get the prism language, fallback to text if not found
   const prismLanguage = languageMap[language.toLowerCase()] || 'text';
@@ -223,33 +227,57 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
       code={code.trimEnd()}
       language={prismLanguage as Language}
     >
-      {({ className: highlightClassName, style, tokens, getLineProps, getTokenProps }) => (
-        <pre
-          className={`${styles.codeBlock} ${highlightClassName} ${className}`}
-          style={{ ...style, margin: 0 }}
-        >
-          <code className={styles.codeContent}>
-            {tokens.map((line, i) => {
-              const { key, ...lineProps } = getLineProps({ line, key: i });
-              return (
-                <div key={i} {...lineProps} className={styles.line}>
-                  {showLineNumbers && (
-                    <span className={styles.lineNumber}>{i + 1}</span>
-                  )}
-                  <span className={styles.lineContent}>
-                    {line.map((token, key) => {
-                      const { key: tokenKey, ...tokenProps } = getTokenProps({ token, key });
-                      return (
-                        <span key={key} {...tokenProps} />
-                      );
-                    })}
-                  </span>
-                </div>
-              );
-            })}
-          </code>
-        </pre>
-      )}
+      {({ className: highlightClassName, style, tokens, getLineProps, getTokenProps }) => {
+        const totalLines = tokens.length;
+        const shouldShowExpandButton = totalLines > 8;
+        const linesToShow = isExpanded ? tokens : tokens.slice(0, 8);
+        
+        return (
+          <div className={styles.codeContainer}>
+            {shouldShowExpandButton && (
+              <button
+                className={styles.expandButton}
+                onClick={() => setIsExpanded(!isExpanded)}
+                title={isExpanded ? "Show fewer lines" : "Show all lines"}
+              >
+                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+            )}
+            <pre
+              className={`${styles.codeBlock} ${highlightClassName} ${className}`}
+              style={{ ...style, margin: 0 }}
+            >
+              <code className={styles.codeContent}>
+                {linesToShow.map((line, i) => {
+                  const { key, ...lineProps } = getLineProps({ line, key: i });
+                  return (
+                    <div key={i} {...lineProps} className={styles.line}>
+                      {showLineNumbers && (
+                        <span className={styles.lineNumber}>{i + 1}</span>
+                      )}
+                      <span className={styles.lineContent}>
+                        {line.map((token, key) => {
+                          const { key: tokenKey, ...tokenProps } = getTokenProps({ token, key });
+                          return (
+                            <span key={key} {...tokenProps} />
+                          );
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+                {!isExpanded && shouldShowExpandButton && (
+                  <div className={styles.line}>
+                    <span className={styles.lineContent}>
+                      <span className={styles.ellipsis}>...</span>
+                    </span>
+                  </div>
+                )}
+              </code>
+            </pre>
+          </div>
+        );
+      }}
     </Highlight>
   );
 };

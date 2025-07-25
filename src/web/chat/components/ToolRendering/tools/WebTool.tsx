@@ -6,27 +6,11 @@ import styles from '../ToolRendering.module.css';
 interface WebToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   toolType: 'WebSearch' | 'WebFetch';
 }
 
-export function WebTool({ input, result, isError, isPending, toolType }: WebToolProps) {
+export function WebTool({ input, result, toolType }: WebToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  if (isPending) {
-    return <div className={styles.toolContent} />;
-  }
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || `Error in ${toolType} operation`}
-        </div>
-      </div>
-    );
-  }
 
   const getSummaryText = (): string => {
     if (toolType === 'WebSearch') {

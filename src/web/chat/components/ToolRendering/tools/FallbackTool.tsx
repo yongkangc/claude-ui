@@ -6,16 +6,10 @@ interface FallbackToolProps {
   toolName: string;
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
 }
 
-export function FallbackTool({ toolName, input, result, isError, isPending }: FallbackToolProps) {
+export function FallbackTool({ toolName, input, result }: FallbackToolProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  if (isPending) {
-    return <div className={styles.toolContent} />;
-  }
 
   const formatContent = (content: string): string => {
     try {
@@ -42,7 +36,7 @@ export function FallbackTool({ toolName, input, result, isError, isPending }: Fa
       </div>
       
       {isExpanded && (
-        <div className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}>
+        <div className={styles.codeBlock}>
           <pre>{formatContent(result || 'No result')}</pre>
         </div>
       )}

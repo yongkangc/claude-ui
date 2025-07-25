@@ -6,8 +6,6 @@ import styles from '../ToolRendering.module.css';
 interface TodoToolProps {
   input: any;
   result: string;
-  isError: boolean;
-  isPending: boolean;
   isWrite: boolean;
 }
 
@@ -23,21 +21,7 @@ function getTodoStatusIcon(status: string) {
   }
 }
 
-export function TodoTool({ input, result, isError, isPending, isWrite }: TodoToolProps) {
-  if (isPending) {
-    return <div className={styles.toolContent} />;
-  }
-
-  if (isError) {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {result || 'Error with todos operation'}
-        </div>
-      </div>
-    );
-  }
-
+export function TodoTool({ input, result, isWrite }: TodoToolProps) {
   let todos: Array<{id: string; content: string; status: string}> = [];
   
   if (isWrite && input.todos && Array.isArray(input.todos)) {
