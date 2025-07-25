@@ -172,54 +172,10 @@
   font-weight: 500;
 }
 
-/* Live status indicator with pulse animation */
+/* Live status indicator */
 .liveStatus {
   position: relative;
-  animation: shimmer 2s linear infinite, pulse 2s ease-in-out infinite;
+  animation: shimmer 2s linear infinite;
 }
 
-.liveStatus::before {
-  content: '';
-  position: absolute;
-  left: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  background: var(--color-accent);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: translateY(-50%) scale(1.1);
-  }
-}
-
-/* Tool name display */
-.toolName {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Message preview */
-.messagePreview {
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 600px;
-  opacity: 0.8;
-}

@@ -88,11 +88,6 @@ export function TaskItem({
                 </>
               )}
             </div>
-            {liveStatus?.messagePreview && (
-              <div className={styles.messagePreview}>
-                {liveStatus.messagePreview}
-              </div>
-            )}
           </div>
           
           {status === 'ongoing' && (
@@ -100,9 +95,6 @@ export function TaskItem({
               <span className={`${styles.statusText} ${liveStatus ? styles.liveStatus : ''}`}>
                 {liveStatus?.currentStatus || 'Running'}
               </span>
-              {liveStatus?.currentTool && (
-                <span className={styles.toolName}>{liveStatus.currentTool}</span>
-              )}
               <button
                 className={styles.stopButton}
                 onClick={(e) => {

@@ -1,5 +1,4 @@
-import type { StreamEvent } from '../types';
-import type { StreamStatus } from '../contexts/StreamStatusContext';
+import type { StreamEvent, StreamStatus } from '../types';
 
 /**
  * Maps stream events to user-friendly status messages
@@ -35,7 +34,6 @@ export function mapStreamEventToStatus(event: StreamEvent, currentStatus?: Strea
       return {
         ...updates,
         currentStatus: 'Processing input...',
-        currentTool: undefined,
       };
 
     case 'result':
@@ -83,24 +81,13 @@ function mapAssistantMessage(event: Extract<StreamEvent, { type: 'assistant' }>,
       const firstTool = toolUseItems[0];
       if (typeof firstTool === 'object' && 'name' in firstTool) {
         const toolName = firstTool.name as string;
-        result.currentTool = toolName;
         result.currentStatus = getToolStatusMessage(toolName);
       }
     } else {
       // No tools, just thinking
       result.currentStatus = 'Thinking...';
-      result.currentTool = undefined;
     }
 
-    // Extract text content for preview
-    const textContent = message.content.find(item => 
-      typeof item === 'object' && 'type' in item && item.type === 'text'
-    );
-    
-    if (textContent && typeof textContent === 'object' && 'text' in textContent) {
-      const text = textContent.text as string;
-      result.messagePreview = text.length > 100 ? text.substring(0, 97) + '...' : text;
-    }
   } else {
     // Fallback for non-array content
     result.currentStatus = 'Processing...';
