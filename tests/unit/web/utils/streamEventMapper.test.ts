@@ -66,8 +66,7 @@ describe('streamEventMapper', () => {
       const result = mapStreamEventToStatus(event);
 
       expect(result.currentStatus).toBe('Thinking...');
-      expect(result.currentTool).toBeUndefined();
-      expect(result.messagePreview).toBe('Let me help you with that.');
+      expect(result.lastEvent).toEqual(event);
     });
 
     it('should map assistant message with tool use', () => {
@@ -106,8 +105,7 @@ describe('streamEventMapper', () => {
       const result = mapStreamEventToStatus(event);
 
       expect(result.currentStatus).toBe('Reading file...');
-      expect(result.currentTool).toBe('Read');
-      expect(result.messagePreview).toBe('I\'ll read the file for you.');
+      expect(result.lastEvent).toEqual(event);
     });
 
     it('should map user message', () => {
@@ -123,7 +121,6 @@ describe('streamEventMapper', () => {
       const result = mapStreamEventToStatus(event);
 
       expect(result.currentStatus).toBe('Processing input...');
-      expect(result.currentTool).toBeUndefined();
     });
 
     it('should map result success event', () => {
@@ -209,8 +206,8 @@ describe('streamEventMapper', () => {
 
       const result = mapStreamEventToStatus(event);
 
-      expect(result.messagePreview).toHaveLength(100);
-      expect(result.messagePreview?.endsWith('...')).toBe(true);
+      expect(result.currentStatus).toBe('Thinking...');
+      expect(result.lastEvent).toEqual(event);
     });
   });
 
@@ -355,6 +352,7 @@ describe('streamEventMapper', () => {
           session_id: 'test-session',
           message: {
             id: 'msg-129',
+            type: 'message',
             role: 'assistant',
             model: 'claude-3-5-sonnet-20241022',
             content: [
@@ -383,10 +381,10 @@ describe('streamEventMapper', () => {
 
       const metrics = extractToolMetrics(events);
 
-      expect(metrics.editCount).toBe(2); // Edit + MultiEdit
-      expect(metrics.writeCount).toBe(1); // Write
-      expect(metrics.linesAdded).toBe(0); // Not implemented yet
-      expect(metrics.linesRemoved).toBe(0); // Not implemented yet
+      expect(metrics!.editCount).toBe(2); // Edit + MultiEdit
+      expect(metrics!.writeCount).toBe(1); // Write
+      expect(metrics!.linesAdded).toBe(0); // Not implemented yet
+      expect(metrics!.linesRemoved).toBe(0); // Not implemented yet
     });
   });
 });

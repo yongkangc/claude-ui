@@ -105,8 +105,6 @@ export interface StreamStatus {
   lastEvent?: StreamEvent;
   lastEventTime?: string;
   currentStatus: string;
-  currentTool?: string;
-  messagePreview?: string;
   toolMetrics?: {
     linesAdded: number;
     linesRemoved: number;
