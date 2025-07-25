@@ -73,11 +73,21 @@ The project includes an integrated React-based web interface with TUI-inspired d
 # Install dependencies
 npm install
 
-# Start development server (port 3001)
+# Start development server (default port 3001)
 npm run dev
+
+# Start on a different port
+npm run dev -- --port 3002
+
+# Start on a different host
+npm run dev -- --host 0.0.0.0
+
+# Using environment variables
+CCUI_PORT=3002 npm run dev
+CCUI_HOST=0.0.0.0 CCUI_PORT=3002 npm run dev
 ```
 
-Access the UI at `http://localhost:3001` - both backend API and frontend are served on the same port.
+Access the UI at `http://localhost:3001` (or your configured port) - both backend API and frontend are served on the same port.
 
 ### Production
 

@@ -1,5 +1,39 @@
 # CCUI API Documentation
 
+## Server Configuration
+
+### Command Line Options
+
+The CCUI server supports the following command-line options:
+
+```bash
+# Start on a custom port
+npm run dev -- --port 3002
+
+# Start on a custom host
+npm run dev -- --host 0.0.0.0
+
+# Both options
+npm run dev -- --port 3002 --host 0.0.0.0
+```
+
+### Environment Variables
+
+You can also configure the server using environment variables:
+
+```bash
+# Set custom port
+CCUI_PORT=3002 npm run dev
+
+# Set custom host
+CCUI_HOST=0.0.0.0 npm run dev
+
+# Both
+CCUI_HOST=0.0.0.0 CCUI_PORT=3002 npm run dev
+```
+
+Note: Command-line arguments take precedence over environment variables, and both take precedence over the configuration file (`~/.ccui/config.json`).
+
 ## Conversation Endpoints
 
 ### Start Conversation (Unified Start/Resume)
