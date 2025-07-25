@@ -159,7 +159,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             logger.debug('Permission denied', { tool_name, permissionRequestId });
             const denyResponse = {
               behavior: 'deny',
-              message: processedPermission.denyReason || 'Permission denied by user',
+              message: processedPermission.denyReason || 'The user doesnt want to proceed with this tool use.The tool use was rejected(eg.if it was a file edit, the new_string was NOT written to the file).STOP what you are doing and wait for the user to tell you how to proceed.',
             };
             return {
               content: [{
