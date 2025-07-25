@@ -1,10 +1,12 @@
 import React from 'react';
 import { ArrowLeft, Archive, Share, Github, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../../services/api';
 import styles from './ConversationHeader.module.css';
 
 interface ConversationHeaderProps {
   title: string;
+  sessionId?: string;
   subtitle?: {
     date?: string;
     repo?: string;
@@ -16,11 +18,22 @@ interface ConversationHeaderProps {
   };
 }
 
-export function ConversationHeader({ title, subtitle }: ConversationHeaderProps) {
+export function ConversationHeader({ title, sessionId, subtitle }: ConversationHeaderProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
     navigate('/');
+  };
+
+  const handleArchive = async () => {
+    if (!sessionId) return;
+    
+    try {
+      await api.updateSession(sessionId, { archived: true });
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to archive session:', err);
+    }
   };
 
   return (
@@ -63,7 +76,12 @@ export function ConversationHeader({ title, subtitle }: ConversationHeaderProps)
       </div>
 
       <div className={styles.rightSection}>
-        <button className={styles.actionButton} aria-label="Archive Task">
+        <button 
+          className={styles.actionButton} 
+          aria-label="Archive Task"
+          onClick={handleArchive}
+          disabled={!sessionId}
+        >
           <Archive size={20} />
           <span>Archive</span>
         </button>

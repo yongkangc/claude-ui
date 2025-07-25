@@ -2,10 +2,7 @@
   "name": "ccui-backend",
   "version": "0.1.1",
   "description": "Backend for Claude Code Web UI",
-  "main": "dist/cli/index.js",
-  "bin": {
-    "ccui": "dist/cli/index.js"
-  },
+  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/cli/index.ts serve",
     "dev:web": "vite",

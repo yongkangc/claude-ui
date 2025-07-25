@@ -46,7 +46,7 @@ class ApiService {
 
       return data;
     } catch (error) {
-      console.error(`[API Error] ${fullUrl}:`, error);
+      // console.error(`[API Error] ${fullUrl}:`, error);
       throw error;
     }
   }
