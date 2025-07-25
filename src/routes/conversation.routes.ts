@@ -2,7 +2,6 @@ import { Router, Request } from 'express';
 import { 
   StartConversationRequest,
   StartConversationResponse,
-  ResumeConversationRequest,
   ConversationListQuery,
   ConversationDetailsResponse,
   CCUIError,
@@ -30,11 +29,15 @@ export function createConversationRoutes(
   const router = Router();
   const logger = createLogger('ConversationRoutes');
 
-  // Start new conversation
+  // Start new conversation (also handles resume if resumedSessionId is provided)
   router.post('/start', async (req: Request<{}, StartConversationResponse, StartConversationRequest>, res, next) => {
     const requestId = (req as any).requestId;
+    const isResume = !!req.body.resumedSessionId;
+    
     logger.debug('Start conversation request', {
       requestId,
+      isResume,
+      resumedSessionId: req.body.resumedSessionId,
       body: {
         ...req.body,
         initialPrompt: req.body.initialPrompt ? `${req.body.initialPrompt.substring(0, 50)}...` : undefined
@@ -58,22 +61,114 @@ export function createConversationRoutes(
         }
       }
       
-      const { streamingId, systemInit } = await processManager.startConversation(req.body);
+      // If resuming, fetch previous messages and session info
+      let previousMessages: ConversationMessage[] = [];
+      let inheritedPermissionMode: string | undefined;
+      
+      if (req.body.resumedSessionId) {
+        try {
+          previousMessages = await historyReader.fetchConversation(req.body.resumedSessionId);
+          logger.debug('Fetched previous session messages', {
+            requestId,
+            originalSessionId: req.body.resumedSessionId,
+            messageCount: previousMessages.length
+          });
+        } catch (error) {
+          logger.warn('Failed to fetch previous session messages', {
+            requestId,
+            originalSessionId: req.body.resumedSessionId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Continue without previous messages - not a fatal error
+        }
+        
+        // Fetch permission mode from session info if not provided
+        if (!req.body.permissionMode) {
+          try {
+            const sessionInfo = await sessionInfoService.getSessionInfo(req.body.resumedSessionId);
+            inheritedPermissionMode = sessionInfo.permission_mode;
+            logger.debug('Retrieved permission mode from session info', {
+              requestId,
+              originalSessionId: req.body.resumedSessionId,
+              permissionMode: inheritedPermissionMode
+            });
+          } catch (error) {
+            logger.warn('Failed to fetch permission mode from session info', {
+              requestId,
+              originalSessionId: req.body.resumedSessionId,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            // Continue without permission mode - will use default
+          }
+        }
+      }
+      
+      // Prepare config with previous messages if resuming
+      const conversationConfig = {
+        ...req.body,
+        previousMessages: previousMessages.length > 0 ? previousMessages : undefined,
+        permissionMode: req.body.permissionMode || inheritedPermissionMode
+      };
+      
+      const { streamingId, systemInit } = await processManager.startConversation(conversationConfig);
+      
+      // Update original session with continuation session ID if resuming
+      if (req.body.resumedSessionId) {
+        try {
+          await sessionInfoService.updateSessionInfo(req.body.resumedSessionId, {
+            continuation_session_id: systemInit.session_id
+          });
+          logger.debug('Updated original session with continuation ID', {
+            originalSessionId: req.body.resumedSessionId,
+            continuationSessionId: systemInit.session_id
+          });
+        } catch (error) {
+          logger.warn('Failed to update original session with continuation ID', {
+            originalSessionId: req.body.resumedSessionId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+        
+        // Register the resumed session with conversation status manager including previous messages
+        try {
+          conversationStatusManager.registerActiveSession(
+            streamingId,
+            systemInit.session_id,
+            {
+              initialPrompt: req.body.initialPrompt,
+              workingDirectory: systemInit.cwd,
+              model: systemInit.model,
+              inheritedMessages: previousMessages.length > 0 ? previousMessages : undefined
+            }
+          );
+          logger.debug('Registered resumed session with inherited messages', {
+            requestId,
+            newSessionId: systemInit.session_id,
+            streamingId,
+            inheritedMessageCount: previousMessages.length
+          });
+        } catch (error) {
+          logger.warn('Failed to register resumed session with status manager', {
+            requestId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
       
       // Store permission mode in session info if provided
-      if (req.body.permissionMode) {
+      if (conversationConfig.permissionMode) {
         try {
           await sessionInfoService.updateSessionInfo(systemInit.session_id, {
-            permission_mode: req.body.permissionMode
+            permission_mode: conversationConfig.permissionMode
           });
           logger.debug('Stored permission mode in session info', {
             sessionId: systemInit.session_id,
-            permissionMode: req.body.permissionMode
+            permissionMode: conversationConfig.permissionMode
           });
         } catch (error) {
           logger.warn('Failed to store permission mode in session info', {
             sessionId: systemInit.session_id,
-            permissionMode: req.body.permissionMode,
+            permissionMode: conversationConfig.permissionMode,
             error: error instanceof Error ? error.message : String(error)
           });
         }
@@ -81,10 +176,13 @@ export function createConversationRoutes(
       
       logger.debug('Conversation started successfully', {
         requestId,
+        isResume,
+        resumedSessionId: req.body.resumedSessionId,
         streamingId,
         sessionId: systemInit.session_id,
         model: systemInit.model,
-        cwd: systemInit.cwd
+        cwd: systemInit.cwd,
+        previousMessageCount: previousMessages.length
       });
 
       res.json({ 
@@ -102,155 +200,13 @@ export function createConversationRoutes(
     } catch (error) {
       logger.debug('Start conversation failed', {
         requestId,
+        isResume,
         error: error instanceof Error ? error.message : String(error)
       });
       next(error);
     }
   });
 
-  // Resume existing conversation
-  router.post('/resume', async (req: Request<{}, StartConversationResponse, ResumeConversationRequest>, res, next) => {
-    const requestId = (req as any).requestId;
-    logger.debug('Resume conversation request', {
-      requestId,
-      sessionId: req.body.sessionId,
-      messagePreview: req.body.message ? `${req.body.message.substring(0, 50)}...` : undefined
-    });
-    
-    try {
-      // Validate required fields
-      if (!req.body.sessionId || !req.body.sessionId.trim()) {
-        throw new CCUIError('MISSING_SESSION_ID', 'sessionId is required', 400);
-      }
-      if (!req.body.message || !req.body.message.trim()) {
-        throw new CCUIError('MISSING_MESSAGE', 'message is required', 400);
-      }
-      
-      // Validate that only allowed fields are provided (no extra parameters)
-      const allowedFields = ['sessionId', 'message'];
-      const providedFields = Object.keys(req.body);
-      const extraFields = providedFields.filter(field => !allowedFields.includes(field));
-      
-      if (extraFields.length > 0) {
-        throw new CCUIError('INVALID_FIELDS', `Invalid fields for resume: ${extraFields.join(', ')}. Only sessionId and message are allowed.`, 400);
-      }
-      
-      // Fetch previous session messages for context
-      let previousMessages: ConversationMessage[] = [];
-      try {
-        previousMessages = await historyReader.fetchConversation(req.body.sessionId);
-        logger.debug('Fetched previous session messages', {
-          requestId,
-          originalSessionId: req.body.sessionId,
-          messageCount: previousMessages.length
-        });
-      } catch (error) {
-        logger.warn('Failed to fetch previous session messages', {
-          requestId,
-          originalSessionId: req.body.sessionId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-        // Continue without previous messages - not a fatal error
-      }
-      
-      // Fetch permission mode from session info
-      let permissionMode: string | undefined;
-      try {
-        const sessionInfo = await sessionInfoService.getSessionInfo(req.body.sessionId);
-        permissionMode = sessionInfo.permission_mode;
-        logger.debug('Retrieved permission mode from session info', {
-          requestId,
-          originalSessionId: req.body.sessionId,
-          permissionMode
-        });
-      } catch (error) {
-        logger.warn('Failed to fetch permission mode from session info', {
-          requestId,
-          originalSessionId: req.body.sessionId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-        // Continue without permission mode - will use default
-      }
-      
-      const { streamingId, systemInit } = await processManager.resumeConversation({
-        sessionId: req.body.sessionId,
-        message: req.body.message,
-        previousMessages,
-        permissionMode
-      });
-
-      // Update original session with continuation session ID
-      try {
-        await sessionInfoService.updateSessionInfo(req.body.sessionId, {
-          continuation_session_id: systemInit.session_id
-        });
-        logger.debug('Updated original session with continuation ID', {
-          originalSessionId: req.body.sessionId,
-          continuationSessionId: systemInit.session_id
-        });
-      } catch (error) {
-        logger.warn('Failed to update original session with continuation ID', {
-          originalSessionId: req.body.sessionId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-      
-      // Register the resumed session with conversation status manager including previous messages
-      try {
-        conversationStatusManager.registerActiveSession(
-          streamingId,
-          systemInit.session_id,
-          {
-            initialPrompt: req.body.message,
-            workingDirectory: systemInit.cwd,
-            model: systemInit.model,
-            inheritedMessages: previousMessages.length > 0 ? previousMessages : undefined
-          }
-        );
-        logger.debug('Registered resumed session with inherited messages', {
-          requestId,
-          newSessionId: systemInit.session_id,
-          streamingId,
-          inheritedMessageCount: previousMessages.length
-        });
-      } catch (error) {
-        logger.warn('Failed to register resumed session with status manager', {
-          requestId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-      
-      logger.debug('Conversation resumed successfully', {
-        requestId,
-        originalSessionId: req.body.sessionId,
-        newStreamingId: streamingId,
-        newSessionId: systemInit.session_id,
-        model: systemInit.model,
-        cwd: systemInit.cwd,
-        previousMessageCount: previousMessages.length
-      });
-      
-      res.json({ 
-        streamingId,
-        streamUrl: `/api/stream/${streamingId}`,
-        // System init fields
-        sessionId: systemInit.session_id,
-        cwd: systemInit.cwd,
-        tools: systemInit.tools,
-        mcpServers: systemInit.mcp_servers,
-        model: systemInit.model,
-        permissionMode: systemInit.permissionMode,
-        apiKeySource: systemInit.apiKeySource
-      });
-    } catch (error) {
-      logger.debug('Resume conversation failed', {
-        requestId,
-        sessionId: req.body.sessionId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      next(error);
-    }
-  });
 
   // List conversations
   router.get('/', async (req: Request<{}, {}, {}, ConversationListQuery>, res, next) => {

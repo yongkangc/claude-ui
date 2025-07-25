@@ -214,15 +214,16 @@ describe('Real Claude CLI Integration', () => {
         }
         
         
-        // 7. Resume the conversation (should fail fast with API error)
-        const resumeResponse = await fetch(`${baseUrl}/api/conversations/resume`, {
+        // 7. Resume the conversation using unified start endpoint (should fail fast with API error)
+        const resumeResponse = await fetch(`${baseUrl}/api/conversations/start`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            sessionId: actualClaudeSessionId,
-            message: 'Continue the conversation with another prompt'
+            resumedSessionId: actualClaudeSessionId,
+            initialPrompt: 'Continue the conversation with another prompt',
+            workingDirectory: workingDirectory
           })
         });
         

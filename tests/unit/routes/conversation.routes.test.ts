@@ -9,36 +9,45 @@ import { ToolMetricsService } from '@/services/ToolMetricsService';
 
 jest.mock('@/services/logger');
 
-describe('Conversation Routes - Resume Endpoint', () => {
+describe('Conversation Routes - Unified Start/Resume Endpoint', () => {
   let app: express.Application;
   let processManager: jest.Mocked<ClaudeProcessManager>;
   let sessionInfoService: jest.Mocked<SessionInfoService>;
+  let historyReader: jest.Mocked<ClaudeHistoryReader>;
+  let conversationStatusManager: jest.Mocked<ConversationStatusManager>;
 
   beforeEach(() => {
     app = express();
     app.use(express.json());
 
     processManager = {
-      resumeConversation: jest.fn(),
+      startConversation: jest.fn(),
     } as any;
 
     sessionInfoService = {
       updateSessionInfo: jest.fn(),
+      getSessionInfo: jest.fn(),
+    } as any;
+
+    historyReader = {
+      fetchConversation: jest.fn(),
+    } as any;
+
+    conversationStatusManager = {
+      registerActiveSession: jest.fn(),
     } as any;
 
     const mockServices = {
-      historyReader: {} as any,
       statusTracker: {} as any,
-      conversationStatusManager: {} as any,
       toolMetricsService: {} as any,
     };
 
     app.use('/api/conversations', createConversationRoutes(
       processManager,
-      mockServices.historyReader,
+      historyReader,
       mockServices.statusTracker,
       sessionInfoService,
-      mockServices.conversationStatusManager,
+      conversationStatusManager,
       mockServices.toolMetricsService
     ));
     
@@ -47,8 +56,46 @@ describe('Conversation Routes - Resume Endpoint', () => {
     });
   });
 
-  describe('POST /api/conversations/resume', () => {
-    it('should set continuation_session_id on resume', async () => {
+  describe('POST /api/conversations/start', () => {
+    it('should start new conversation without resumedSessionId', async () => {
+      const mockSystemInit = {
+        type: 'system' as const,
+        subtype: 'init' as const,
+        session_id: 'new-session-123',
+        cwd: '/path/to/project',
+        tools: [],
+        mcp_servers: [],
+        model: 'claude-3',
+        permissionMode: 'prompt',
+        apiKeySource: 'env'
+      };
+
+      processManager.startConversation.mockResolvedValue({
+        streamingId: 'stream-123',
+        systemInit: mockSystemInit
+      });
+
+      sessionInfoService.updateSessionInfo.mockResolvedValue({} as any);
+
+      const response = await request(app)
+        .post('/api/conversations/start')
+        .send({
+          workingDirectory: '/path/to/project',
+          initialPrompt: 'Hello Claude!'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.sessionId).toBe('new-session-123');
+      expect(processManager.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workingDirectory: '/path/to/project',
+          initialPrompt: 'Hello Claude!',
+          previousMessages: undefined
+        })
+      );
+    });
+
+    it('should handle resume with resumedSessionId and set continuation_session_id', async () => {
       const mockSystemInit = {
         type: 'system' as const,
         subtype: 'init' as const,
@@ -61,7 +108,14 @@ describe('Conversation Routes - Resume Endpoint', () => {
         apiKeySource: 'env'
       };
 
-      processManager.resumeConversation.mockResolvedValue({
+      const mockPreviousMessages = [
+        { uuid: '1', type: 'user' as const, message: 'Previous message' }
+      ];
+
+      historyReader.fetchConversation.mockResolvedValue(mockPreviousMessages as any);
+      sessionInfoService.getSessionInfo.mockResolvedValue({ permission_mode: 'default' } as any);
+
+      processManager.startConversation.mockResolvedValue({
         streamingId: 'stream-123',
         systemInit: mockSystemInit
       });
@@ -69,42 +123,103 @@ describe('Conversation Routes - Resume Endpoint', () => {
       sessionInfoService.updateSessionInfo.mockResolvedValue({} as any);
 
       const response = await request(app)
-        .post('/api/conversations/resume')
+        .post('/api/conversations/start')
         .send({
-          sessionId: 'original-session-456',
-          message: 'Continue the conversation'
+          resumedSessionId: 'original-session-456',
+          initialPrompt: 'Continue the conversation',
+          workingDirectory: '/path/to/git/repo'
         });
 
       expect(response.status).toBe(200);
       expect(response.body.sessionId).toBe('new-session-123');
+
+      // Verify previous messages were fetched
+      expect(historyReader.fetchConversation).toHaveBeenCalledWith('original-session-456');
 
       // Verify continuation_session_id was set on original session
       expect(sessionInfoService.updateSessionInfo).toHaveBeenCalledWith(
         'original-session-456',
         { continuation_session_id: 'new-session-123' }
       );
+
+      // Verify process manager was called with previous messages
+      expect(processManager.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workingDirectory: '/path/to/git/repo',
+          initialPrompt: 'Continue the conversation',
+          previousMessages: mockPreviousMessages,
+          resumedSessionId: 'original-session-456'
+        })
+      );
+
+      // Verify active session was registered with inherited messages
+      expect(conversationStatusManager.registerActiveSession).toHaveBeenCalledWith(
+        'stream-123',
+        'new-session-123',
+        expect.objectContaining({
+          inheritedMessages: mockPreviousMessages
+        })
+      );
     });
 
-    it('should handle missing sessionId validation', async () => {
+    it('should handle missing workingDirectory validation', async () => {
       const response = await request(app)
-        .post('/api/conversations/resume')
+        .post('/api/conversations/start')
         .send({
-          message: 'Continue the conversation'
+          initialPrompt: 'Hello Claude!'
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('sessionId is required');
+      expect(response.body.error).toContain('workingDirectory is required');
     });
 
-    it('should handle missing message validation', async () => {
+    it('should handle missing initialPrompt validation', async () => {
       const response = await request(app)
-        .post('/api/conversations/resume')
+        .post('/api/conversations/start')
         .send({
-          sessionId: 'test-session-123'
+          workingDirectory: '/path/to/project'
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('message is required');
+      expect(response.body.error).toContain('initialPrompt is required');
+    });
+
+    it('should inherit permission mode from original session when resuming', async () => {
+      const mockSystemInit = {
+        type: 'system' as const,
+        subtype: 'init' as const,
+        session_id: 'new-session-123',
+        cwd: '/path/to/git/repo',
+        tools: [],
+        mcp_servers: [],
+        model: 'claude-3',
+        permissionMode: 'bypassPermissions',
+        apiKeySource: 'env'
+      };
+
+      historyReader.fetchConversation.mockResolvedValue([]);
+      sessionInfoService.getSessionInfo.mockResolvedValue({ permission_mode: 'bypassPermissions' } as any);
+
+      processManager.startConversation.mockResolvedValue({
+        streamingId: 'stream-123',
+        systemInit: mockSystemInit
+      });
+
+      const response = await request(app)
+        .post('/api/conversations/start')
+        .send({
+          resumedSessionId: 'original-session-456',
+          initialPrompt: 'Continue the conversation',
+          workingDirectory: '/path/to/git/repo'
+          // Note: not providing permissionMode, should inherit from original session
+        });
+
+      expect(response.status).toBe(200);
+      expect(processManager.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permissionMode: 'bypassPermissions'
+        })
+      );
     });
   });
 

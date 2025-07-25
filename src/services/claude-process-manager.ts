@@ -59,73 +59,13 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
 
-  /**
-   * Resume an existing Claude conversation
-   */
-  async resumeConversation(config: { sessionId: string; message: string; previousMessages?: ConversationMessage[]; permissionMode?: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
-    const timestamp = new Date().toISOString();
-    this.logger.info('Resume conversation requested', { 
-      timestamp,
-      sessionId: config.sessionId, 
-      messageLength: config.message?.length,
-      messagePreview: config.message?.substring(0, 50) + (config.message?.length > 50 ? '...' : ''),
-      previousMessageCount: config.previousMessages?.length || 0,
-      activeProcessCount: this.processes.size,
-      claudePath: this.claudeExecutablePath 
-    });
-    
-    // Fetch the original conversation's working directory
-    const workingDirectory = await this.historyReader.getConversationWorkingDirectory(config.sessionId);
-    
-    if (!workingDirectory) {
-      throw new CCUIError(
-        'CONVERSATION_NOT_FOUND',
-        `Could not find working directory for session ${config.sessionId}`,
-        404
-      );
-    }
-    
-    this.logger.debug('Found working directory for resume session', {
-      sessionId: config.sessionId,
-      workingDirectory
-    });
-    
-    // Create a full ConversationConfig from the resume parameters
-    const fullConfig: ConversationConfig = {
-      workingDirectory,
-      initialPrompt: config.message,
-      previousMessages: config.previousMessages,
-      permissionMode: config.permissionMode
-    };
-    
-    const args = this.buildResumeArgs(config);
-    const spawnConfig = {
-      executablePath: this.claudeExecutablePath,
-      cwd: workingDirectory, // Use the original conversation's working directory
-      env: { ...process.env } as NodeJS.ProcessEnv
-    };
-    
-    this.logger.debug('Resume spawn config prepared', {
-      executablePath: spawnConfig.executablePath,
-      cwd: spawnConfig.cwd,
-      envKeys: Object.keys(spawnConfig.env)
-    });
-    
-    return this.executeConversationFlow(
-      'resuming',
-      { resumeSessionId: config.sessionId },
-      fullConfig,
-      args,
-      spawnConfig,
-      'PROCESS_RESUME_FAILED',
-      'Failed to resume Claude process'
-    );
-  }
 
   /**
-   * Start a new Claude conversation
+   * Start a new Claude conversation (or resume if resumedSessionId is provided)
    */
-  async startConversation(config: ConversationConfig): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
+  async startConversation(config: ConversationConfig & { resumedSessionId?: string }): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
+    const isResume = !!config.resumedSessionId;
+    
     this.logger.debug('Start conversation requested', { 
       hasInitialPrompt: !!config.initialPrompt,
       promptLength: config.initialPrompt?.length,
@@ -134,31 +74,59 @@ export class ClaudeProcessManager extends EventEmitter {
       allowedTools: config.allowedTools,
       disallowedTools: config.disallowedTools,
       hasSystemPrompt: !!config.systemPrompt,
-      claudePath: config.claudeExecutablePath || this.claudeExecutablePath
+      claudePath: config.claudeExecutablePath || this.claudeExecutablePath,
+      isResume,
+      resumedSessionId: config.resumedSessionId,
+      previousMessageCount: config.previousMessages?.length || 0
     });
     
-    const args = this.buildStartArgs(config);
+    // If resuming and no working directory provided, fetch from original session
+    let workingDirectory = config.workingDirectory;
+    if (isResume && !workingDirectory && config.resumedSessionId) {
+      const fetchedWorkingDirectory = await this.historyReader.getConversationWorkingDirectory(config.resumedSessionId);
+      
+      if (!fetchedWorkingDirectory) {
+        throw new CCUIError(
+          'CONVERSATION_NOT_FOUND',
+          `Could not find working directory for session ${config.resumedSessionId}`,
+          404
+        );
+      }
+      
+      workingDirectory = fetchedWorkingDirectory;
+      
+      this.logger.debug('Found working directory for resume session', {
+        sessionId: config.resumedSessionId,
+        workingDirectory
+      });
+    }
+    
+    const args = isResume && config.resumedSessionId
+      ? this.buildResumeArgs({ sessionId: config.resumedSessionId, message: config.initialPrompt, permissionMode: config.permissionMode })
+      : this.buildStartArgs(config);
+      
     const spawnConfig = {
       executablePath: config.claudeExecutablePath || this.claudeExecutablePath,
-      cwd: config.workingDirectory || process.cwd(),
+      cwd: workingDirectory || config.workingDirectory || process.cwd(),
       env: { ...process.env, ...this.envOverrides } as NodeJS.ProcessEnv
     };
     
-    this.logger.debug('Start spawn config prepared', {
+    this.logger.debug('Spawn config prepared', {
       executablePath: spawnConfig.executablePath,
       cwd: spawnConfig.cwd,
       hasEnvOverrides: Object.keys(this.envOverrides).length > 0,
-      envOverrideKeys: Object.keys(this.envOverrides)
+      envOverrideKeys: Object.keys(this.envOverrides),
+      isResume
     });
     
     return this.executeConversationFlow(
-      'starting',
-      {},
+      isResume ? 'resuming' : 'starting',
+      isResume && config.resumedSessionId ? { resumeSessionId: config.resumedSessionId } : {},
       config,
       args,
       spawnConfig,
-      'PROCESS_START_FAILED',
-      'Failed to start Claude process'
+      isResume ? 'PROCESS_RESUME_FAILED' : 'PROCESS_START_FAILED',
+      isResume ? 'Failed to resume Claude process' : 'Failed to start Claude process'
     );
   }
 

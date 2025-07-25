@@ -16,7 +16,6 @@ function ConsoleApp() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     status: true,
     start: true,
-    resume: true,
     stop: true,
     list: true,
     rename: true,
@@ -36,7 +35,6 @@ function ConsoleApp() {
   const [claudeExecutablePath, setClaudeExecutablePath] = useState('');
   const [permissionMode, setPermissionMode] = useState('');
   const [sessionId, setSessionId] = useState('');
-  const [resumeMessage, setResumeMessage] = useState('');
   const [streamingId, setStreamingId] = useState('');
   const [stopStreamingId, setStopStreamingId] = useState('');
   const [detailSessionId, setDetailSessionId] = useState('');
@@ -174,29 +172,6 @@ function ConsoleApp() {
     }
   };
 
-  const resumeConversation = async () => {
-    try {
-      const response = await fetch('/api/conversations/resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          message: resumeMessage
-        })
-      });
-      const data = await response.json();
-      showJson('resumeResult', data);
-
-      if (data.streamingId) {
-        setStreamingId(data.streamingId);
-        setStopStreamingId(data.streamingId);
-        startStream(data.streamingId);
-        loadAvailableSessions();
-      }
-    } catch (e: any) {
-      showJson('resumeResult', { error: e.message });
-    }
-  };
 
   const startStream = async (id?: string) => {
     const streamId = id || streamingId;
@@ -583,50 +558,6 @@ function ConsoleApp() {
             <button onClick={startConversation}>Start Conversation</button>
             <div id="startResult" className={styles.jsonViewerContainer}>
               {results.startResult && <JsonViewer data={results.startResult} resultId="startResult" />}
-            </div>
-          </div>
-        </div>
-        
-        {/* Resume Conversation */}
-        <div className={styles.section}>
-          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.resume ? styles.collapsed : ''}`} onClick={() => toggleCollapse('resume')}>
-            POST /api/conversations/resume
-          </div>
-          <div className={styles.collapsibleContent}>
-            <div className={styles.fieldGroup}>
-              <div className={styles.fieldLabel}>Session ID <span style={{ color: 'red' }}>*</span></div>
-              <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} style={{ marginBottom: 5 }}>
-                <option value="">Select a session...</option>
-                {availableSessions.map(session => {
-                  const summary = session.summary || 'No summary';
-                  const customName = session.sessionInfo?.custom_name || '';
-                  const sessionFlags = [];
-                  if (session.sessionInfo?.pinned) sessionFlags.push('📌');
-                  if (session.sessionInfo?.archived) sessionFlags.push('📦');
-                  if (session.sessionInfo?.continuation_session_id) sessionFlags.push('🔗');
-                  if (session.sessionInfo?.initial_commit_head) sessionFlags.push('🔀');
-                  if (session.sessionInfo?.permission_mode && session.sessionInfo.permission_mode !== 'default') sessionFlags.push(`🔒${session.sessionInfo.permission_mode}`);
-                  const flagsStr = sessionFlags.length > 0 ? ` ${sessionFlags.join('')}` : '';
-                  const displayName = customName ? `[${customName}] ${summary}` : summary;
-                  const date = new Date(session.updatedAt).toLocaleString();
-                  const metrics = session.toolMetrics;
-                  const metricsStr = metrics ? ` [📝${metrics.editCount} ✏️${metrics.writeCount} +${metrics.linesAdded} -${metrics.linesRemoved}]` : '';
-                  return (
-                    <option key={session.sessionId} value={session.sessionId} title={`${session.sessionId}\n${summary}\nPath: ${session.projectPath}\nUpdated: ${date}\n\nSession Info:\n${JSON.stringify(session.sessionInfo, null, 2)}${metrics ? `\n\nTool Metrics:\nEdits: ${metrics.editCount}\nWrites: ${metrics.writeCount}\nLines Added: ${metrics.linesAdded}\nLines Removed: ${metrics.linesRemoved}` : ''}`}>
-                      {session.sessionId.substring(0, 8)}... - {displayName.substring(0, 50)}...{flagsStr}{metricsStr} ({date})
-                    </option>
-                  );
-                })}
-              </select>
-              <input type="text" value={sessionId} onChange={(e) => setSessionId(e.target.value)} placeholder="claude-session-id or select from dropdown" />
-            </div>
-            <div className={styles.fieldGroup}>
-              <div className={styles.fieldLabel}>Message <span style={{ color: 'red' }}>*</span></div>
-              <input type="text" value={resumeMessage} onChange={(e) => setResumeMessage(e.target.value)} placeholder="Continue with this message..." />
-            </div>
-            <button onClick={resumeConversation}>Resume Conversation</button>
-            <div id="resumeResult" className={styles.jsonViewerContainer}>
-              {results.resumeResult && <JsonViewer data={results.resumeResult} resultId="resumeResult" />}
             </div>
           </div>
         </div>

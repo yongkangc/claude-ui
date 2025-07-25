@@ -63,10 +63,14 @@ export function TaskItem({
       <a 
         className={styles.link} 
         onClick={(e) => {
+          // Allow native behavior for cmd+click (Mac) or ctrl+click (Windows/Linux)
+          if (e.metaKey || e.ctrlKey) {
+            return;
+          }
           e.preventDefault();
           onClick();
         }}
-        href="#"
+        href={`/c/${_id}`}
       >
         <div className={styles.content}>
           <div className={styles.details}>

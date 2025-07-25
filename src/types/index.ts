@@ -121,12 +121,9 @@ export interface StartConversationRequest {
   disallowedTools?: string[];
   systemPrompt?: string;
   permissionMode?: string; // Permission mode: "acceptEdits" | "bypassPermissions" | "default" | "plan"
+  resumedSessionId?: string; // Optional: session ID to resume from
 }
 
-export interface ResumeConversationRequest {
-  sessionId: string;
-  message: string;
-}
 
 export interface StartConversationResponse {
   streamingId: string; // CCUI's internal streaming identifier for managing streaming connections
