@@ -642,16 +642,24 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                   </button>
                   <DropdownSelector
                     options={[
-                      { value: 'default', label: 'Code' },
-                      { value: 'acceptEdits', label: 'Auto' },
-                      { value: 'bypassPermissions', label: 'Yolo' },
-                      { value: 'plan', label: 'Plan' },
+                      { value: 'default', label: 'Code', description: 'Ask before making changes' },
+                      { value: 'acceptEdits', label: 'Auto', description: 'Apply edits automatically' },
+                      { value: 'bypassPermissions', label: 'Yolo', description: 'No permission prompts' },
+                      { value: 'plan', label: 'Plan', description: 'Planning mode only' },
                     ]}
                     value={selectedPermissionMode}
                     onChange={setSelectedPermissionMode}
                     isOpen={isPermissionDropdownOpen}
                     onOpenChange={setIsPermissionDropdownOpen}
                     showFilterInput={false}
+                    renderOption={(option) => (
+                      <div className={styles.permissionOption}>
+                        <span className={styles.permissionOptionLabel}>{option.label}</span>
+                        {option.description && (
+                          <span className={styles.permissionOptionDescription}>{option.description}</span>
+                        )}
+                      </div>
+                    )}
                     renderTrigger={({ onClick }) => (
                       <button
                         type="button"

@@ -8,6 +8,7 @@ export interface DropdownOption<T = string> {
   value: T;
   label: string;
   disabled?: boolean;
+  description?: string;
 }
 
 interface DropdownSelectorProps<T = string> {
