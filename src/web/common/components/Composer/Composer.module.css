@@ -371,11 +371,16 @@
   }
   
   .buttonText {
-    display: none;
+    font-size: 12px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .actionButton {
-    padding: 6px;
+    padding: 6px 10px;
+    gap: 4px;
   }
   
   .footerActions {
