@@ -7,6 +7,7 @@ import styles from './ConversationHeader.module.css';
 interface ConversationHeaderProps {
   title: string;
   sessionId?: string;
+  isArchived?: boolean;
   subtitle?: {
     date?: string;
     repo?: string;
@@ -18,7 +19,7 @@ interface ConversationHeaderProps {
   };
 }
 
-export function ConversationHeader({ title, sessionId, subtitle }: ConversationHeaderProps) {
+export function ConversationHeader({ title, sessionId, isArchived = false, subtitle }: ConversationHeaderProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -29,10 +30,10 @@ export function ConversationHeader({ title, sessionId, subtitle }: ConversationH
     if (!sessionId) return;
     
     try {
-      await api.updateSession(sessionId, { archived: true });
+      await api.updateSession(sessionId, { archived: !isArchived });
       navigate('/');
-    } catch (error) {
-      console.error('Failed to archive conversation:', error);
+    } catch (err) {
+      console.error(`Failed to ${isArchived ? 'unarchive' : 'archive'} session:`, err);
     }
   };
 
@@ -78,11 +79,12 @@ export function ConversationHeader({ title, sessionId, subtitle }: ConversationH
       <div className={styles.rightSection}>
         <button 
           className={styles.actionButton} 
-          aria-label="Archive Task"
+          aria-label={isArchived ? "Unarchive Task" : "Archive Task"}
           onClick={handleArchive}
+          disabled={!sessionId}
         >
           <Archive size={20} />
-          <span>Archive</span>
+          <span>{isArchived ? 'Unarchive' : 'Archive'}</span>
         </button>
         
         <button className={styles.actionButton} aria-label="Share task">

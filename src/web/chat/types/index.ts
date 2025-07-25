@@ -88,7 +88,7 @@ export interface WorkingDirectoriesResponse {
 }
 
 export interface Preferences {
-  colorScheme: 'light' | 'dark';
+  colorScheme: 'light' | 'dark' | 'system';
   language: string;
 }
 
@@ -97,4 +97,23 @@ export interface ToolResult {
   status: 'pending' | 'completed';
   result?: string | ContentBlockParam[];
   is_error?: boolean;
+}
+
+// Stream status types for live updates
+export interface StreamStatus {
+  connectionState: 'connecting' | 'connected' | 'disconnected' | 'error';
+  lastEvent?: StreamEvent;
+  lastEventTime?: string;
+  currentStatus: string;
+  toolMetrics?: {
+    linesAdded: number;
+    linesRemoved: number;
+    editCount: number;
+    writeCount: number;
+  };
+}
+
+// Extended conversation summary with live status
+export interface ConversationSummaryWithLiveStatus extends ConversationSummary {
+  liveStatus?: StreamStatus;
 }

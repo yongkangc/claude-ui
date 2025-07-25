@@ -22,7 +22,7 @@ export interface ComposerProps {
   // Core functionality
   value?: string;
   onChange?: (value: string) => void;
-  onSubmit: (message: string, workingDirectory?: string, model?: string) => void;
+  onSubmit: (message: string, workingDirectory?: string, model?: string, permissionMode?: string) => void;
   placeholder?: string;
   isLoading?: boolean;
   disabled?: boolean;
@@ -138,6 +138,7 @@ interface AutocompleteDropdownProps {
   isOpen: boolean;
   focusedIndex: number;
   position?: 'above' | 'below';
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 function AutocompleteDropdown({
@@ -147,6 +148,7 @@ function AutocompleteDropdown({
   isOpen,
   focusedIndex,
   position = 'below',
+  triggerRef,
 }: AutocompleteDropdownProps) {
   if (!isOpen) return null;
 
@@ -169,6 +171,7 @@ function AutocompleteDropdown({
         className={styles.pathAutocomplete}
         initialFocusedIndex={focusedIndex}
         visualFocusOnly={true}
+        triggerElementRef={triggerRef}
       />
     </div>
   );
@@ -212,6 +215,8 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
   const [selectedDirectory, setSelectedDirectory] = useState(workingDirectory || 'Select directory');
   const [selectedModel, setSelectedModel] = useState(model);
+  const [selectedPermissionMode, setSelectedPermissionMode] = useState<string>('default');
+  const [isPermissionDropdownOpen, setIsPermissionDropdownOpen] = useState(false);
   const [localFileSystemEntries, setLocalFileSystemEntries] = useState<FileSystemEntry[]>(fileSystemEntries);
   const [autocomplete, setAutocomplete] = useState<AutocompleteState>({
     isActive: false,
@@ -327,6 +332,24 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     });
   };
 
+  const getPermissionModeLabel = (mode: string): string => {
+    switch (mode) {
+      case 'default': return 'Code';
+      case 'acceptEdits': return 'Auto';
+      case 'bypassPermissions': return 'Yolo';
+      default: return 'Code';
+    }
+  };
+
+  const getPermissionModeTitle = (mode: string): string => {
+    switch (mode) {
+      case 'default': return 'Code - Ask for permissions as needed';
+      case 'acceptEdits': return 'Auto - Allow Claude to make changes directly';
+      case 'bypassPermissions': return 'Yolo - Skip all permission prompts';
+      default: return 'Code - Ask for permissions as needed';
+    }
+  };
+
   const handlePathSelection = (path: string) => {
     if (!textareaRef.current) return;
     
@@ -374,9 +397,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    
+  const handleSubmit = (permissionMode: string) => {
     const trimmedValue = value.trim();
     if (!trimmedValue || isLoading) return;
 
@@ -386,7 +407,8 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     onSubmit(
       trimmedValue,
       showDirectorySelector ? selectedDirectory : undefined,
-      showModelSelector ? selectedModel : undefined
+      showModelSelector ? selectedModel : undefined,
+      permissionMode
     );
     
     setValue('');
@@ -436,7 +458,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     } else if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
-        handleSubmit();
+        handleSubmit('default');
       }
     }
   };
@@ -584,21 +606,70 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               >
                 <Square size={18} />
               </button>
+            ) : value.trim() ? (
+              <div className={styles.permissionModeButtons}>
+                {/* Separate Plan Button */}
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  title="Plan Mode - Create a plan without executing"
+                  disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                  onClick={() => handleSubmit('plan')}
+                >
+                  <div className={styles.btnContent}>
+                    {isLoading ? <Loader2 size={14} className={styles.spinning} /> : 'Plan'}
+                  </div>
+                </button>
+                
+                {/* Combined Permission Mode Button with Dropdown */}
+                <div className={styles.combinedPermissionButton}>
+                  <button
+                    type="button"
+                    className={styles.permissionMainButton}
+                    title={getPermissionModeTitle(selectedPermissionMode)}
+                    disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                    onClick={() => handleSubmit(selectedPermissionMode)}
+                  >
+                    <div className={styles.btnContent}>
+                      {isLoading ? <Loader2 size={14} className={styles.spinning} /> : getPermissionModeLabel(selectedPermissionMode)}
+                    </div>
+                  </button>
+                  <DropdownSelector
+                    options={[
+                      { value: 'default', label: 'Code' },
+                      { value: 'acceptEdits', label: 'Auto' },
+                      { value: 'bypassPermissions', label: 'Yolo' },
+                    ]}
+                    value={selectedPermissionMode}
+                    onChange={setSelectedPermissionMode}
+                    isOpen={isPermissionDropdownOpen}
+                    onOpenChange={setIsPermissionDropdownOpen}
+                    showFilterInput={false}
+                    renderTrigger={({ onClick }) => (
+                      <button
+                        type="button"
+                        className={styles.permissionDropdownButton}
+                        onClick={onClick}
+                        disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                        aria-label="Select permission mode"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M4.5 5.5L8 9L11.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        </svg>
+                      </button>
+                    )}
+                  />
+                </div>
+              </div>
             ) : (
               <button
-                type={value.trim() ? "submit" : "button"}
+                type="button"
                 className={styles.iconButton}
-                aria-label={value.trim() ? "Send message" : "Dictate button"}
-                disabled={isLoading || disabled || (!!value.trim() && showDirectorySelector && selectedDirectory === 'Select directory')}
-                title={value.trim() ? "Send message (Ctrl/Cmd+Enter)" : "Voice input"}
+                aria-label="Dictate button"
+                disabled={isLoading || disabled}
+                title="Voice input"
               >
-                {isLoading && !showStopButton ? (
-                  <Loader2 size={18} className={styles.spinning} />
-                ) : value.trim() ? (
-                  <Send size={18} />
-                ) : (
-                  <Mic size={18} />
-                )}
+                <Mic size={18} />
               </button>
             )}
           </div>
@@ -612,6 +683,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
           isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
           focusedIndex={autocomplete.focusedIndex}
           position={dropdownPosition}
+          triggerRef={textareaRef}
         />
       )}
     </form>

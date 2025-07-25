@@ -127,8 +127,7 @@ describe('API Service - Permission Decisions', () => {
         .toThrow('Network error');
     });
 
-    it('should log API calls', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    it('should make POST request with correct parameters', async () => {
       const requestId = 'test-request-id';
       const decision: PermissionDecisionRequest = {
         action: 'approve',
@@ -144,21 +143,21 @@ describe('API Service - Permission Decisions', () => {
         json: async () => mockResponse,
       });
 
-      await api.sendPermissionDecision(requestId, decision);
+      const result = await api.sendPermissionDecision(requestId, decision);
 
-      // Check that the API call was logged
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `[API] POST /api/permissions/${requestId}/decision`,
-        decision
+      // Check that fetch was called with correct parameters
+      expect(global.fetch).toHaveBeenCalledWith(
+        `/api/permissions/${requestId}/decision`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(decision),
+        }
       );
 
-      // Check that the response was logged
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `[API Response] /api/permissions/${requestId}/decision:`,
-        mockResponse
-      );
-
-      consoleSpy.mockRestore();
+      expect(result).toEqual(mockResponse);
     });
   });
 

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { CornerDownRight } from 'lucide-react';
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 import type { ChatMessage, ToolResult } from '../../types';
 import { ReadTool } from './tools/ReadTool';
@@ -32,6 +33,7 @@ export function ToolContent({
   childrenMessages, 
   toolResults
 }: ToolContentProps) {
+  const [isErrorExpanded, setIsErrorExpanded] = useState(false);
   // Extract result content - handle both string and ContentBlockParam[] formats
   const getResultContent = (): string => {
     if (!toolResult?.result) return '';
@@ -56,11 +58,30 @@ export function ToolContent({
 
   // Handle error display at root level
   if (isError) {
+    const errorMessage = resultContent || 'Tool execution failed';
+    const firstLine = errorMessage.split('\n')[0].trim();
+    const hasMultipleLines = errorMessage.includes('\n');
+    
     return (
       <div className={styles.toolContent}>
-        <div className={styles.errorContent}>
-          {resultContent || 'Tool execution failed'}
+        <div 
+          className={`${styles.toolSummary} ${styles.expandable}`}
+          onClick={() => setIsErrorExpanded(!isErrorExpanded)}
+        >
+          <CornerDownRight 
+            size={12} 
+            className={`${styles.chevron} ${isErrorExpanded ? styles.expanded : ''}`} 
+          />
+          <span style={{ color: 'var(--color-error)' }}>
+            Error: {firstLine}
+          </span>
         </div>
+        
+        {isErrorExpanded && (
+          <div className={styles.errorContent}>
+            {errorMessage}
+          </div>
+        )}
       </div>
     );
   }

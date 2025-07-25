@@ -150,7 +150,7 @@
 }
 
 .iconButton:hover:not(:disabled) {
-  opacity: 0.9;
+  transform: scale(1.03);
 }
 
 .iconButton:disabled {
@@ -291,7 +291,13 @@
 }
 
 /* Focus styles for accessibility */
-.iconButton:focus-visible,
+.iconButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
 .actionButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
@@ -318,6 +324,112 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Permission mode buttons with combined dropdown */
+.permissionModeButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.combinedPermissionButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.permissionMainButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: none;
+  min-width: 48px;
+  width: 48px;
+}
+
+.permissionMainButton:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.permissionDropdownButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  transition: none;
+  opacity: 0.8;
+}
+
+.permissionDropdownButton:hover:not(:disabled) {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.permissionMainButton:disabled,
+.permissionDropdownButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Separate Plan button styling */
+.btn {
+  position: relative;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 8px 16px;
+  min-width: 60px;
+}
+
+.btnContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btnSecondary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: var(--color-bg-tertiary);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn:focus-visible,
+.permissionMainButton:focus-visible,
+.permissionDropdownButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .textAreaContainer {
@@ -339,5 +451,27 @@
   .footerActions {
     left: 10px;
     right: 50px;
+  }
+  
+  .permissionModeButtons {
+    gap: 6px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: 50px;
+  }
+  
+  .permissionMainButton {
+    padding: 6px 8px;
+    font-size: 13px;
+    min-width: 40px;
+    width: 40px;
+  }
+  
+  .permissionDropdownButton {
+    width: 28px;
+    height: 28px;
   }
 }

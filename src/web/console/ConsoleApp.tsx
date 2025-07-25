@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LogWindow from './LogWindow';
-import './styles/console.css';
+import styles from './styles/console.module.css';
 
 declare global {
   namespace JSX {
@@ -246,7 +246,7 @@ function ConsoleApp() {
             
             lineCount++;
             const newLine = (
-              <div key={`line-${lineCount}`} className="stream-line">
+              <div key={`line-${lineCount}`} className={styles.streamLine}>
                 <span style={{ color: '#868e96' }}>{lineCount}:</span> {jsonLine}
               </div>
             );
@@ -442,11 +442,11 @@ function ConsoleApp() {
       
       const originalText = buttonRef.textContent;
       buttonRef.textContent = 'Copied!';
-      buttonRef.classList.add('copied');
+      buttonRef.classList.add(styles.copied);
       
       setTimeout(() => {
         buttonRef.textContent = originalText;
-        buttonRef.classList.remove('copied');
+        buttonRef.classList.remove(styles.copied);
       }, 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
@@ -464,11 +464,11 @@ function ConsoleApp() {
       
       const originalText = buttonRef.textContent;
       buttonRef.textContent = 'Copied!';
-      buttonRef.classList.add('copied');
+      buttonRef.classList.add(styles.copied);
       
       setTimeout(() => {
         buttonRef.textContent = originalText;
-        buttonRef.classList.remove('copied');
+        buttonRef.classList.remove(styles.copied);
       }, 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
@@ -476,8 +476,8 @@ function ConsoleApp() {
   };
 
   const JsonViewer = ({ data, resultId }: { data: any, resultId: string }) => (
-    <div className="json-viewer-wrapper">
-      <button className="copy-btn" onClick={(e) => copyJsonToClipboard(data, e.currentTarget)}>
+    <div className={styles.jsonViewerWrapper}>
+      <button className={styles.copyBtn} onClick={(e) => copyJsonToClipboard(data, e.currentTarget)}>
         Copy JSON
       </button>
       <json-viewer data={JSON.stringify(data)}></json-viewer>
@@ -485,36 +485,36 @@ function ConsoleApp() {
   );
 
   return (
-    <div className="container">
+    <div className={styles.container}>
       {/* Sidebar */}
-      <div className="sidebar">
+      <div className={styles.sidebar}>
         <h1>CCUI Raw JSON Interface</h1>
         
         {/* System Status */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.status ? 'collapsed' : ''}`} onClick={() => toggleCollapse('status')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.status ? styles.collapsed : ''}`} onClick={() => toggleCollapse('status')}>
             GET /api/system/status
           </div>
-          <div className="collapsible-content">
+          <div className={styles.collapsibleContent}>
             <button onClick={getSystemStatus}>Get Status</button>
-            <div id="statusResult" className="json-viewer-container">
+            <div id="statusResult" className={styles.jsonViewerContainer}>
               {results.statusResult && <JsonViewer data={results.statusResult} resultId="statusResult" />}
             </div>
           </div>
         </div>
 
         {/* Working Directories */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.workingDirs ? 'collapsed' : ''}`} onClick={() => toggleCollapse('workingDirs')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.workingDirs ? styles.collapsed : ''}`} onClick={() => toggleCollapse('workingDirs')}>
             GET /api/working-directories
           </div>
-          <div className="collapsible-content">
+          <div className={styles.collapsibleContent}>
             <button onClick={getWorkingDirectories}>Get Working Directories</button>
-            <div id="workingDirsResult" className="json-viewer-container">
+            <div id="workingDirsResult" className={styles.jsonViewerContainer}>
               {results.workingDirsResult && <JsonViewer data={results.workingDirsResult} resultId="workingDirsResult" />}
             </div>
             {workingDirectories.length > 0 && (
-              <div className="working-dirs-list" style={{ marginTop: '10px' }}>
+              <div className={styles.workingDirsList} style={{ marginTop: '10px' }}>
                 <h4 style={{ margin: '5px 0' }}>Quick Select:</h4>
                 {workingDirectories.map((dir: any, index: number) => (
                   <div key={index} style={{ marginBottom: '5px' }}>
@@ -539,21 +539,21 @@ function ConsoleApp() {
         </div>
         
         {/* Start Conversation */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.start ? 'collapsed' : ''}`} onClick={() => toggleCollapse('start')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.start ? styles.collapsed : ''}`} onClick={() => toggleCollapse('start')}>
             POST /api/conversations/start
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Working Directory <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Working Directory <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={workingDir} onChange={(e) => setWorkingDir(e.target.value)} placeholder="/Users/..." />
             </div>
-            <div className="field-group">
-              <div className="field-label">Initial Prompt <span style={{ color: 'red' }}>*</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Initial Prompt <span style={{ color: 'red' }}>*</span></div>
               <textarea value={initialPrompt} onChange={(e) => setInitialPrompt(e.target.value)} rows={3} placeholder="Your prompt here..." />
             </div>
-            <div className="field-group">
-              <div className="field-label">Model <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Model <span className={styles.optional}>(optional)</span></div>
               <select value={model} onChange={(e) => setModel(e.target.value)}>
                 <option value="">Default</option>
                 <option value="claude-3-opus-20240229">Claude 3 Opus</option>
@@ -562,16 +562,16 @@ function ConsoleApp() {
                 <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
               </select>
             </div>
-            <div className="field-group">
-              <div className="field-label">System Prompt <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>System Prompt <span className={styles.optional}>(optional)</span></div>
               <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={2} placeholder="System prompt..." />
             </div>
-            <div className="field-group">
-              <div className="field-label">Claude Executable Path <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Claude Executable Path <span className={styles.optional}>(optional)</span></div>
               <input type="text" value={claudeExecutablePath} onChange={(e) => setClaudeExecutablePath(e.target.value)} placeholder="/usr/local/bin/claude" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Permission Mode <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Permission Mode <span className={styles.optional}>(optional)</span></div>
               <select value={permissionMode} onChange={(e) => setPermissionMode(e.target.value)}>
                 <option value="">Default</option>
                 <option value="default">default</option>
@@ -581,20 +581,20 @@ function ConsoleApp() {
               </select>
             </div>
             <button onClick={startConversation}>Start Conversation</button>
-            <div id="startResult" className="json-viewer-container">
+            <div id="startResult" className={styles.jsonViewerContainer}>
               {results.startResult && <JsonViewer data={results.startResult} resultId="startResult" />}
             </div>
           </div>
         </div>
         
         {/* Resume Conversation */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.resume ? 'collapsed' : ''}`} onClick={() => toggleCollapse('resume')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.resume ? styles.collapsed : ''}`} onClick={() => toggleCollapse('resume')}>
             POST /api/conversations/resume
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Session ID <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Session ID <span style={{ color: 'red' }}>*</span></div>
               <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} style={{ marginBottom: 5 }}>
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
@@ -620,71 +620,71 @@ function ConsoleApp() {
               </select>
               <input type="text" value={sessionId} onChange={(e) => setSessionId(e.target.value)} placeholder="claude-session-id or select from dropdown" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Message <span style={{ color: 'red' }}>*</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Message <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={resumeMessage} onChange={(e) => setResumeMessage(e.target.value)} placeholder="Continue with this message..." />
             </div>
             <button onClick={resumeConversation}>Resume Conversation</button>
-            <div id="resumeResult" className="json-viewer-container">
+            <div id="resumeResult" className={styles.jsonViewerContainer}>
               {results.resumeResult && <JsonViewer data={results.resumeResult} resultId="resumeResult" />}
             </div>
           </div>
         </div>
         
         {/* Stop Conversation */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.stop ? 'collapsed' : ''}`} onClick={() => toggleCollapse('stop')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.stop ? styles.collapsed : ''}`} onClick={() => toggleCollapse('stop')}>
             POST /api/conversations/:streamingId/stop
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Streaming ID <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Streaming ID <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={stopStreamingId} onChange={(e) => setStopStreamingId(e.target.value)} placeholder="streaming-id" />
             </div>
             <button onClick={stopConversation}>Stop Conversation</button>
-            <div id="stopResult" className="json-viewer-container">
+            <div id="stopResult" className={styles.jsonViewerContainer}>
               {results.stopResult && <JsonViewer data={results.stopResult} resultId="stopResult" />}
             </div>
           </div>
         </div>
         
         {/* List Conversations */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.list ? 'collapsed' : ''}`} onClick={() => toggleCollapse('list')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.list ? styles.collapsed : ''}`} onClick={() => toggleCollapse('list')}>
             GET /api/conversations
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="inline-fields">
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.inlineFields}>
                 <div>
-                  <div className="field-label">Limit <span className="optional">(optional)</span></div>
+                  <div className={styles.fieldLabel}>Limit <span className={styles.optional}>(optional)</span></div>
                   <input type="number" value={sidebarConversationsLimit} onChange={(e) => setSidebarConversationsLimit(e.target.value)} placeholder="20" />
                 </div>
                 <div>
-                  <div className="field-label">Offset <span className="optional">(optional)</span></div>
+                  <div className={styles.fieldLabel}>Offset <span className={styles.optional}>(optional)</span></div>
                   <input type="number" value={sidebarConversationsOffset} onChange={(e) => setSidebarConversationsOffset(e.target.value)} placeholder="0" />
                 </div>
                 <div>
-                  <div className="field-label">Project Path <span className="optional">(optional)</span></div>
+                  <div className={styles.fieldLabel}>Project Path <span className={styles.optional}>(optional)</span></div>
                   <input type="text" value={sidebarConversationsProjectPath} onChange={(e) => setSidebarConversationsProjectPath(e.target.value)} placeholder="/path/to/project" />
                 </div>
               </div>
             </div>
             <button onClick={listConversationsSidebar}>List Conversations</button>
-            <div id="sidebarConversationsResult" className="json-viewer-container">
+            <div id="sidebarConversationsResult" className={styles.jsonViewerContainer}>
               {results.sidebarConversationsResult && <JsonViewer data={results.sidebarConversationsResult} resultId="sidebarConversationsResult" />}
             </div>
           </div>
         </div>
         
         {/* Update Session (includes rename) */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.rename ? 'collapsed' : ''}`} onClick={() => toggleCollapse('rename')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.rename ? styles.collapsed : ''}`} onClick={() => toggleCollapse('rename')}>
             PUT /api/conversations/:sessionId/update
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Session ID <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Session ID <span style={{ color: 'red' }}>*</span></div>
               <select value={renameSessionId} onChange={(e) => setRenameSessionId(e.target.value)} style={{ marginBottom: 5 }}>
                 <option value="">Select a session...</option>
                 {availableSessions.map(session => {
@@ -710,15 +710,15 @@ function ConsoleApp() {
               </select>
               <input type="text" value={renameSessionId} onChange={(e) => setRenameSessionId(e.target.value)} placeholder="claude-session-id or select from dropdown" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Custom Name <span className="optional">(empty to clear)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Custom Name <span className={styles.optional}>(empty to clear)</span></div>
               <input type="text" value={renameCustomName} onChange={(e) => setRenameCustomName(e.target.value)} placeholder="My Project Discussion" maxLength={200} />
               <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
                 {renameCustomName.length}/200 characters
               </div>
             </div>
-            <div className="field-group">
-              <div className="inline-fields">
+            <div className={styles.fieldGroup}>
+              <div className={styles.inlineFields}>
                 <div>
                   <input type="checkbox" id="sessionPinned" checked={sessionPinned} onChange={(e) => setSessionPinned(e.target.checked)} />
                   <label htmlFor="sessionPinned">Pinned</label>
@@ -729,16 +729,16 @@ function ConsoleApp() {
                 </div>
               </div>
             </div>
-            <div className="field-group">
-              <div className="field-label">Continuation Session ID <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Continuation Session ID <span className={styles.optional}>(optional)</span></div>
               <input type="text" value={continuationSessionId} onChange={(e) => setContinuationSessionId(e.target.value)} placeholder="claude-session-id" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Initial Commit HEAD <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Initial Commit HEAD <span className={styles.optional}>(optional)</span></div>
               <input type="text" value={initialCommitHead} onChange={(e) => setInitialCommitHead(e.target.value)} placeholder="git commit hash" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Permission Mode <span className="optional">(optional)</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Permission Mode <span className={styles.optional}>(optional)</span></div>
               <select value={sessionPermissionMode} onChange={(e) => setSessionPermissionMode(e.target.value)}>
                 <option value="">Keep current</option>
                 <option value="default">default</option>
@@ -748,26 +748,26 @@ function ConsoleApp() {
               </select>
             </div>
             <button onClick={renameSession}>Update Session</button>
-            <div id="renameResult" className="json-viewer-container">
+            <div id="renameResult" className={styles.jsonViewerContainer}>
               {results.renameResult && <JsonViewer data={results.renameResult} resultId="renameResult" />}
             </div>
           </div>
         </div>
         
         {/* List Permissions */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.permissions ? 'collapsed' : ''}`} onClick={() => toggleCollapse('permissions')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.permissions ? styles.collapsed : ''}`} onClick={() => toggleCollapse('permissions')}>
             GET /api/permissions
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="inline-fields">
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.inlineFields}>
                 <div>
-                  <div className="field-label">Streaming ID <span className="optional">(optional)</span></div>
+                  <div className={styles.fieldLabel}>Streaming ID <span className={styles.optional}>(optional)</span></div>
                   <input type="text" value={permissionsStreamingId} onChange={(e) => setPermissionsStreamingId(e.target.value)} placeholder="streaming-id" />
                 </div>
                 <div>
-                  <div className="field-label">Status <span className="optional">(optional)</span></div>
+                  <div className={styles.fieldLabel}>Status <span className={styles.optional}>(optional)</span></div>
                   <select value={permissionsStatus} onChange={(e) => setPermissionsStatus(e.target.value)}>
                     <option value="">All</option>
                     <option value="pending">Pending</option>
@@ -778,24 +778,24 @@ function ConsoleApp() {
               </div>
             </div>
             <button onClick={listPermissions}>List Permissions</button>
-            <div id="permissionsResult" className="json-viewer-container">
+            <div id="permissionsResult" className={styles.jsonViewerContainer}>
               {results.permissionsResult && <JsonViewer data={results.permissionsResult} resultId="permissionsResult" />}
             </div>
           </div>
         </div>
         
         {/* Permission Decision */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.permissionDecision ? 'collapsed' : ''}`} onClick={() => toggleCollapse('permissionDecision')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.permissionDecision ? styles.collapsed : ''}`} onClick={() => toggleCollapse('permissionDecision')}>
             POST /api/permissions/:requestId/decision
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Request ID <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Request ID <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={permissionRequestId} onChange={(e) => setPermissionRequestId(e.target.value)} placeholder="permission-request-id" />
             </div>
-            <div className="field-group">
-              <div className="field-label">Request Body <span style={{ color: 'red' }}>*</span></div>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Request Body <span style={{ color: 'red' }}>*</span></div>
               <textarea 
                 value={permissionDecisionBody} 
                 onChange={(e) => setPermissionDecisionBody(e.target.value)} 
@@ -809,24 +809,24 @@ function ConsoleApp() {
               />
             </div>
             <button onClick={makePermissionDecision}>Make Decision</button>
-            <div id="permissionDecisionResult" className="json-viewer-container">
+            <div id="permissionDecisionResult" className={styles.jsonViewerContainer}>
               {results.permissionDecisionResult && <JsonViewer data={results.permissionDecisionResult} resultId="permissionDecisionResult" />}
             </div>
           </div>
         </div>
 
         {/* List Directory */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.listDir ? 'collapsed' : ''}`} onClick={() => toggleCollapse('listDir')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.listDir ? styles.collapsed : ''}`} onClick={() => toggleCollapse('listDir')}>
             GET /api/filesystem/list
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Path <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Path <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={listPath} onChange={(e) => setListPath(e.target.value)} placeholder="/absolute/path/to/directory" />
             </div>
-            <div className="field-group">
-              <div className="inline-fields">
+            <div className={styles.fieldGroup}>
+              <div className={styles.inlineFields}>
                 <div>
                   <input type="checkbox" id="listRecursive" checked={listRecursive} onChange={(e) => setListRecursive(e.target.checked)} />
                   <label htmlFor="listRecursive">Recursive</label>
@@ -838,42 +838,42 @@ function ConsoleApp() {
               </div>
             </div>
             <button onClick={listDirectory}>List Directory</button>
-            <div id="listResult" className="json-viewer-container">
+            <div id="listResult" className={styles.jsonViewerContainer}>
               {results.listResult && <JsonViewer data={results.listResult} resultId="listResult" />}
             </div>
           </div>
         </div>
 
         {/* Read File */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.readFile ? 'collapsed' : ''}`} onClick={() => toggleCollapse('readFile')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.readFile ? styles.collapsed : ''}`} onClick={() => toggleCollapse('readFile')}>
             GET /api/filesystem/read
           </div>
-          <div className="collapsible-content">
-            <div className="field-group">
-              <div className="field-label">Path <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Path <span style={{ color: 'red' }}>*</span></div>
               <input type="text" value={readPath} onChange={(e) => setReadPath(e.target.value)} placeholder="/absolute/path/to/file.txt" />
             </div>
             <button onClick={readFile}>Read File</button>
-            <div id="readResult" className="json-viewer-container">
+            <div id="readResult" className={styles.jsonViewerContainer}>
               {results.readResult && <JsonViewer data={results.readResult} resultId="readResult" />}
             </div>
           </div>
         </div>
 
         {/* Bulk Operations */}
-        <div className="section">
-          <div className={`endpoint collapsible ${collapsed.bulkOperations ? 'collapsed' : ''}`} onClick={() => toggleCollapse('bulkOperations')}>
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.bulkOperations ? styles.collapsed : ''}`} onClick={() => toggleCollapse('bulkOperations')}>
             Bulk Operations
           </div>
-          <div className="collapsible-content">
+          <div className={styles.collapsibleContent}>
             <div style={{ marginBottom: '10px' }}>
               <h4 style={{ margin: '5px 0' }}>Archive All Sessions</h4>
               <p style={{ fontSize: '12px', color: '#666', margin: '5px 0' }}>
                 Archive all non-archived sessions at once. This action cannot be undone.
               </p>
               <button onClick={archiveAllSessions} style={{ background: '#e74c3c' }}>Archive All Sessions</button>
-              <div id="archiveAllResult" className="json-viewer-container">
+              <div id="archiveAllResult" className={styles.jsonViewerContainer}>
                 {results.archiveAllResult && <JsonViewer data={results.archiveAllResult} resultId="archiveAllResult" />}
               </div>
             </div>
@@ -882,13 +882,13 @@ function ConsoleApp() {
       </div>
       
       {/* Main Content Area */}
-      <div className="main">
-        <div className="main-content">
+      <div className={styles.main}>
+        <div className={styles.mainContent}>
           {/* Get Conversation Details */}
-          <div className="section">
-          <div className="endpoint">GET /api/conversations/:sessionId</div>
-          <div className="field-group">
-            <div className="field-label">Session ID <span style={{ color: 'red' }}>*</span></div>
+          <div className={styles.section}>
+          <div className={styles.endpoint}>GET /api/conversations/:sessionId</div>
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldLabel}>Session ID <span style={{ color: 'red' }}>*</span></div>
             <select value={detailSessionId} onChange={(e) => setDetailSessionId(e.target.value)} style={{ marginBottom: 5 }}>
               <option value="">Select a session...</option>
               {availableSessions.map(session => {
@@ -908,23 +908,23 @@ function ConsoleApp() {
             <input type="text" value={detailSessionId} onChange={(e) => setDetailSessionId(e.target.value)} placeholder="claude-session-id or select from dropdown" />
           </div>
           <button onClick={getConversationDetails}>Get Details</button>
-          <div id="detailsResult" className="json-viewer-container">
+          <div id="detailsResult" className={styles.jsonViewerContainer}>
             {results.detailsResult && <JsonViewer data={results.detailsResult} resultId="detailsResult" />}
           </div>
         </div>
         
         {/* Stream */}
-        <div className="section">
-          <div className="endpoint">GET /api/stream/:streamingId</div>
-          <div className="field-group">
-            <div className="field-label">Streaming ID <span style={{ color: 'red' }}>*</span></div>
+        <div className={styles.section}>
+          <div className={styles.endpoint}>GET /api/stream/:streamingId</div>
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldLabel}>Streaming ID <span style={{ color: 'red' }}>*</span></div>
             <input type="text" value={streamingId} onChange={(e) => setStreamingId(e.target.value)} placeholder="streaming-id" />
           </div>
           <button onClick={() => startStream()}>Start Stream</button>
           <button onClick={stopStream}>Stop Stream</button>
           <button onClick={clearStream}>Clear</button>
           <button onClick={(e) => copyStreamToClipboard(e.currentTarget)}>Copy Stream</button>
-          <div id="streamResult" className="stream-container" ref={streamResultRef}>
+          <div id="streamResult" className={styles.streamContainer} ref={streamResultRef}>
             {streamResult}
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StopCircle, Archive } from 'lucide-react';
 import styles from './TaskItem.module.css';
+import type { StreamStatus } from '../../types';
 
 interface TaskItemProps {
   id: string;
@@ -8,7 +9,7 @@ interface TaskItemProps {
   timestamp: string;
   projectPath: string;
   recentDirectories: Record<string, { lastDate: string; shortname: string }>;
-  status: 'ongoing' | 'completed' | 'error';
+  status: 'ongoing' | 'completed' | 'error' | 'pending';
   messageCount?: number;
   toolMetrics?: {
     linesAdded: number;
@@ -16,9 +17,12 @@ interface TaskItemProps {
     editCount: number;
     writeCount: number;
   };
+  liveStatus?: StreamStatus;
+  isArchived?: boolean;
   onClick: () => void;
   onCancel?: () => void;
   onArchive?: () => void;
+  onUnarchive?: () => void;
 }
 
 export function TaskItem({ 
@@ -30,9 +34,12 @@ export function TaskItem({
   status,
   messageCount,
   toolMetrics,
+  liveStatus,
+  isArchived = false,
   onClick,
   onCancel,
-  onArchive 
+  onArchive,
+  onUnarchive
 }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const formatTimestamp = (ts: string) => {
@@ -89,7 +96,9 @@ export function TaskItem({
           
           {status === 'ongoing' && (
             <div className={styles.statusSection}>
-              <span className={styles.statusText}>Running</span>
+              <span className={`${styles.statusText} ${liveStatus ? styles.liveStatus : ''}`}>
+                {liveStatus?.currentStatus || 'Running'}
+              </span>
               <button
                 className={styles.stopButton}
                 onClick={(e) => {
@@ -112,9 +121,13 @@ export function TaskItem({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onArchive?.();
+                  if (isArchived) {
+                    onUnarchive?.();
+                  } else {
+                    onArchive?.();
+                  }
                 }}
-                aria-label="Archive task"
+                aria-label={isArchived ? "Unarchive task" : "Archive task"}
                 type="button"
               >
                 <Archive size={21} />

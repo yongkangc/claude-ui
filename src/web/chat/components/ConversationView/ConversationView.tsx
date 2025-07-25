@@ -158,7 +158,7 @@ export function ConversationView() {
     },
   });
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, workingDirectory?: string, model?: string, permissionMode?: string) => {
     if (!sessionId) return;
 
     setError(null);
@@ -218,6 +218,7 @@ export function ConversationView() {
       <ConversationHeader 
         title={conversationTitle}
         sessionId={sessionId}
+        isArchived={conversationSummary?.sessionInfo.archived || false}
         subtitle={conversationSummary ? {
           date: new Date(conversationSummary.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           repo: conversationSummary.projectPath.split('/').pop() || 'project',
@@ -258,6 +259,7 @@ export function ConversationView() {
           showStopButton={true}
           enableFileAutocomplete={true}
           dropdownPosition="above"
+          workingDirectory={conversationSummary?.projectPath}
           onFetchFileSystem={async (directory) => {
             try {
               const response = await api.listDirectory({

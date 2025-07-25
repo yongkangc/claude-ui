@@ -171,3 +171,11 @@
   color: #ef4444;
   font-weight: 500;
 }
+
+/* Live status indicator */
+.liveStatus {
+  position: relative;
+  animation: shimmer 2s linear infinite;
+}
+
+

@@ -13,8 +13,10 @@ export function useStreaming(
   options: UseStreamingOptions
 ) {
   const [isConnected, setIsConnected] = useState(false);
+  const [shouldReconnect, setShouldReconnect] = useState(true);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const optionsRef = useRef(options);
   
   // Keep options ref up to date
@@ -23,6 +25,8 @@ export function useStreaming(
   }, [options]);
 
   const disconnect = useCallback(() => {
+    setShouldReconnect(false); // Mark as intentional disconnect
+    
     if (readerRef.current) {
       readerRef.current.cancel().catch(() => {});
       readerRef.current = null;
@@ -46,6 +50,8 @@ export function useStreaming(
     if (!streamingId || readerRef.current || abortControllerRef.current) {
       return;
     }
+
+    setShouldReconnect(true); // Reset to allow reconnection
 
     try {
       abortControllerRef.current = new AbortController();
@@ -108,7 +114,16 @@ export function useStreaming(
         optionsRef.current.onError?.(error);
       }
     } finally {
+      const wasIntentional = !shouldReconnect;
       disconnect();
+      
+      // Auto-reconnect if unintentional and page visible
+      if (!wasIntentional && document.visibilityState === 'visible' && streamingId) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          setShouldReconnect(true);
+          connect();
+        }, 5000);
+      }
     }
   }, [streamingId, disconnect]);
 
@@ -123,6 +138,25 @@ export function useStreaming(
       disconnect();
     };
   }, [streamingId]); // Only depend on streamingId, not the callbacks
+
+  // Handle visibility change for reconnection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && 
+          !isConnected && 
+          shouldReconnect && 
+          streamingId) {
+        clearTimeout(reconnectTimeoutRef.current);
+        connect();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(reconnectTimeoutRef.current);
+    };
+  }, [isConnected, shouldReconnect, streamingId, connect]);
 
   return {
     isConnected,

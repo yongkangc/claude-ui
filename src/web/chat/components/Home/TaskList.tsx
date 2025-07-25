@@ -69,9 +69,31 @@ export function TaskList({
       await api.updateSession(sessionId, { archived: true });
       
       // Refresh the conversations list to ensure consistency
-      loadConversations();
+      loadConversations(undefined, getFiltersForTab(activeTab));
     } catch (error) {
       console.error('Failed to archive task:', error);
+      // Restore visibility if the API call fails
+      if (element) {
+        element.style.display = '';
+      }
+    }
+  };
+
+  const handleUnarchiveTask = async (sessionId: string) => {
+    // Optimistically remove the item from the current view
+    const element = document.querySelector(`[data-session-id="${sessionId}"]`);
+    if (element) {
+      element.style.display = 'none';
+    }
+    
+    try {
+      // Call the API to persist the change
+      await api.updateSession(sessionId, { archived: false });
+      
+      // Refresh the conversations list to ensure consistency
+      loadConversations(undefined, getFiltersForTab(activeTab));
+    } catch (error) {
+      console.error('Failed to unarchive task:', error);
       // Restore visibility if the API call fails
       if (element) {
         element.style.display = '';
@@ -148,6 +170,8 @@ export function TaskList({
             status={conversation.status}
             messageCount={conversation.messageCount}
             toolMetrics={conversation.toolMetrics}
+            liveStatus={conversation.liveStatus}
+            isArchived={activeTab === 'archive'}
             onClick={() => handleTaskClick(conversation.sessionId)}
             onCancel={
               conversation.status === 'ongoing' 
@@ -155,8 +179,13 @@ export function TaskList({
                 : undefined
             }
             onArchive={
-              conversation.status === 'completed'
+              conversation.status === 'completed' && activeTab !== 'archive'
                 ? () => handleArchiveTask(conversation.sessionId)
+                : undefined
+            }
+            onUnarchive={
+              conversation.status === 'completed' && activeTab === 'archive'
+                ? () => handleUnarchiveTask(conversation.sessionId)
                 : undefined
             }
           />
