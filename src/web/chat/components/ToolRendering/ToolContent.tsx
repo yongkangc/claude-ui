@@ -57,7 +57,7 @@ export function ToolContent({
   const isPending = toolResult?.status === 'pending';
 
   // Handle pending display at root level
-  if (isPending) {
+  if (isPending && toolName !== 'Task') {
     return (
       <div className={styles.toolContent}>
         <div className={styles.pendingContent}>
