@@ -38,7 +38,7 @@ class ApiService {
       const data = await response.json();
       
       // Log response
-      // console.log(`[API Response] ${fullUrl}:`, data);
+      console.log(`[API Response] ${fullUrl}:`, data);
 
       if (!response.ok) {
         throw new Error((data as ApiError).error || `HTTP ${response.status}`);

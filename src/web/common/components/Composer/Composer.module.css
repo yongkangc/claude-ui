@@ -149,7 +149,7 @@
 }
 
 .iconButton:hover:not(:disabled) {
-  opacity: 0.9;
+  transform: scale(1.03);
 }
 
 .iconButton:disabled {
@@ -280,7 +280,13 @@
 }
 
 /* Focus styles for accessibility */
-.iconButton:focus-visible,
+.iconButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
 .actionButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

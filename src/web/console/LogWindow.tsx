@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import styles from './styles/console.module.css';
 
 interface LogEntry {
   timestamp: string;
@@ -112,14 +113,14 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
 
       // Build compact display
       const formatted = (
-        <div className="log-entry">
-          <span className="log-time">{timestamp}</span>
-          <span className="log-level" style={{ color: levelColor }}>[{level?.toUpperCase() || 'LOG'}]</span>
-          {component && <span className="log-component">[{component}]</span>}
-          <span className="log-message">{msg}</span>
-          {requestId && <span className="log-extra"> (req: {requestId})</span>}
+        <div className={styles.logEntry}>
+          <span className={styles.logTime}>{timestamp}</span>
+          <span className={styles.logLevel} style={{ color: levelColor }}>[{level?.toUpperCase() || 'LOG'}]</span>
+          {component && <span className={styles.logComponent}>[{component}]</span>}
+          <span className={styles.logMessage}>{msg}</span>
+          {requestId && <span className={styles.logExtra}> (req: {requestId})</span>}
           {Object.keys(rest).length > 0 && (
-            <span className="log-extra"> {JSON.stringify(rest)}</span>
+            <span className={styles.logExtra}> {JSON.stringify(rest)}</span>
           )}
         </div>
       );
@@ -127,7 +128,7 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
       return { formatted, matchesFilter };
     } catch {
       // Not JSON, display as plain text
-      const formatted = <div className="log-entry log-plain">{line}</div>;
+      const formatted = <div className={`${styles.logEntry} ${styles.logPlain}`}>{line}</div>;
       return { formatted, matchesFilter };
     }
   };
@@ -136,7 +137,7 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
     .map((log, index) => {
       const { formatted, matchesFilter } = parseLogLine(log);
       return matchesFilter ? (
-        <div key={index} className="log-line">
+        <div key={index} className={styles.logLine}>
           {formatted}
         </div>
       ) : null;
@@ -144,27 +145,27 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
     .filter(Boolean);
 
   return (
-    <div className={`log-window ${isVisible ? 'visible' : 'hidden'}`}>
-      <div className="log-header">
-        <button className="log-toggle" onClick={onToggle}>
+    <div className={`${styles.logWindow} ${isVisible ? styles.visible : styles.hidden}`}>
+      <div className={styles.logHeader}>
+        <button className={styles.logToggle} onClick={onToggle}>
           {isVisible ? '▼' : '▲'} Logs
         </button>
         <input
           type="text"
-          className="log-filter"
+          className={styles.logFilter}
           placeholder="Filter logs..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           disabled={!isVisible}
         />
-        <span className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+        <span className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
           {isConnected ? '● Connected' : '○ Disconnected'}
         </span>
       </div>
       {isVisible && (
-        <div className="log-container" ref={logContainerRef}>
+        <div className={styles.logContainer} ref={logContainerRef}>
           {filteredLogs.length > 0 ? filteredLogs : (
-            <div className="no-logs">No logs to display</div>
+            <div className={styles.noLogs}>No logs to display</div>
           )}
         </div>
       )}

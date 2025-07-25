@@ -1,8 +1,8 @@
 @import './theme.css';
-@import './viewport.css';
 
 * {
   box-sizing: border-box;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 html {
@@ -14,41 +14,31 @@ html {
 body {
   margin: 0;
   padding: 0;
-  /* min-height: 100%; */
-  /* min-height: -webkit-fill-available; */
-  /* Prevent scrolling on body */
-  overflow-x: hidden;
-  overflow-y: hidden;
-  /* Prevent elastic scrolling beyond boundaries */
-  overscroll-behavior: none;
-  /* iOS specific */
-  -webkit-overflow-scrolling: touch;
-}
-
-html, body {
-}
-
-body {
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
   line-height: 1.5;
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   transition: background-color var(--transition-normal), color var(--transition-normal);
-  /* Add padding for safe areas on iOS */
+  
+  /* Prevent scrolling and elastic bounce */
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Safe area support for iOS */
   padding-top: var(--safe-area-inset-top);
   padding-bottom: var(--safe-area-inset-bottom);
 }
 
 #root {
   width: 100%;
-  /* Ensure root takes full viewport */
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
 }
 
-/* Typography */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 600;
@@ -74,7 +64,6 @@ a:hover {
   color: var(--color-accent-hover);
 }
 
-/* Buttons */
 button {
   font-family: inherit;
   font-size: inherit;
@@ -86,16 +75,6 @@ button {
   color: inherit;
 }
 
-button:hover {
-  /* Remove default hover effects */
-  background: inherit;
-  color: inherit;
-  border: inherit;
-  transform: none;
-  opacity: inherit;
-}
-
-/* Inputs */
 input, textarea, select {
   font-family: inherit;
   font-size: inherit;
@@ -112,7 +91,13 @@ input:focus, textarea:focus, select:focus {
   border-color: var(--color-accent);
 }
 
-/* Scrollbars */
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -131,26 +116,6 @@ input:focus, textarea:focus, select:focus {
   background: var(--color-text-muted);
 }
 
-/* Utility classes */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -167,13 +132,16 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
-/* Focus visible for accessibility */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-/* Loading shimmer animation */
+/* Loading shimmer effect */
 .loading-shimmer-pure-text {
   background: linear-gradient(90deg, 
     var(--color-text-secondary) 0%, 
@@ -184,15 +152,6 @@ input:focus, textarea:focus, select:focus {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shimmer 2s linear infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 /* Composer button styles */
@@ -211,11 +170,20 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
 }
 
-/* .composer-btn:hover {
-  background: var(--color-bg-tertiary);
-} */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
-/* Smooth transitions for theme changes */
-* {
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
