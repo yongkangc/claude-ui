@@ -56,15 +56,9 @@ export function ToolContent({
   const isError = toolResult?.is_error === true;
   const isPending = toolResult?.status === 'pending';
 
-  // Handle pending display at root level
-  if (isPending && toolName !== 'Task') {
-    return (
-      <div className={styles.toolContent}>
-        <div className={styles.pendingContent}>
-          <span className={styles.pendingText}>Waiting approval...</span>
-        </div>
-      </div>
-    );
+  // Skip rendering for pending tools
+  if (isPending) {
+    return null;
   }
 
   // Handle error display at root level
