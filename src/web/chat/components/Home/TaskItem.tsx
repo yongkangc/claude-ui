@@ -18,9 +18,11 @@ interface TaskItemProps {
     writeCount: number;
   };
   liveStatus?: StreamStatus;
+  isArchived?: boolean;
   onClick: () => void;
   onCancel?: () => void;
   onArchive?: () => void;
+  onUnarchive?: () => void;
 }
 
 export function TaskItem({ 
@@ -33,9 +35,11 @@ export function TaskItem({
   messageCount,
   toolMetrics,
   liveStatus,
+  isArchived = false,
   onClick,
   onCancel,
-  onArchive 
+  onArchive,
+  onUnarchive
 }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const formatTimestamp = (ts: string) => {
@@ -117,9 +121,13 @@ export function TaskItem({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onArchive?.();
+                  if (isArchived) {
+                    onUnarchive?.();
+                  } else {
+                    onArchive?.();
+                  }
                 }}
-                aria-label="Archive task"
+                aria-label={isArchived ? "Unarchive task" : "Archive task"}
                 type="button"
               >
                 <Archive size={21} />

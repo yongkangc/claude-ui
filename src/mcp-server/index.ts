@@ -92,7 +92,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         logger.warn('Permission request timed out', { tool_name, permissionRequestId });
         const timeoutResponse = {
           behavior: 'deny',
-          message: 'Permission request timed out after 10 minutes',
+          message: 'Permission request timed out after 10 minutes after user did not respond',
         };
         return {
           content: [{

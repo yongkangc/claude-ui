@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "entry": [
-    "src/cli/index.ts",
+    "src/server.ts",
     "src/web/main.tsx",
     "src/mcp-server/index.ts"
   ],
@@ -28,7 +28,7 @@
   "workspaces": {
     ".": {
       "entry": [
-        "src/cli/index.ts",
+        "src/server.ts",
         "src/web/main.tsx",
         "src/mcp-server/index.ts"
       ],

@@ -79,6 +79,28 @@ export function TaskList({
     }
   };
 
+  const handleUnarchiveTask = async (sessionId: string) => {
+    // Optimistically remove the item from the current view
+    const element = document.querySelector(`[data-session-id="${sessionId}"]`);
+    if (element) {
+      element.style.display = 'none';
+    }
+    
+    try {
+      // Call the API to persist the change
+      await api.updateSession(sessionId, { archived: false });
+      
+      // Refresh the conversations list to ensure consistency
+      loadConversations(undefined, getFiltersForTab(activeTab));
+    } catch (error) {
+      console.error('Failed to unarchive task:', error);
+      // Restore visibility if the API call fails
+      if (element) {
+        element.style.display = '';
+      }
+    }
+  };
+
   // Intersection Observer for infinite scrolling
   const handleIntersection = useCallback(
     (entries: IntersectionObserverEntry[]) => {
