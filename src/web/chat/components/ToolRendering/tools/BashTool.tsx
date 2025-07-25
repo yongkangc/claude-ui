@@ -14,16 +14,14 @@ export function BashTool({ input, result, isError, isPending }: BashToolProps) {
     return <div className={styles.toolContent} />;
   }
 
-  const command = input?.command || '';
-  const displayContent = result || 'Command completed';
-  
   return (
     <div className={styles.toolContent}>
-      <div className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}>
-        <div className={styles.scrollableCode}>
-          <pre>{result || '(No content)'}</pre>
-        </div>
-      </div>
+      <CodeHighlight
+        code={result || '(No content)'}
+        language="text"
+        showLineNumbers={false}
+        className={`${styles.codeBlock} ${isError ? styles.errorCode : ''}`}
+      />
     </div>
   );
 }
