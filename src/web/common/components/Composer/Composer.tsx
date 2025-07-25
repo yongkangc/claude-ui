@@ -459,7 +459,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     } else if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
-        handleSubmit('default');
+        handleSubmit(selectedPermissionMode);
       }
     }
   };

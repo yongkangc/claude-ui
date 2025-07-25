@@ -333,6 +333,139 @@
   font-style: italic;
 }
 
+/* Notification settings */
+.settingDescription {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.settingControl {
+  display: flex;
+  align-items: center;
+}
+
+.notSupported,
+.permissionDenied {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.permissionDenied {
+  color: var(--color-error);
+}
+
+/* Toggle switch styles */
+.toggleWrapper {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.toggleInput {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-border);
+  border-radius: 24px;
+  transition: background-color var(--transition-fast);
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+}
+
+.toggleInput:checked + .toggleSlider {
+  background-color: var(--color-accent);
+}
+
+.toggleInput:checked + .toggleSlider:before {
+  transform: translateX(20px);
+}
+
+.toggleInput:disabled + .toggleSlider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.errorMessage {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 16px;
+}
+
+/* Notification status */
+.notificationStatus {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
+}
+
+.statusItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.statusItem:not(:last-child) {
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.statusLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.statusValue {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.statusValue.granted,
+.statusValue.subscribed {
+  color: var(--color-success);
+}
+
+.statusValue.denied,
+.statusValue.unsubscribed {
+  color: var(--color-error);
+}
+
+.statusValue.default {
+  color: var(--color-text-muted);
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .modal {
@@ -406,5 +539,14 @@
   .voiceControls {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .statusItem {
+    font-size: 12px;
+  }
+
+  .notificationStatus {
+    margin-top: 16px;
+    padding: 12px;
   }
 }

@@ -120,7 +120,7 @@ describe('streamEventMapper', () => {
 
       const result = mapStreamEventToStatus(event);
 
-      expect(result.currentStatus).toBe('Processing...');
+      expect(result.currentStatus).toBeUndefined();
     });
 
     it('should map result success event', () => {

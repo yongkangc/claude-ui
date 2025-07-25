@@ -185,3 +185,23 @@ Returns user preferences including color scheme and language.
 `PUT /api/preferences`
 
 Updates user preferences.
+
+## Notifications API
+
+### Subscribe to Push Notifications
+
+`POST /api/notifications/subscribe`
+
+Registers a push subscription object from the browser.
+
+### Unsubscribe from Push Notifications
+
+`DELETE /api/notifications/unsubscribe`
+
+Removes a previously registered push subscription.
+
+### Get VAPID Public Key
+
+`GET /api/notifications/vapid-public-key`
+
+Returns the VAPID public key used for Web Push.
