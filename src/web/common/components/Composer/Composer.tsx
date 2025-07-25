@@ -49,7 +49,7 @@ export interface ComposerProps {
 
   // Permission handling
   permissionRequest?: PermissionRequest | null;
-  onPermissionDecision?: (requestId: string, action: 'approve' | 'deny') => void;
+  onPermissionDecision?: (requestId: string, action: 'approve' | 'deny', denyReason?: string) => void;
 
   // Stop functionality
   onStop?: () => void;
@@ -540,12 +540,12 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
             <textarea
               ref={textareaRef}
               className={styles.textarea}
-              placeholder={placeholder}
+              placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
               value={value}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               rows={1}
-              disabled={isLoading || disabled}
+              disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
             />
           </div>
 
@@ -604,7 +604,11 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary} ${styles.denyButton}`}
-                  onClick={() => onPermissionDecision?.(permissionRequest.id, 'deny')}
+                  onClick={() => {
+                    const denyReason = value.trim();
+                    onPermissionDecision?.(permissionRequest.id, 'deny', denyReason || undefined);
+                    setValue('');
+                  }}
                 >
                   <div className={styles.btnContent}>
                     <X size={14} />
