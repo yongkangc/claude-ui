@@ -23,6 +23,10 @@ function cleanFileContent(content: string): string {
 }
 
 export function ReadTool({ input, result, workingDirectory }: ReadToolProps) {
+  if (!result) {
+    return <div />;
+  }
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   const cleanedContent = cleanFileContent(result);

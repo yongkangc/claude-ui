@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
+import { PermissionDialog } from '../PermissionDialog';
 import type { PermissionRequest } from '@/types';
 import styles from './Composer.module.css';
 
@@ -509,33 +510,18 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
         />
       )}
       <div className={styles.container}>
-        <div className={`${styles.inputWrapper} ${permissionRequest && showPermissionUI ? styles.permissionMode : ''}`}>
+        <div className={styles.inputWrapper}>
           <div className={styles.textAreaContainer}>
-            {permissionRequest && showPermissionUI ? (
-              <div className={styles.permissionContent}>
-                <div className={styles.permissionHeader}>
-                  <span className={styles.permissionTitle}>Permission Required</span>
-                  <span className={styles.permissionTool}>{permissionRequest.toolName}</span>
-                </div>
-                <details className={styles.permissionDetails}>
-                  <summary>View Details</summary>
-                  <pre className={styles.permissionInput}>
-                    {JSON.stringify(permissionRequest.toolInput, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            ) : (
-              <textarea
-                ref={textareaRef}
-                className={styles.textarea}
-                placeholder={placeholder}
-                value={value}
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                disabled={isLoading || disabled}
-              />
-            )}
+            <textarea
+              ref={textareaRef}
+              className={styles.textarea}
+              placeholder={placeholder}
+              value={value}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              disabled={isLoading || disabled}
+            />
           </div>
 
           {(showDirectorySelector || showModelSelector) && (
@@ -582,19 +568,23 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               <div className={styles.permissionButtons}>
                 <button
                   type="button"
-                  className={`${styles.iconButton} ${styles.permissionButton} ${styles.approveButton}`}
-                  title="Approve permission"
+                  className={`${styles.btn} ${styles.btnSecondary} ${styles.approveButton}`}
                   onClick={() => onPermissionDecision?.(permissionRequest.id, 'approve')}
                 >
-                  <Check size={18} />
+                  <div className={styles.btnContent}>
+                    <Check size={14} />
+                    Accept
+                  </div>
                 </button>
                 <button
                   type="button"
-                  className={`${styles.iconButton} ${styles.permissionButton} ${styles.denyButton}`}
-                  title="Deny permission"
+                  className={`${styles.btn} ${styles.btnSecondary} ${styles.denyButton}`}
                   onClick={() => onPermissionDecision?.(permissionRequest.id, 'deny')}
                 >
-                  <X size={18} />
+                  <div className={styles.btnContent}>
+                    <X size={14} />
+                    Deny
+                  </div>
                 </button>
               </div>
             ) : isLoading && showStopButton ? (
@@ -684,6 +674,14 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
           focusedIndex={autocomplete.focusedIndex}
           position={dropdownPosition}
           triggerRef={textareaRef}
+        />
+      )}
+      
+      {/* Permission Dialog */}
+      {permissionRequest && showPermissionUI && (
+        <PermissionDialog 
+          permissionRequest={permissionRequest}
+          isVisible={true}
         />
       )}
     </form>
