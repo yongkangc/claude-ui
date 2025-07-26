@@ -63,7 +63,12 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
   };
   
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ 
+      position: 'relative',
+      border: '1px solid var(--color-border)',
+      borderRadius: '12px',
+      overflow: 'hidden'
+    }}>
       {shouldShowExpandButton && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -151,11 +156,8 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
           }
         },
         diffContainer: {
-          borderRadius: 'var(--radius-md)',
-          overflow: 'hidden',
           fontFamily: 'var(--font-mono)',
           fontSize: '13px',
-          border: isDark ? '1px solid #3a3b40' : '1px solid #e0e0e0',
         },
         line: {
           '& pre': {
