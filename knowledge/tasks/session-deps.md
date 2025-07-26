@@ -42,7 +42,7 @@ Due to Claude's session storage mechanism, when resuming a session, a new sessio
 - `src/types/index.ts` - Add new interfaces
 - `src/services/session-deps-service.ts` - New service (create)
 - `src/services/claude-history-reader.ts` - Integration point
-- `src/ccui-server.ts` - No changes needed (uses history reader)
+- `src/cui-server.ts` - No changes needed (uses history reader)
 
 ### Files to Reference
 - `src/services/json-file-manager.ts` - File management pattern
@@ -92,7 +92,7 @@ interface ConversationSummary {
 ```
 
 ### Database Storage
-- **Location**: `~/.ccui/session-deps.json`
+- **Location**: `~/.cui/session-deps.json`
 - **Technology**: JsonFileManager (same as SessionInfoService)
 - **Schema**: SessionDepsDatabase interface
 
@@ -398,7 +398,7 @@ export class SessionDepsService {
 
   private constructor() {
     this.logger = createLogger('SessionDepsService');
-    this.configDir = path.join(os.homedir(), '.ccui');
+    this.configDir = path.join(os.homedir(), '.cui');
     this.dbPath = path.join(this.configDir, 'session-deps.json');
     
     const defaultData: SessionDepsDatabase = {

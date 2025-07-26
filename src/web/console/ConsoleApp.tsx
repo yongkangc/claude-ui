@@ -480,7 +480,7 @@ function ConsoleApp() {
     <div className={styles.container}>
       {/* Sidebar */}
       <div className={styles.sidebar}>
-        <h1>CCUI Raw JSON Interface</h1>
+        <h1>CUI Raw JSON Interface</h1>
         
         {/* System Status */}
         <div className={styles.section}>

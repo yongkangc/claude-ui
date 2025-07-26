@@ -1,6 +1,6 @@
 {
   "name": "Claude Code Web UI",
-  "short_name": "CCUI",
+  "short_name": "CUI",
   "description": "Web interface for Claude CLI tool with real-time streaming",
   "start_url": "/",
   "display": "standalone",

@@ -1,4 +1,4 @@
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { ConversationStatusManager } from '@/services/conversation-status-manager';
@@ -176,7 +176,7 @@ export class TestHelpers {
    */
   static createTestServer(config?: {
     port?: number;
-  }): CCUIServer {
+  }): CUIServer {
     // Mock ConfigService for tests
     const { ConfigService } = require('@/services/config-service');
     jest.spyOn(ConfigService, 'getInstance').mockReturnValue({
@@ -193,7 +193,7 @@ export class TestHelpers {
       })
     });
     
-    return new CCUIServer();
+    return new CUIServer();
   }
 
   /**
@@ -251,7 +251,7 @@ export class TestHelpers {
   static createIntegrationTestServer(config?: {
     port?: number;
     host?: string;
-  }): CCUIServer {
+  }): CUIServer {
     const randomPort = config?.port || (3000 + Math.floor(Math.random() * 1000));
     const host = config?.host || 'localhost';
     
@@ -272,7 +272,7 @@ export class TestHelpers {
     });
     
     // Pass config overrides to ensure the server uses our test port/host
-    return new CCUIServer({ port: randomPort, host: host });
+    return new CUIServer({ port: randomPort, host: host });
   }
 
   /**
@@ -332,7 +332,7 @@ export class TestHelpers {
    * Create temporary test directory
    */
   static async createTempTestDir(): Promise<string> {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-'));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cui-test-'));
     return tempDir;
   }
 

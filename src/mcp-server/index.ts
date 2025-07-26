@@ -5,15 +5,15 @@ import { CallToolRequestSchema, ListToolsRequestSchema, McpError, ErrorCode } fr
 import fetch from 'node-fetch';
 import { logger } from '@/services/logger';
 
-// Get CCUI server URL from environment
-const CCUI_SERVER_URL = process.env.CCUI_SERVER_URL || `http://localhost:${process.env.CCUI_SERVER_PORT || '3001'}`;
+// Get CUI server URL from environment
+const CUI_SERVER_URL = process.env.CUI_SERVER_URL || `http://localhost:${process.env.CUI_SERVER_PORT || '3001'}`;
 
-// Get CCUI streaming ID from environment (passed by ClaudeProcessManager)
-const CCUI_STREAMING_ID = process.env.CCUI_STREAMING_ID;
+// Get CUI streaming ID from environment (passed by ClaudeProcessManager)
+const CUI_STREAMING_ID = process.env.CUI_STREAMING_ID;
 
 // Create MCP server
 const server = new Server({
-  name: 'ccui-permissions',
+  name: 'cui-permissions',
   version: '1.0.0',
 }, {
   capabilities: {
@@ -25,7 +25,7 @@ const server = new Server({
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
     name: 'approval_prompt',
-    description: 'Request approval for tool usage from CCUI',
+    description: 'Request approval for tool usage from CUI',
     inputSchema: {
       type: 'object',
       properties: {
@@ -54,10 +54,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     
     // Log the permission request
-    logger.debug('MCP Permission request received', { tool_name, input, streamingId: CCUI_STREAMING_ID });
+    logger.debug('MCP Permission request received', { tool_name, input, streamingId: CUI_STREAMING_ID });
 
-    // Send the permission request to CCUI server
-    const response = await fetch(`${CCUI_SERVER_URL}/api/permissions/notify`, {
+    // Send the permission request to CUI server
+    const response = await fetch(`${CUI_SERVER_URL}/api/permissions/notify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,21 +65,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       body: JSON.stringify({
         toolName: tool_name,
         toolInput: input,
-        streamingId: CCUI_STREAMING_ID || 'unknown', // Include the streaming ID from environment
+        streamingId: CUI_STREAMING_ID || 'unknown', // Include the streaming ID from environment
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('Failed to notify CCUI server', { status: response.status, error: errorText });
-      throw new Error(`Failed to notify CCUI server: ${errorText}`);
+      logger.error('Failed to notify CUI server', { status: response.status, error: errorText });
+      throw new Error(`Failed to notify CUI server: ${errorText}`);
     }
 
     // Get the permission request ID from the notification response
     const notificationData = await response.json() as { success: boolean; id: string };
     const permissionRequestId = notificationData.id;
 
-    logger.debug('Permission request created', { permissionRequestId, streamingId: CCUI_STREAMING_ID });
+    logger.debug('Permission request created', { permissionRequestId, streamingId: CUI_STREAMING_ID });
 
     // Poll for permission decision
     const POLL_INTERVAL = 1000; // 1 second
@@ -105,7 +105,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Poll for permission status
       const pollResponse = await fetch(
-        `${CCUI_SERVER_URL}/api/permissions?streamingId=${CCUI_STREAMING_ID}&status=pending`,
+        `${CUI_SERVER_URL}/api/permissions?streamingId=${CUI_STREAMING_ID}&status=pending`,
         {
           method: 'GET',
           headers: {
@@ -126,7 +126,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Permission has been processed (no longer pending)
         // Fetch all permissions to find our specific one
         const allPermissionsResponse = await fetch(
-          `${CCUI_SERVER_URL}/api/permissions?streamingId=${CCUI_STREAMING_ID}`,
+          `${CUI_SERVER_URL}/api/permissions?streamingId=${CUI_STREAMING_ID}`,
           {
             method: 'GET',
             headers: {
@@ -198,7 +198,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  logger.info('MCP Permission server started', { ccuiServerUrl: CCUI_SERVER_URL });
+  logger.info('MCP Permission server started', { cuiServerUrl: CUI_SERVER_URL });
 }
 
 main().catch((error) => {

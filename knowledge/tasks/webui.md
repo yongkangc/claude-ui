@@ -1,4 +1,4 @@
-Please check src/web/console and create a webui for the ccui.
+Please check src/web/console and create a webui for the cui.
 
 Requirements:
 

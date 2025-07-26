@@ -28,7 +28,7 @@ export class PreferencesService {
   }
 
   private initializePaths(): void {
-    this.configDir = path.join(os.homedir(), '.ccui');
+    this.configDir = path.join(os.homedir(), '.cui');
     this.dbPath = path.join(this.configDir, 'preferences.json');
 
     const defaultData: PreferenceDB = {

@@ -1,4 +1,4 @@
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ConfigService } from '@/services/config-service';
 
 describe('Server Command Line Arguments', () => {
@@ -21,7 +21,7 @@ describe('Server Command Line Arguments', () => {
   });
 
   it('should use default port when no overrides provided', async () => {
-    const server = new CCUIServer();
+    const server = new CUIServer();
     
     // Access private fields for testing
     const serverAny = server as any;
@@ -36,7 +36,7 @@ describe('Server Command Line Arguments', () => {
   });
 
   it('should use overridden port when provided', async () => {
-    const server = new CCUIServer({ port: 3002 });
+    const server = new CUIServer({ port: 3002 });
     
     // Access private fields for testing
     const serverAny = server as any;
@@ -46,7 +46,7 @@ describe('Server Command Line Arguments', () => {
   });
 
   it('should use overridden host when provided', async () => {
-    const server = new CCUIServer({ host: '0.0.0.0' });
+    const server = new CUIServer({ host: '0.0.0.0' });
     
     // Access private fields for testing
     const serverAny = server as any;
@@ -56,7 +56,7 @@ describe('Server Command Line Arguments', () => {
   });
 
   it('should use both overridden port and host when provided', async () => {
-    const server = new CCUIServer({ port: 3002, host: '0.0.0.0' });
+    const server = new CUIServer({ port: 3002, host: '0.0.0.0' });
     
     // Access private fields for testing
     const serverAny = server as any;

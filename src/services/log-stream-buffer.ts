@@ -1,13 +1,5 @@
 import { EventEmitter } from 'events';
 
-export interface LogEntry {
-  timestamp: string;
-  level: string;
-  component?: string;
-  msg: string;
-  [key: string]: any;
-}
-
 export class LogStreamBuffer extends EventEmitter {
   private buffer: string[] = [];
   private maxBufferSize: number;

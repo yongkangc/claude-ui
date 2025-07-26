@@ -1,25 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { CCUIConfig, DEFAULT_CONFIG } from '@/types/config';
+import { CUIConfig, DEFAULT_CONFIG } from '@/types/config';
 import { generateMachineId } from '@/utils/machine-id';
 import { createLogger, type Logger } from './logger';
 
 /**
- * ConfigService manages CCUI configuration
- * Loads from ~/.ccui/config.json
+ * ConfigService manages CUI configuration
+ * Loads from ~/.cui/config.json
  * Creates default config on first run
  */
 export class ConfigService {
   private static instance: ConfigService;
-  private config: CCUIConfig | null = null;
+  private config: CUIConfig | null = null;
   private logger: Logger;
   private configPath: string;
   private configDir: string;
 
   private constructor() {
     this.logger = createLogger('ConfigService');
-    this.configDir = path.join(os.homedir(), '.ccui');
+    this.configDir = path.join(os.homedir(), '.cui');
     this.configPath = path.join(this.configDir, 'config.json');
   }
 
@@ -64,7 +64,7 @@ export class ConfigService {
    * Get current configuration
    * Throws if not initialized
    */
-  getConfig(): CCUIConfig {
+  getConfig(): CUIConfig {
     if (!this.config) {
       throw new Error('Configuration not initialized. Call initialize() first.');
     }
@@ -89,7 +89,7 @@ export class ConfigService {
       this.logger.debug('Generated machine ID', { machineId });
 
       // Create default config
-      const config: CCUIConfig = {
+      const config: CUIConfig = {
         machine_id: machineId,
         ...DEFAULT_CONFIG
       };
@@ -116,7 +116,7 @@ export class ConfigService {
   private async loadConfig(): Promise<void> {
     try {
       const configData = fs.readFileSync(this.configPath, 'utf-8');
-      const config = JSON.parse(configData) as CCUIConfig;
+      const config = JSON.parse(configData) as CUIConfig;
 
       // Validate required fields
       if (!config.machine_id) {
@@ -137,7 +137,7 @@ export class ConfigService {
   /**
    * Update configuration
    */
-  async updateConfig(updates: Partial<CCUIConfig>): Promise<void> {
+  async updateConfig(updates: Partial<CUIConfig>): Promise<void> {
     if (!this.config) {
       throw new Error('Configuration not initialized');
     }

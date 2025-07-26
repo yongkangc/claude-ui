@@ -8,7 +8,7 @@ import { JsonFileManager } from './json-file-manager';
 
 /**
  * SessionInfoService manages session information using custom JSON file manager
- * Stores session metadata including custom names in ~/.ccui/session-info.json
+ * Stores session metadata including custom names in ~/.cui/session-info.json
  * Provides fast lookups and updates for session-specific data with race condition protection
  */
 export class SessionInfoService {
@@ -29,7 +29,7 @@ export class SessionInfoService {
    * Separated to allow re-initialization during testing
    */
   private initializePaths(): void {
-    this.configDir = path.join(os.homedir(), '.ccui');
+    this.configDir = path.join(os.homedir(), '.cui');
     this.dbPath = path.join(this.configDir, 'session-info.json');
     
     this.logger.debug('Initializing paths', { 

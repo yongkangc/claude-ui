@@ -1,5 +1,5 @@
 // Mock all dependencies BEFORE importing anything
-// Need to mock the actual paths that CCUIServer imports (relative paths)
+// Need to mock the actual paths that CUIServer imports (relative paths)
 jest.mock('@/services/claude-process-manager', () => ({
   ClaudeProcessManager: jest.fn()
 }));
@@ -15,12 +15,12 @@ jest.mock('@/services/conversation-status-manager', () => ({
 
 // Mock web-push
 
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { StreamManager } from '@/services/stream-manager';
 import { ConversationStatusManager } from '@/services/conversation-status-manager';
-import { CCUIError } from '@/types';
+import { CUIError } from '@/types';
 import request from 'supertest';
 import { TestHelpers } from '../utils/test-helpers';
 import * as path from 'path';
@@ -48,15 +48,15 @@ function getMockClaudeExecutablePath(): string {
 const { execSync } = require('child_process');
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 
-describe('CCUIServer', () => {
-  let server: CCUIServer;
+describe('CUIServer', () => {
+  let server: CUIServer;
   let mockProcessManager: jest.Mocked<ClaudeProcessManager>;
   let mockHistoryReader: jest.Mocked<ClaudeHistoryReader>;
   let mockStreamManager: jest.Mocked<StreamManager>;
   let mockStatusTracker: jest.Mocked<ConversationStatusManager>;
 
   // Track any running servers for cleanup
-  const runningServers: CCUIServer[] = [];
+  const runningServers: CUIServer[] = [];
 
   beforeEach(() => {
     // Setup mock implementations
@@ -169,7 +169,7 @@ describe('CCUIServer', () => {
       })
     });
     
-    const server = new CCUIServer({
+    const server = new CUIServer({
       port: testPort,
       ...config
     });
@@ -245,14 +245,14 @@ describe('CCUIServer', () => {
         ];
 
         for (const testCase of testCases) {
-          const errors: CCUIError[] = [];
+          const errors: CUIError[] = [];
           
           try {
             if (!testCase.workingDirectory || !testCase.workingDirectory.trim()) {
-              throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+              throw new CUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
             }
           } catch (error) {
-            errors.push(error as CCUIError);
+            errors.push(error as CUIError);
           }
 
           expect(errors.length).toBeGreaterThan(0);
@@ -266,14 +266,14 @@ describe('CCUIServer', () => {
         ];
 
         for (const testCase of testCases) {
-          const errors: CCUIError[] = [];
+          const errors: CUIError[] = [];
           
           try {
             if (!testCase.initialPrompt || !testCase.initialPrompt.trim()) {
-              throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+              throw new CUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
             }
           } catch (error) {
-            errors.push(error as CCUIError);
+            errors.push(error as CUIError);
           }
 
           expect(errors.length).toBeGreaterThan(0);
@@ -291,10 +291,10 @@ describe('CCUIServer', () => {
         let validationError = null;
         try {
           if (!validRequest.workingDirectory || !validRequest.workingDirectory.trim()) {
-            throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+            throw new CUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
           }
           if (!validRequest.initialPrompt || !validRequest.initialPrompt.trim()) {
-            throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+            throw new CUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
           }
         } catch (error) {
           validationError = error;
@@ -316,10 +316,10 @@ describe('CCUIServer', () => {
         let validationError = null;
         try {
           if (!validRequest.workingDirectory || !validRequest.workingDirectory.trim()) {
-            throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+            throw new CUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
           }
           if (!validRequest.initialPrompt || !validRequest.initialPrompt.trim()) {
-            throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+            throw new CUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
           }
         } catch (error) {
           validationError = error;
@@ -337,17 +337,17 @@ describe('CCUIServer', () => {
         ];
 
         for (const testCase of testCases) {
-          const errors: CCUIError[] = [];
+          const errors: CUIError[] = [];
           
           try {
             if (!testCase.workingDirectory || !testCase.workingDirectory.trim()) {
-              throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+              throw new CUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
             }
             if (!testCase.initialPrompt || !testCase.initialPrompt.trim()) {
-              throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+              throw new CUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
             }
           } catch (error) {
-            errors.push(error as CCUIError);
+            errors.push(error as CUIError);
           }
 
           expect(errors.length).toBeGreaterThan(0);
@@ -391,12 +391,12 @@ describe('CCUIServer', () => {
   });
 
   describe('error handling', () => {
-    it('should handle CCUIError instances correctly', () => {
-      const error = new CCUIError('TEST_ERROR', 'Test error message', 400);
+    it('should handle CUIError instances correctly', () => {
+      const error = new CUIError('TEST_ERROR', 'Test error message', 400);
       
       // Simulate error middleware
       const mockErrorHandler = (err: Error, req: any, res: any, next: any) => {
-        if (err instanceof CCUIError) {
+        if (err instanceof CUIError) {
           res.status(err.statusCode).json({ error: err.message, code: err.code });
         } else {
           res.status(500).json({ error: 'Internal server error' });
@@ -422,7 +422,7 @@ describe('CCUIServer', () => {
       
       // Simulate error middleware
       const mockErrorHandler = (err: Error, req: any, res: any, next: any) => {
-        if (err instanceof CCUIError) {
+        if (err instanceof CUIError) {
           res.status(err.statusCode).json({ error: err.message, code: err.code });
         } else {
           res.status(500).json({ error: 'Internal server error' });
@@ -470,7 +470,7 @@ describe('CCUIServer', () => {
         
         (server as any).app.listen = mockListen;
 
-        await expect(server.start()).rejects.toThrow(CCUIError);
+        await expect(server.start()).rejects.toThrow(CUIError);
       });
     });
 
@@ -556,7 +556,7 @@ describe('CCUIServer', () => {
 
   describe('route handlers', () => {
     let app: any;
-    let server: CCUIServer;
+    let server: CUIServer;
 
     beforeEach(async () => {
       server = createTestServer();
@@ -704,7 +704,7 @@ describe('CCUIServer', () => {
 
         // Mock history reader to throw not found error
         jest.spyOn((server as any).historyReader, 'fetchConversation')
-          .mockRejectedValue(new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
+          .mockRejectedValue(new CUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
         
         // Mock status tracker to indicate session is active with context
         jest.spyOn((server as any).statusTracker, 'isSessionActive').mockReturnValue(true);
@@ -740,7 +740,7 @@ describe('CCUIServer', () => {
 
         // Mock history reader to throw not found error
         jest.spyOn((server as any).historyReader, 'fetchConversation')
-          .mockRejectedValue(new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
+          .mockRejectedValue(new CUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404));
         
         // Mock status tracker to indicate session is not active
         jest.spyOn((server as any).statusTracker, 'isSessionActive').mockReturnValue(false);

@@ -1,4 +1,4 @@
-// Core types and interfaces for CCUI backend
+// Core types and interfaces for CUI backend
 import Anthropic from '@anthropic-ai/sdk';
 
 // Tool metrics types
@@ -21,7 +21,7 @@ export interface ConversationSummary {
   totalDuration: number;
   model: string;
   status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
-  streamingId?: string; // CCUI's internal streaming ID (only present when status is 'ongoing')
+  streamingId?: string; // CUI's internal streaming ID (only present when status is 'ongoing')
   toolMetrics?: ToolMetrics; // Optional tool usage metrics
 }
 
@@ -90,7 +90,7 @@ export interface ResultStreamMessage extends StreamMessage {
 // Permission types
 export interface PermissionRequest {
   id: string;
-  streamingId: string; // CCUI's internal streaming identifier
+  streamingId: string; // CUI's internal streaming identifier
   toolName: string;
   toolInput: Record<string, any>;
   timestamp: string;
@@ -126,7 +126,7 @@ export interface StartConversationRequest {
 
 
 export interface StartConversationResponse {
-  streamingId: string; // CCUI's internal streaming identifier for managing streaming connections
+  streamingId: string; // CUI's internal streaming identifier for managing streaming connections
   streamUrl: string;
   // System init fields from Claude CLI
   sessionId: string; // Claude CLI's session ID
@@ -179,24 +179,6 @@ export interface SystemStatusResponse {
   activeConversations: number;
 }
 
-export interface ModelsResponse {
-  models: string[];
-  defaultModel: string;
-}
-
-// MCP types
-export interface MCPPermissionToolInput {
-  tool_name: string;
-  input: Record<string, any>;
-  session_id: string; // Claude CLI's session ID
-}
-
-export interface MCPPermissionResponse {
-  behavior: 'allow' | 'deny';
-  updatedInput?: Record<string, any>;
-  message?: string;
-}
-
 // Stream event types
 export type StreamEvent = 
   | { type: 'connected'; streaming_id: string; timestamp: string }
@@ -209,17 +191,11 @@ export type StreamEvent =
   | ResultStreamMessage;
 
 // Error types
-export class CCUIError extends Error {
+export class CUIError extends Error {
   constructor(public code: string, message: string, public statusCode: number = 500) {
     super(message);
-    this.name = 'CCUIError';
+    this.name = 'CUIError';
   }
-}
-
-// Config types
-export interface CCUIConfig {
-  machine_id: string;
-  // Additional fields can be added here in the future
 }
 
 // File system types

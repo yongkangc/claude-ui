@@ -10,8 +10,8 @@ import type {
   PermissionDecisionResponse,
   FileSystemListQuery,
   FileSystemListResponse,
-  CommandsResponse,
 } from '../types';
+import type { CommandsResponse } from '@/types';
 
 class ApiService {
   private baseUrl = '';

@@ -1,4 +1,4 @@
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import * as fs from 'fs/promises';
@@ -10,21 +10,21 @@ import { EventSource } from 'eventsource';
  * Integration test for real Claude CLI with fake home directory
  */
 describe('Real Claude CLI Integration', () => {
-  let server: CCUIServer;
+  let server: CUIServer;
   let tempHomeDir: string;
   let serverPort: number;
   let baseUrl: string;
 
   beforeAll(async () => {
     // Create temporary fake home directory
-    tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-home-'));
+    tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cui-test-home-'));
     
     // Use a random port to avoid conflicts with other services and tests
     serverPort = 8000 + Math.floor(Math.random() * 1000);
     baseUrl = `http://localhost:${serverPort}`;
     
     // Create server
-    server = new CCUIServer({ port: serverPort });
+    server = new CUIServer({ port: serverPort });
     
     // Replace the HistoryReader with one that uses fake HOME first
     const { ClaudeHistoryReader } = require('@/services/claude-history-reader');

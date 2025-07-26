@@ -23,7 +23,7 @@ export class MCPConfigGenerator {
   constructor() {
     // Generate unique config file in temp directory
     const tempDir = tmpdir();
-    const configFileName = `ccui-mcp-config-${uuidv4()}.json`;
+    const configFileName = `cui-mcp-config-${uuidv4()}.json`;
     this.configPath = join(tempDir, configFileName);
   }
 
@@ -40,12 +40,12 @@ export class MCPConfigGenerator {
     
     const config: MCPConfig = {
       mcpServers: {
-        'ccui-permissions': {
+        'cui-permissions': {
           command: 'node',
           args: [mcpServerPath],
           env: {
-            CCUI_SERVER_URL: `http://localhost:${port}`,
-            CCUI_SERVER_PORT: String(port),
+            CUI_SERVER_URL: `http://localhost:${port}`,
+            CUI_SERVER_PORT: String(port),
             LOG_LEVEL: process.env.LOG_LEVEL || 'info'
           }
         }

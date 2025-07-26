@@ -1,7 +1,7 @@
 # File Path Autocomplete Implementation Plan
 
 ## Context
-This plan implements a file path autocomplete system for the Composer component in CCUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
+This plan implements a file path autocomplete system for the Composer component in CUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
 
 ## Expected Behavior
 1. **Trigger**: When "@" is typed, dropdown appears immediately
@@ -23,13 +23,17 @@ interface AutocompleteState {
   triggerIndex: number;     // Position of "@" in text
   query: string;            // Path text after "@" (e.g., "src/components/Button")
   suggestions: FileSystemEntry[];  // Array of file/directory suggestions
-  focusedIndex: number;     // -1 = textarea focused, 0+ = suggestion index focused
+  // focusedIndex: number;     focused index is managed by the dropdown selector
+  isDropdownFocused: boolean;        // Whether the dropdown is focused
+
 }
 ```
 
 ### 2. Keyboard Event Handling
 
 Modify the existing `handleKeyDown` function in Composer.tsx to handle autocomplete navigation:
+
+// ALL CODE FOR REFERENCE ONLY
 
 ```typescript
 const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -136,47 +140,14 @@ const detectAutocomplete = (text: string, cursorPos: number) => {
 
 The system will use the existing filesystem API to fetch file suggestions:
 
+The api are called each time composer is focused.
+
 ```typescript
-// Fetch suggestions when query changes
-useEffect(() => {
-  if (!autocomplete.isActive) return;
-  
-  const fetchSuggestions = debounce(async () => {
-    try {
-      // Parse the query to determine base path
-      // Example: query "src/components/But" becomes:
-      // - basePath: {workingDirectory}/src/components
-      // - searchTerm: "But"
-      const queryParts = autocomplete.query.split('/');
-      const searchTerm = queryParts.pop() || '';
-      const basePath = queryParts.length > 0 
-        ? path.join(selectedDirectory, queryParts.join('/'))
-        : selectedDirectory;
-      
       const response = await api.listDirectory({
-        path: basePath,
+        path: {...workingDirectory},
         recursive: true,
         respectGitignore: true
       });
-      
-      // Filter entries based on search term
-      const filtered = response.entries
-        .filter(entry => entry.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        .slice(0, 20); // Limit results for performance
-      
-      setAutocomplete(prev => ({
-        ...prev,
-        suggestions: filtered,
-        focusedIndex: -1 // Reset focus to textarea when suggestions update
-      }));
-    } catch (error) {
-      console.error('Failed to fetch suggestions:', error);
-      // On error, keep previous suggestions or show empty list
-    }
-  }, 300); // 300ms debounce to avoid too many API calls
-  
-  fetchSuggestions();
-}, [autocomplete.query, autocomplete.isActive, selectedDirectory]);
 ```
 
 ### 5. Dropdown Rendering
@@ -201,7 +172,6 @@ The dropdown uses the existing DropdownSelector component but without an input f
       showFilterInput={false} // Critical: no input bar
       maxVisibleItems={10}
       className={styles.pathAutocomplete}
-      // Note: May need to modify DropdownSelector to accept focusedIndex
     />
   </div>
 )}
@@ -307,10 +277,8 @@ export type {
 ## Key Implementation Notes
 
 ### Focus Management
-- `focusedIndex = -1`: Focus is in the textarea
-- `focusedIndex >= 0`: Focus is on a specific suggestion in the dropdown
-- Arrow keys move focus between textarea and suggestions
-- Enter key behavior depends on current focus location
+- `isDropdownFocused = true`: Focus is in the dropdown
+- `isDropdownFocused = false`: Focus is in the textarea
 
 ### Space Key Behavior
 - Typing space closes the dropdown immediately
@@ -324,14 +292,10 @@ export type {
 
 ### Path Resolution Strategy
 - The system parses the query after "@" to determine:
-  - Base directory for API calls (e.g., `@src/components/` → search in `{workingDir}/src/components/`)
-  - Search term for filtering (e.g., `@src/components/But` → search for files containing "But")
-- Supports both relative paths from working directory and absolute paths
+- No resolution as we are delegating the resolution to the dropdown selector.
 
 ### Performance Considerations
-- **Debouncing**: API calls are debounced by 300ms to avoid excessive requests
-- **Result Limiting**: Only show top 20 results to keep dropdown manageable
-- **Caching**: Consider implementing client-side caching for recently accessed directories
+- **Result Limiting**: Only show top 5 results to keep dropdown manageable
 - **Error Handling**: Failed API calls don't break the user experience
 
 ## Testing Strategy
@@ -342,29 +306,126 @@ export type {
 3. Test path selection and text replacement logic
 4. Test API integration with mock responses
 
-### Integration Tests
-1. Test complete autocomplete flow from typing "@" to selection
-2. Test space key closes dropdown
-3. Test error handling when API fails
-4. Test performance with large file lists
-
 ### Edge Cases to Test
 1. Multiple "@" symbols in text
 2. Cursor movement away from "@" area
 3. Empty directories
 4. Permission errors accessing directories
-5. Very long file paths
 6. Special characters in file names
 
-## Future Enhancements
+Following is a high level overview of the current code.
 
-### Exact Positioning (Phase 2)
-- Implement textarea mirror div for exact character positioning
-- Position dropdown at the "@" character location instead of below textarea
-- Add logic to show above/below based on viewport space
+# CLAUDE.md
 
-### Advanced Features
-- File type icons in suggestions
-- Recent files prioritization
-- Fuzzy matching for file names
-- Directory-only vs file-only filtering options
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+CUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
+- TypeScript Express backend that manages Claude CLI processes
+- React frontend with TUI-inspired design
+- Single-port architecture using vite-express (port 3001)
+- Real-time streaming of Claude responses via newline-delimited JSON
+- MCP (Model Context Protocol) integration for permission management
+
+## Essential Commands
+
+### Development
+```bash
+npm run dev          # Start dev server (backend + frontend on port 3001)
+npm run build        # Build both frontend and backend
+npm run test         # Run all tests
+npm run typecheck    # TypeScript type checking
+npm run lint         # ESLint checking
+```
+
+### Testing
+```bash
+npm run test                # Run all tests
+npm run unit-tests          # Run unit tests only
+npm run integration-tests   # Run integration tests only
+npm run test:coverage       # Generate coverage report
+npm run test:watch          # Watch mode for TDD
+```
+
+### Running a Single Test
+```bash
+npx jest tests/unit/services/ClaudeProcessManager.test.ts  # Run specific test file
+npx jest -t "test name"                                    # Run test by name pattern
+```
+
+## Architecture Overview
+
+### Backend Services (`src/services/`)
+- **ClaudeProcessManager**: Spawns and manages Claude CLI processes
+- **StreamManager**: Handles HTTP streaming connections for real-time updates
+- **ClaudeHistoryReader**: Reads conversation history from ~/.claude directory
+- **CUIMCPServer**: MCP server for handling tool permission requests
+- **SessionInfoService**: Manages extended session metadata (pinning, archiving, continuation sessions, git HEAD tracking)
+
+### Frontend (`src/web/`)
+- **chat/**: Main chat application components
+- **console/**: Console/log viewer components  
+- **api/**: API client using fetch for backend communication
+- **styles/**: CSS modules with TUI-inspired design
+
+### API Routes (`src/routes/`)
+- Conversations API: Start, list, get, continue, stop conversations
+- Streaming API: Real-time conversation updates
+- Permissions API: MCP permission approval/denial
+- System API: Status and available models
+
+### Key Patterns
+
+1. **Streaming Architecture**: Uses newline-delimited JSON (not SSE) for real-time updates
+2. **Process Management**: Each conversation runs as a separate Claude CLI child process
+3. **Error Handling**: Custom error types in `src/types/errors.ts` with proper HTTP status codes
+4. **Type Safety**: Zod schemas for runtime validation, TypeScript interfaces for compile-time safety
+5. **Testing**: Comprehensive unit and integration tests with mocks for external dependencies
+
+### Important Implementation Notes
+
+- When modifying streaming logic, ensure proper cleanup of event listeners
+- MCP permission requests must be handled synchronously to avoid blocking Claude
+- Process spawn arguments are built dynamically based on conversation options
+- Frontend uses React Router v6 for navigation
+- All backend imports use path aliases (e.g., `@/services/...`)
+
+### Permission Flow
+
+1. **Permission Request**: When Claude needs tool approval, the MCP server sends a notification to `/api/permissions/notify`
+2. **Frontend Display**: Permission requests are streamed to the frontend and displayed with approve/deny buttons
+3. **User Decision**: Users click approve/deny, which calls `/api/permissions/:requestId/decision`
+4. **MCP Polling**: The MCP server polls for decisions every second with a 10-minute timeout
+5. **Response**: Once a decision is made, the MCP server returns the appropriate response to Claude
+
+### Common Debugging
+
+- Enable debug logs: `LOG_LEVEL=debug npm run dev`
+- Test logs are silenced by default, use `npm run test:debug` for verbose output
+- Check `~/.cui/config.json` for server configuration
+- MCP configuration is in `config/mcp-config.json`
+
+## Session Information
+
+The SessionInfoService manages extended metadata for conversation sessions. This information is now included as a complete `sessionInfo` object in ConversationSummary responses:
+
+- **custom_name**: User-provided name for the session (default: "")
+- **pinned**: Boolean flag for pinning important sessions (default: false)
+- **archived**: Boolean flag for archiving old sessions (default: false) 
+- **continuation_session_id**: Links to a continuation session if the conversation continues elsewhere (default: "")
+- **initial_commit_head**: Git commit HEAD when the session started for tracking code changes (default: "")
+- **created_at**: ISO 8601 timestamp when session info was created
+- **updated_at**: ISO 8601 timestamp when session info was last updated
+- **version**: Schema version for future migrations
+
+Sessions are automatically migrated to include these fields when the schema version updates. All ConversationSummary objects now include the complete sessionInfo instead of just the custom_name field.
+
+## Workflow Guidelines
+
+- Always update tests if make any changes to api endpoint.
+
+## Development Gotchas
+
+- Do not run npm run dev to verify frontend update
+- Before running test for the first time, run `npm run build` to build the backend and frontend, especially it build the mcp executable. Other wise the test will fail with Error: MCP tool mcp__cui-permissions__approval_prompt (passed via --permission-prompt-tool) not found.

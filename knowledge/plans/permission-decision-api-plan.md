@@ -2,9 +2,9 @@
 
 ## Context
 
-Currently, the CCUI system has a permission request flow where:
+Currently, the CUI system has a permission request flow where:
 1. Claude CLI requests permission to use tools through MCP (Model Context Protocol)
-2. The MCP server notifies the CCUI backend about the permission request
+2. The MCP server notifies the CUI backend about the permission request
 3. The backend tracks the request and broadcasts it to the frontend via streaming
 4. The frontend displays the permission request with Approve/Deny buttons
 5. **Problem**: The buttons are currently disabled and the MCP server auto-approves all requests
@@ -13,14 +13,14 @@ This plan addresses the missing functionality to allow users to make permission 
 
 ### Current System Flow
 ```
-Claude CLI → MCP Server → CCUI Backend → Frontend (displays request)
+Claude CLI → MCP Server → CUI Backend → Frontend (displays request)
                 ↓
          (auto-approves)
 ```
 
 ### Desired System Flow
 ```
-Claude CLI → MCP Server → CCUI Backend → Frontend (displays request)
+Claude CLI → MCP Server → CUI Backend → Frontend (displays request)
                 ↑              ↓               ↓
                 └──────────────┴───────── User Decision
 ```

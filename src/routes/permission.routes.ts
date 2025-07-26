@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { CCUIError, PermissionDecisionRequest, PermissionDecisionResponse } from '@/types';
+import { CUIError, PermissionDecisionRequest, PermissionDecisionResponse } from '@/types';
 import { PermissionTracker } from '@/services/permission-tracker';
 import { createLogger } from '@/services/logger';
 
@@ -21,7 +21,7 @@ export function createPermissionRoutes(
       const { toolName, toolInput, streamingId } = req.body;
       
       if (!toolName) {
-        throw new CCUIError('MISSING_TOOL_NAME', 'toolName is required', 400);
+        throw new CUIError('MISSING_TOOL_NAME', 'toolName is required', 400);
       }
       
       // Add permission request with the provided streamingId
@@ -88,7 +88,7 @@ export function createPermissionRoutes(
     try {
       // Validate request body
       if (!decisionRequest.action || !['approve', 'deny'].includes(decisionRequest.action)) {
-        throw new CCUIError('INVALID_ACTION', 'Action must be either "approve" or "deny"', 400);
+        throw new CUIError('INVALID_ACTION', 'Action must be either "approve" or "deny"', 400);
       }
       
       // Get the permission request to validate it exists and is pending
@@ -96,7 +96,7 @@ export function createPermissionRoutes(
       const permission = permissions.find(p => p.id === requestId);
       
       if (!permission) {
-        throw new CCUIError('PERMISSION_NOT_FOUND', 'Permission request not found or not pending', 404);
+        throw new CUIError('PERMISSION_NOT_FOUND', 'Permission request not found or not pending', 404);
       }
       
       // Update permission status
@@ -116,7 +116,7 @@ export function createPermissionRoutes(
       }
       
       if (!updated) {
-        throw new CCUIError('UPDATE_FAILED', 'Failed to update permission status', 500);
+        throw new CUIError('UPDATE_FAILED', 'Failed to update permission status', 500);
       }
       
       logger.debug('Permission decision processed', {
