@@ -104,10 +104,6 @@ The SessionInfoService manages extended metadata for conversation sessions. This
 
 Sessions are automatically migrated to include these fields when the schema version updates. All ConversationSummary objects now include the complete sessionInfo instead of just the custom_name field.
 
-## Workflow Guidelines
-
-- Always update cc-workfiles/knowledge/API.md and tests if make any changes to api endpoint.
-
 ## Development Gotchas
 
 - Do not run npm run dev to verify frontend update

@@ -9,7 +9,8 @@ import {
   SessionRenameResponse,
   SessionUpdateRequest,
   SessionUpdateResponse,
-  ConversationMessage
+  ConversationMessage,
+  ConversationSummary
 } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
@@ -209,7 +210,7 @@ export function createConversationRoutes(
 
 
   // List conversations
-  router.get('/', async (req: Request<Record<string, never>, Record<string, never>, Record<string, never>, ConversationListQuery>, res, next) => {
+  router.get('/', async (req: Request<Record<string, never>, { conversations: ConversationSummary[]; total: number }, Record<string, never>, ConversationListQuery>, res, next) => {
     const requestId = (req as any).requestId;
     logger.debug('List conversations request', {
       requestId,
