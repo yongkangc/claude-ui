@@ -1,8 +1,36 @@
 {
-  "name": "cui-backend",
-  "version": "0.1.1",
-  "description": "Backend for Claude Code Web UI",
-  "main": "dist/server.js",
+  "name": "cui-server",
+  "version": "0.2",
+  "description": "Web UI Server for Claude CLI - Interactive browser interface for Claude Code",
+  "main": "dist/cui-server.js",
+  "bin": {
+    "cui-server": "dist/server/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "config/**/*"
+  ],
+  "keywords": [
+    "claude",
+    "claude-cli",
+    "claude-code",
+    "ai",
+    "web-ui",
+    "anthropic"
+  ],
+  "author": "Wenbo Pan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ccui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ccui/issues"
+  },
+  "homepage": "https://github.com/yourusername/ccui#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:web": "vite",
