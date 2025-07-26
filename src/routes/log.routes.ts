@@ -1,6 +1,6 @@
 import { Router, Request } from 'express';
 import { logStreamBuffer } from '@/services/log-stream-buffer';
-import { createLogger, type Logger } from '@/services/logger';
+import { createLogger } from '@/services/logger';
 
 export function createLogRoutes(): Router {
   const router = Router();

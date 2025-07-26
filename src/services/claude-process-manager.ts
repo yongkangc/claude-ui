@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent, ConversationMessage } from '@/types';
+import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';

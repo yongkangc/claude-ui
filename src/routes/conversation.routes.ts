@@ -30,7 +30,7 @@ export function createConversationRoutes(
   const logger = createLogger('ConversationRoutes');
 
   // Start new conversation (also handles resume if resumedSessionId is provided)
-  router.post('/start', async (req: Request<{}, StartConversationResponse, StartConversationRequest>, res, next) => {
+  router.post('/start', async (req: Request<Record<string, never>, StartConversationResponse, StartConversationRequest>, res, next) => {
     const requestId = (req as any).requestId;
     const isResume = !!req.body.resumedSessionId;
     
@@ -209,7 +209,7 @@ export function createConversationRoutes(
 
 
   // List conversations
-  router.get('/', async (req: Request<{}, {}, {}, ConversationListQuery>, res, next) => {
+  router.get('/', async (req: Request<Record<string, never>, Record<string, never>, Record<string, never>, ConversationListQuery>, res, next) => {
     const requestId = (req as any).requestId;
     logger.debug('List conversations request', {
       requestId,

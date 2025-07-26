@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { StreamManager } from '@/services/stream-manager';
-import { createLogger, type Logger } from '@/services/logger';
+import { createLogger } from '@/services/logger';
 
 export function createStreamingRoutes(streamManager: StreamManager): Router {
   const router = Router();

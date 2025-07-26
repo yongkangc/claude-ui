@@ -4,7 +4,7 @@ import { createLogger } from '@/services/logger';
 
 const logger = createLogger('ErrorHandler');
 
-export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   const requestId = (req as any).requestId || 'unknown';
   
   if (err instanceof CCUIError) {
