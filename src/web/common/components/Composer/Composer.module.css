@@ -360,56 +360,6 @@
   outline-offset: 2px;
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .textAreaContainer {
-    margin: 0 16px;
-  }
-  
-  .textarea {
-    padding: 12px 50px 12px 0;
-  }
-  
-  .buttonText {
-    font-size: 12px;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .actionButton {
-    padding: 6px 10px;
-    gap: 4px;
-  }
-  
-  .footerActions {
-    left: 10px;
-    right: 50px;
-  }
-  
-  .permissionModeButtons {
-    gap: 6px;
-  }
-  
-  .btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    min-width: 50px;
-  }
-  
-  .permissionMainButton {
-    padding: 6px 8px;
-    font-size: 13px;
-    min-width: 40px;
-    width: 40px;
-  }
-  
-  .permissionDropdownButton {
-    width: 28px;
-    height: 28px;
-  }
-}
 
 /* Permission dropdown option styles */
 .permissionOption {

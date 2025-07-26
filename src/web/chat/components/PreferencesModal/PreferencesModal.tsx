@@ -3,7 +3,6 @@ import { Settings, Bell, Shield } from 'lucide-react';
 import styles from './PreferencesModal.module.css';
 import { api } from '../../services/api';
 import type { Preferences } from '@/types/preferences';
-import { notificationService, type NotificationState } from '../../services/notificationService';
 import { Dialog } from '../Dialog';
 
 interface Props {
@@ -33,21 +32,11 @@ export function PreferencesModal({ onClose }: Props) {
   });
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [archiveStatus, setArchiveStatus] = useState<string>('');
-  const [notificationState, setNotificationState] = useState<NotificationState>(notificationService.getState());
 
   useEffect(() => {
     api.getPreferences().then(setPrefs).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    // Subscribe to notification service state changes
-    const unsubscribe = notificationService.subscribe(setNotificationState);
-    
-    // Check current subscription status
-    notificationService.checkSubscriptionStatus();
-    
-    return unsubscribe;
-  }, []);
 
   const update = async (updates: Partial<Preferences>) => {
     const updated = await api.updatePreferences(updates);
@@ -153,62 +142,6 @@ export function PreferencesModal({ onClose }: Props) {
           </div>
         );
 
-      case 'notifications':
-        return (
-          <div className={styles.tabContent}>
-            <div className={styles.settingItem}>
-              <div className={styles.settingLabel}>
-                Push Notifications
-                <div className={styles.settingDescription}>
-                  Get notified when sessions complete or require permission approval
-                </div>
-              </div>
-              <div className={styles.settingControl}>
-                {!notificationState.isSupported ? (
-                  <div className={styles.notSupported}>
-                    Push notifications are not supported by your browser
-                  </div>
-                ) : notificationState.permission === 'denied' ? (
-                  <div className={styles.permissionDenied}>
-                    Notifications blocked. Please enable them in your browser settings.
-                  </div>
-                ) : (
-                  <label className={styles.toggleWrapper}>
-                    <input
-                      type="checkbox"
-                      checked={prefs.notificationsEnabled && notificationState.isSubscribed}
-                      onChange={(e) => handleNotificationToggle(e.target.checked)}
-                      disabled={notificationState.isLoading}
-                      className={styles.toggleInput}
-                    />
-                    <div className={styles.toggleSlider}></div>
-                  </label>
-                )}
-              </div>
-            </div>
-
-            {notificationState.error && (
-              <div className={styles.errorMessage}>
-                {notificationState.error}
-              </div>
-            )}
-
-            <div className={styles.notificationStatus}>
-              <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Browser Permission:</span>
-                <span className={`${styles.statusValue} ${styles[notificationState.permission]}`}>
-                  {notificationState.permission}
-                </span>
-              </div>
-              <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Subscription Status:</span>
-                <span className={`${styles.statusValue} ${notificationState.isSubscribed ? styles.subscribed : styles.unsubscribed}`}>
-                  {notificationState.isSubscribed ? 'Subscribed' : 'Not subscribed'}
-                </span>
-              </div>
-            </div>
-          </div>
-        );
 
       default:
         return (

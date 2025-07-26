@@ -19,8 +19,7 @@ const createConversation = (overrides: Partial<ConversationSummary>): Conversati
     archived: false,
     continuation_session_id: '',
     initial_commit_head: '',
-    permission_mode: 'default',
-    notifications_muted: false
+    permission_mode: 'default'
   },
   createdAt: '2024-01-01T10:00:00Z',
   updatedAt: '2024-01-01T10:00:00Z',

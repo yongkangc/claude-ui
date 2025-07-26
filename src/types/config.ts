@@ -7,12 +7,6 @@ export interface ServerConfig {
   port: number;
 }
 
-export interface VapidConfig {
-  publicKey: string;
-  privateKey: string;
-  email: string;
-}
-
 export interface CCUIConfig {
   /**
    * Unique machine identifier
@@ -26,10 +20,6 @@ export interface CCUIConfig {
    */
   server: ServerConfig;
 
-  /**
-   * VAPID keys for web push notifications
-   */
-  vapid?: VapidConfig;
 }
 
 /**

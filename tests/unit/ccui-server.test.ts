@@ -14,14 +14,6 @@ jest.mock('@/services/conversation-status-manager', () => ({
 }));
 
 // Mock web-push
-jest.mock('web-push', () => ({
-  setVapidDetails: jest.fn(),
-  generateVAPIDKeys: jest.fn(() => ({
-    publicKey: 'BKd0G9dqTPnwWba7v77i8E9Ph7pZUPfxcBJZxtZoWo-6kEoGyplF5fhAJhcuNPDQ9_VQQPqSZcl-n8RDtlNh_CM',
-    privateKey: 'dH6JNyWikNBNDp_sJGhTzS4BQp0_vfvo5MFzHM6Hhvg'
-  })),
-  sendNotification: jest.fn()
-}));
 
 import { CCUIServer } from '@/ccui-server';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';

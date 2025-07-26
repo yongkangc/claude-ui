@@ -24,7 +24,7 @@ describe('Preferences Routes', () => {
   });
 
   it('GET / should return preferences', async () => {
-    service.getPreferences.mockResolvedValue({ colorScheme: 'light', language: 'en', notificationsEnabled: false, pushSubscriptions: [] });
+    service.getPreferences.mockResolvedValue({ colorScheme: 'light', language: 'en' });
     const res = await request(app).get('/api/preferences');
     expect(res.status).toBe(200);
     expect(res.body.colorScheme).toBe('light');
@@ -32,7 +32,7 @@ describe('Preferences Routes', () => {
   });
 
   it('PUT / should update preferences', async () => {
-    service.updatePreferences.mockResolvedValue({ colorScheme: 'dark', language: 'en', notificationsEnabled: false, pushSubscriptions: [] });
+    service.updatePreferences.mockResolvedValue({ colorScheme: 'dark', language: 'en' });
     const res = await request(app)
       .put('/api/preferences')
       .send({ colorScheme: 'dark' });

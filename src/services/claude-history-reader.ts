@@ -87,8 +87,7 @@ export class ClaudeHistoryReader {
               archived: false,
               continuation_session_id: '',
               initial_commit_head: '',
-              permission_mode: 'default',
-              notifications_muted: false
+              permission_mode: 'default'
             };
           }
 
