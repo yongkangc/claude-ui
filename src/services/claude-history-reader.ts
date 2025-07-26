@@ -6,6 +6,7 @@ import { createLogger, type Logger } from './logger';
 import { SessionInfoService } from './session-info-service';
 import { ConversationCache, ConversationChain } from './conversation-cache';
 import { ToolMetricsService } from './ToolMetricsService';
+import { MessageFilter } from './message-filter';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Import RawJsonEntry from ConversationCache to avoid duplication
@@ -34,6 +35,7 @@ export class ClaudeHistoryReader {
   private sessionInfoService: SessionInfoService;
   private conversationCache: ConversationCache;
   private toolMetricsService: ToolMetricsService;
+  private messageFilter: MessageFilter;
   
   constructor() {
     this.claudeHomePath = path.join(os.homedir(), '.claude');
@@ -41,6 +43,7 @@ export class ClaudeHistoryReader {
     this.sessionInfoService = SessionInfoService.getInstance();
     this.conversationCache = new ConversationCache();
     this.toolMetricsService = new ToolMetricsService();
+    this.messageFilter = new MessageFilter();
   }
 
   get homePath(): string {
@@ -135,7 +138,8 @@ export class ClaudeHistoryReader {
         throw new CCUIError('CONVERSATION_NOT_FOUND', `Conversation ${sessionId} not found`, 404);
       }
       
-      return conversation.messages;
+      // Apply message filter before returning
+      return this.messageFilter.filterMessages(conversation.messages);
     } catch (error) {
       if (error instanceof CCUIError) throw error;
       throw new CCUIError('CONVERSATION_READ_FAILED', `Failed to read conversation: ${error}`, 500);
@@ -433,7 +437,15 @@ export class ClaudeHistoryReader {
         return null;
       }
       
-      // Determine project path - respect first message's cwd over directory name
+      // Apply message filter
+      const filteredMessages = this.messageFilter.filterMessages(orderedMessages);
+      
+      // Check if we have any messages left after filtering
+      if (filteredMessages.length === 0) {
+        return null;
+      }
+      
+      // Determine project path - use original first message for cwd before filtering
       const firstMessage = orderedMessages[0];
       let projectPath = '';
       
@@ -446,14 +458,14 @@ export class ClaudeHistoryReader {
       }
       
       // Determine conversation summary
-      const summary = this.determineConversationSummary(orderedMessages, summaries);
+      const summary = this.determineConversationSummary(filteredMessages, summaries);
       
-      // Calculate metadata
-      const totalDuration = messages.reduce((sum, msg) => sum + (msg.durationMs || 0), 0);
-      const model = this.extractModel(messages);
+      // Calculate metadata from filtered messages
+      const totalDuration = filteredMessages.reduce((sum, msg) => sum + (msg.durationMs || 0), 0);
+      const model = this.extractModel(filteredMessages);
       
-      // Get timestamps
-      const timestamps = messages
+      // Get timestamps from filtered messages
+      const timestamps = filteredMessages
         .map(msg => msg.timestamp)
         .filter(ts => ts)
         .sort();
@@ -463,7 +475,7 @@ export class ClaudeHistoryReader {
       
       return {
         sessionId,
-        messages: orderedMessages,
+        messages: filteredMessages,
         projectPath,
         summary,
         createdAt,

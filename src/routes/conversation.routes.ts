@@ -209,7 +209,7 @@ export function createConversationRoutes(
 
 
   // List conversations
-  router.get('/', async (req: Request<Record<string, never>, Record<string, never>, Record<string, never>, ConversationListQuery>, res, next) => {
+  router.get('/', async (req: Request<Record<string, never>, any, Record<string, never>, ConversationListQuery>, res, next) => {
     const requestId = (req as any).requestId;
     logger.debug('List conversations request', {
       requestId,

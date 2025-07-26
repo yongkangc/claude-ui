@@ -466,6 +466,34 @@ describe('ClaudeHistoryReader', () => {
       expect(messages[1].durationMs).toBe(1000);
     });
 
+    it('should filter out messages starting with specified prefixes', async () => {
+      const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-filtered');
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      const sessionId = 'test-session-filtered';
+      const conversationFile = path.join(projectDir, 'conversation.jsonl');
+      
+      const fileContent = `{"parentUuid":null,"type":"user","uuid":"msg1","sessionId":"${sessionId}","message":{"role":"user","content":"Caveat: This message should be filtered"}}
+{"parentUuid":"msg1","type":"user","uuid":"msg2","sessionId":"${sessionId}","message":{"role":"user","content":"<command-name>clear</command-name> should be filtered"}}
+{"parentUuid":"msg2","type":"user","uuid":"msg3","sessionId":"${sessionId}","message":{"role":"user","content":"<local-command-stdout>output</local-command-stdout> should be filtered"}}
+{"parentUuid":"msg3","type":"user","uuid":"msg4","sessionId":"${sessionId}","message":{"role":"user","content":"This normal message should be kept"}}
+{"parentUuid":"msg4","type":"assistant","uuid":"msg5","sessionId":"${sessionId}","message":{"role":"assistant","content":"Caveat: Assistant messages should not be filtered"}}`;
+
+      await fs.writeFile(conversationFile, fileContent);
+      
+      reader = new ClaudeHistoryReader();
+      (reader as any).claudeHomePath = tempDir;
+
+      const messages = await reader.fetchConversation(sessionId);
+      
+      // Should filter out the first 3 user messages but keep the normal user message and assistant message
+      expect(messages).toHaveLength(2);
+      expect(messages[0].uuid).toBe('msg4');
+      expect(messages[0].type).toBe('user');
+      expect(messages[1].uuid).toBe('msg5');
+      expect(messages[1].type).toBe('assistant');
+    });
+
     it('should handle malformed JSON lines gracefully', async () => {
       const projectDir = path.join(path.join(tempDir, 'projects'), '-Users-username-malformed');
       await fs.mkdir(projectDir, { recursive: true });
@@ -473,9 +501,9 @@ describe('ClaudeHistoryReader', () => {
       const sessionId = 'test-session-malformed';
       const conversationFile = path.join(projectDir, 'conversation.jsonl');
       
-      const fileContent = `{"parentUuid":null,"type":"user","uuid":"msg1","valid":true,"sessionId":"${sessionId}"}
+      const fileContent = `{"parentUuid":null,"type":"user","uuid":"msg1","valid":true,"sessionId":"${sessionId}","message":{"role":"user","content":"Test message 1"}}
 {invalid json line}
-{"parentUuid":"msg1","type":"assistant","uuid":"msg2","also":"valid","sessionId":"${sessionId}"}`;
+{"parentUuid":"msg1","type":"assistant","uuid":"msg2","also":"valid","sessionId":"${sessionId}","message":{"role":"assistant","content":"Test response 2"}}`;
 
       await fs.writeFile(conversationFile, fileContent);
       
