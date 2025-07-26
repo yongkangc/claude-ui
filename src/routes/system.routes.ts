@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { SystemStatusResponse, CCUIError } from '@/types';
+import { SystemStatusResponse, CCUIError, CommandsResponse } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { createLogger, type Logger } from '@/services/logger';
+import { getAvailableCommands } from '@/services/commands-service';
 import { execSync } from 'child_process';
 
 export function createSystemRoutes(
@@ -38,6 +39,36 @@ export function createSystemRoutes(
       res.json(systemStatus);
     } catch (error) {
       logger.debug('Get system status failed', {
+        requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      next(error);
+    }
+  });
+
+  // Get available commands
+  router.get('/commands', async (req, res, next) => {
+    const requestId = (req as any).requestId;
+    const workingDirectory = req.query.workingDirectory as string | undefined;
+    
+    logger.debug('Get commands request', { requestId, workingDirectory });
+    
+    try {
+      const commands = getAvailableCommands(workingDirectory);
+      
+      const response: CommandsResponse = {
+        commands
+      };
+      
+      logger.debug('Commands retrieved', {
+        requestId,
+        commandCount: commands.length,
+        workingDirectory
+      });
+      
+      res.json(response);
+    } catch (error) {
+      logger.debug('Get commands failed', {
         requestId,
         error: error instanceof Error ? error.message : String(error)
       });

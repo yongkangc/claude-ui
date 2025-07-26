@@ -24,6 +24,7 @@ function ConsoleApp() {
     listDir: true,
     readFile: true,
     workingDirs: true,
+    commands: true,
     bulkOperations: true,
   });
 
@@ -72,6 +73,9 @@ function ConsoleApp() {
   // Working directories state
   const [workingDirectories, setWorkingDirectories] = useState<any[]>([]);
   const [streamResult, setStreamResult] = useState<JSX.Element[]>([]);
+  
+  // Commands state
+  const [commandsWorkingDirectory, setCommandsWorkingDirectory] = useState('');
 
   const streamResultRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +107,19 @@ function ConsoleApp() {
       }
     } catch (e: any) {
       showJson('workingDirsResult', { error: e.message });
+    }
+  };
+
+  const getCommands = async () => {
+    try {
+      const url = commandsWorkingDirectory 
+        ? `/api/system/commands?workingDirectory=${encodeURIComponent(commandsWorkingDirectory)}`
+        : '/api/system/commands';
+      const response = await fetch(url);
+      const data = await response.json();
+      showJson('commandsResult', data);
+    } catch (e: any) {
+      showJson('commandsResult', { error: e.message });
     }
   };
 
@@ -510,6 +527,23 @@ function ConsoleApp() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Commands API */}
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.commands ? styles.collapsed : ''}`} onClick={() => toggleCollapse('commands')}>
+            GET /api/system/commands
+          </div>
+          <div className={styles.collapsibleContent}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabel}>Working Directory <span className={styles.optional}>(optional)</span></div>
+              <input type="text" value={commandsWorkingDirectory} onChange={(e) => setCommandsWorkingDirectory(e.target.value)} placeholder="/path/to/working/directory" />
+            </div>
+            <button onClick={getCommands}>Get Commands</button>
+            <div id="commandsResult" className={styles.jsonViewerContainer}>
+              {results.commandsResult && <JsonViewer data={results.commandsResult} resultId="commandsResult" />}
+            </div>
           </div>
         </div>
         

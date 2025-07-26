@@ -317,4 +317,16 @@ export interface WorkingDirectoriesResponse {
   directories: WorkingDirectory[];
   totalCount: number;
 }
+
+// Commands API types
+export interface Command {
+  name: string;
+  type: 'builtin' | 'custom';
+  description?: string;
+}
+
+export interface CommandsResponse {
+  commands: Command[];
+}
+
 export * from './preferences';
