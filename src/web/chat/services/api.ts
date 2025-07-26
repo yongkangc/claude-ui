@@ -10,6 +10,7 @@ import type {
   PermissionDecisionResponse,
   FileSystemListQuery,
   FileSystemListResponse,
+  CommandsResponse,
 } from '../types';
 
 class ApiService {
@@ -152,6 +153,15 @@ class ApiService {
     if (params.respectGitignore !== undefined) searchParams.append('respectGitignore', params.respectGitignore.toString());
     
     return this.apiCall(`/api/filesystem/list?${searchParams}`);
+  }
+
+  async getCommands(workingDirectory?: string): Promise<CommandsResponse> {
+    const searchParams = new URLSearchParams();
+    if (workingDirectory) {
+      searchParams.append('workingDirectory', workingDirectory);
+    }
+    
+    return this.apiCall(`/api/system/commands?${searchParams}`);
   }
 }
 

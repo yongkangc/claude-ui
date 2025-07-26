@@ -9,7 +9,6 @@ interface CodeHighlightProps {
   language: string;
   showLineNumbers?: boolean;
   className?: string;
-  isExpand?: boolean;
 }
 
 // Map our language identifiers to prism-react-renderer language names
@@ -212,11 +211,10 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   language,
   showLineNumbers = false,
   className = '',
-  isExpand = false,
 }) => {
   const theme = useTheme();
   const currentTheme = theme.mode === 'dark' ? darkTheme : lightTheme;
-  const [isExpanded, setIsExpanded] = useState(isExpand);
+  const [isExpanded, setIsExpanded] = useState(false);
   
   // Get the prism language, fallback to text if not found
   const prismLanguage = languageMap[language.toLowerCase()] || 'text';
@@ -231,16 +229,32 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
         const totalLines = tokens.length;
         const shouldShowExpandButton = totalLines > 8;
         const linesToShow = isExpanded ? tokens : tokens.slice(0, 8);
+        const hiddenLinesCount = totalLines - 8;
         
         return (
-          <div className={styles.codeContainer}>
+          <div style={{ position: 'relative' }}>
             {shouldShowExpandButton && (
               <button
-                className={styles.expandButton}
                 onClick={() => setIsExpanded(!isExpanded)}
                 title={isExpanded ? "Show fewer lines" : "Show all lines"}
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  width: '24px',
+                  height: '24px',
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 10,
+                }}
               >
-                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
             )}
             <pre
@@ -268,8 +282,11 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
                 })}
                 {!isExpanded && shouldShowExpandButton && (
                   <div className={styles.line}>
-                    <span className={styles.lineContent}>
-                      <span className={styles.ellipsis}>...</span>
+                    {showLineNumbers && (
+                      <span className={styles.lineNumber}></span>
+                    )}
+                    <span className={styles.lineContent} style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                      ... +{hiddenLinesCount} lines
                     </span>
                   </div>
                 )}

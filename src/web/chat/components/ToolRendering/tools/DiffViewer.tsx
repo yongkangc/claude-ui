@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import Prism from 'prismjs';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-typescript';
@@ -22,7 +23,23 @@ interface DiffViewerProps {
 export function DiffViewer({ oldValue, newValue, language = 'javascript' }: DiffViewerProps) {
   const theme = useTheme();
   const isDark = theme.mode === 'dark';
+  const [isExpanded, setIsExpanded] = useState(false);
   
+  // Calculate total lines
+  const oldLines = oldValue.split('\n');
+  const newLines = newValue.split('\n');
+  const totalLines = Math.max(oldLines.length, newLines.length);
+  const shouldShowExpandButton = totalLines > 8;
+  const hiddenLinesCount = totalLines - 8;
+  
+  // Truncate content if collapsed - don't add line count here, we'll show it separately
+  const displayOldValue = !isExpanded && shouldShowExpandButton 
+    ? oldLines.slice(0, 8).join('\n')
+    : oldValue;
+  const displayNewValue = !isExpanded && shouldShowExpandButton 
+    ? newLines.slice(0, 8).join('\n')
+    : newValue;
+
   // 渲染带语法高亮的内容
   const renderContent = (source: string): JSX.Element => {
     if (!source.trim()) {
@@ -46,15 +63,46 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
   };
   
   return (
-    <ReactDiffViewer
-      oldValue={oldValue}
-      newValue={newValue}
-      splitView={false}  // 统一视图
-      useDarkTheme={isDark}
-      hideLineNumbers={false}
-      disableWordDiff={true}  // 禁用字符级别差异，使用行级别差异
-      renderContent={renderContent}
-      styles={{
+    <div style={{ 
+      position: 'relative',
+      border: '1px solid var(--color-border)',
+      borderRadius: '12px',
+      overflow: 'hidden'
+    }}>
+      {shouldShowExpandButton && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          title={isExpanded ? "Show fewer lines" : "Show all lines"}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            width: '24px',
+            height: '24px',
+            border: 'none',
+            background: 'none',
+            color: 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            zIndex: 10,
+          }}
+        >
+          {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
+      )}
+      <ReactDiffViewer
+        oldValue={displayOldValue}
+        newValue={displayNewValue}
+        splitView={false}  // 统一视图
+        showDiffOnly={false}  // 显示所有行，不仅仅是差异行
+        useDarkTheme={isDark}
+        hideLineNumbers={false}
+        disableWordDiff={true}  // 禁用字符级别差异，使用行级别差异
+        renderContent={renderContent}
+        styles={{
         variables: {
           dark: {
             diffViewerBackground: '#292a30',
@@ -108,11 +156,8 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
           }
         },
         diffContainer: {
-          borderRadius: 'var(--radius-md)',
-          overflow: 'hidden',
           fontFamily: 'var(--font-mono)',
           fontSize: '13px',
-          border: isDark ? '1px solid #3a3b40' : '1px solid #e0e0e0',
         },
         line: {
           '& pre': {
@@ -210,6 +255,7 @@ export function DiffViewer({ oldValue, newValue, language = 'javascript' }: Diff
           },
         }
       }}
-    />
+      />
+    </div>
   );
 }

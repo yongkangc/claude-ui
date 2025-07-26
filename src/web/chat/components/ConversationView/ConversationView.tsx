@@ -276,6 +276,15 @@ export function ConversationView() {
               return [];
             }
           }}
+          onFetchCommands={async (workingDirectory) => {
+            try {
+              const response = await api.getCommands(workingDirectory || currentWorkingDirectory);
+              return response.commands;
+            } catch (error) {
+              console.error('Failed to fetch commands:', error);
+              return [];
+            }
+          }}
         />
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
-import type { PermissionRequest } from '@/types';
+import type { PermissionRequest, Command } from '@/types';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import styles from './Composer.module.css';
 
@@ -16,8 +16,9 @@ interface AutocompleteState {
   isActive: boolean;
   triggerIndex: number;
   query: string;
-  suggestions: FileSystemEntry[];
+  suggestions: FileSystemEntry[] | Command[];
   focusedIndex: number;
+  type: 'file' | 'command';
 }
 
 export interface ComposerProps {
@@ -58,6 +59,10 @@ export interface ComposerProps {
   fileSystemEntries?: FileSystemEntry[];
   onFetchFileSystem?: (directory: string) => Promise<FileSystemEntry[]>;
   dropdownPosition?: 'above' | 'below';
+
+  // Command autocomplete
+  availableCommands?: Command[];
+  onFetchCommands?: (workingDirectory?: string) => Promise<Command[]>;
 }
 
 export interface ComposerRef {
@@ -134,13 +139,14 @@ function DirectoryDropdown({
 }
 
 interface AutocompleteDropdownProps {
-  suggestions: FileSystemEntry[];
+  suggestions: FileSystemEntry[] | Command[];
   onSelect: (path: string) => void;
   onClose: () => void;
   isOpen: boolean;
   focusedIndex: number;
   position?: 'above' | 'below';
   triggerRef?: React.RefObject<HTMLElement>;
+  type: 'file' | 'command';
 }
 
 function AutocompleteDropdown({
@@ -151,17 +157,33 @@ function AutocompleteDropdown({
   focusedIndex,
   position = 'below',
   triggerRef,
+  type,
 }: AutocompleteDropdownProps) {
   if (!isOpen) return null;
+
+  const options = suggestions.map((entry) => {
+    if (type === 'command') {
+      const command = entry as Command;
+      return {
+        value: command.name,
+        label: command.name,
+        description: command.description,
+        disabled: false
+      };
+    } else {
+      const fileEntry = entry as FileSystemEntry;
+      return {
+        value: fileEntry.name,
+        label: fileEntry.name,
+        disabled: false
+      };
+    }
+  });
 
   return (
     <div className={`${styles.autocompleteDropdown} ${position === 'above' ? styles.autocompleteDropdownAbove : ''}`}>
       <DropdownSelector
-        options={suggestions.map((entry) => ({
-          value: entry.name,
-          label: entry.name,
-          disabled: false
-        }))}
+        options={options}
         value={undefined}
         onChange={onSelect}
         isOpen={true}
@@ -174,6 +196,14 @@ function AutocompleteDropdown({
         initialFocusedIndex={focusedIndex}
         visualFocusOnly={true}
         triggerElementRef={triggerRef}
+        renderOption={type === 'command' ? (option) => (
+          <div className={styles.commandOption}>
+            <span className={styles.commandName}>{option.label}</span>
+            {option.description && (
+              <span className={styles.commandDescription}>{option.description}</span>
+            )}
+          </div>
+        ) : undefined}
       />
     </div>
   );
@@ -209,6 +239,8 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   fileSystemEntries = [],
   onFetchFileSystem,
   dropdownPosition = 'below',
+  availableCommands = [],
+  onFetchCommands,
 }: ComposerProps, ref: React.Ref<ComposerRef>) {
   // Load cached state
   const [cachedState, setCachedState] = useLocalStorage<ComposerCache>('ccui-composer', {
@@ -231,12 +263,14 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   const [selectedPermissionMode, setSelectedPermissionMode] = useState<string>(cachedState.selectedPermissionMode);
   const [isPermissionDropdownOpen, setIsPermissionDropdownOpen] = useState(false);
   const [localFileSystemEntries, setLocalFileSystemEntries] = useState<FileSystemEntry[]>(fileSystemEntries);
+  const [localCommands, setLocalCommands] = useState<Command[]>(availableCommands);
   const [autocomplete, setAutocomplete] = useState<AutocompleteState>({
     isActive: false,
     triggerIndex: -1,
     query: '',
     suggestions: [],
     focusedIndex: 0,
+    type: 'file',
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -267,6 +301,12 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       setLocalFileSystemEntries(fileSystemEntries);
     }
   }, [fileSystemEntries]);
+
+  useEffect(() => {
+    if (availableCommands.length > 0) {
+      setLocalCommands(availableCommands);
+    }
+  }, [availableCommands]);
 
   // Update cache when state changes
   useEffect(() => {
@@ -317,6 +357,30 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     }
   }, [selectedDirectory, enableFileAutocomplete, onFetchFileSystem]);
 
+  // Fetch commands when composer is focused (for autocomplete)
+  useEffect(() => {
+    if (!onFetchCommands) return;
+
+    const fetchCommands = async () => {
+      try {
+        const commands = await onFetchCommands(selectedDirectory !== 'Select directory' ? selectedDirectory : undefined);
+        setLocalCommands(commands);
+      } catch (error) {
+        console.error('Failed to fetch commands:', error);
+      }
+    };
+
+    // Fetch commands immediately
+    fetchCommands();
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const handleFocus = () => fetchCommands();
+      textarea.addEventListener('focus', handleFocus);
+      return () => textarea.removeEventListener('focus', handleFocus);
+    }
+  }, [selectedDirectory, onFetchCommands]);
+
   const detectAutocomplete = (value: string, cursorPosition: number) => {
     // Find the last @ before cursor
     const beforeCursor = value.substring(0, cursorPosition);
@@ -331,15 +395,49 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     return {
       triggerIndex: lastAtIndex,
       query: afterAt,
+      type: 'file' as const,
+    };
+  };
+
+  const detectSlashCommandAutocomplete = (value: string, cursorPosition: number) => {
+    // Find the last / before cursor
+    const beforeCursor = value.substring(0, cursorPosition);
+    const lastSlashIndex = beforeCursor.lastIndexOf('/');
+    
+    if (lastSlashIndex === -1) return null;
+    
+    // Check if the slash is at the beginning of the input or after whitespace/newline
+    const beforeSlash = beforeCursor.substring(0, lastSlashIndex);
+    if (beforeSlash.trim() !== '' && !beforeSlash.endsWith('\n') && !beforeSlash.endsWith(' ')) return null;
+    
+    // Check if there's a space or newline between / and cursor
+    const afterSlash = beforeCursor.substring(lastSlashIndex + 1);
+    if (afterSlash.includes(' ') || afterSlash.includes('\n')) return null;
+    
+    return {
+      triggerIndex: lastSlashIndex,
+      query: afterSlash,
+      type: 'command' as const,
     };
   };
 
   const filterSuggestions = (query: string): FileSystemEntry[] => {
+    if (!localFileSystemEntries) return []; // Return empty array if entries not loaded
     if (!query) return localFileSystemEntries.slice(0, 50); // Show first 50 entries when no query
     
     const lowerQuery = query.toLowerCase();
     return localFileSystemEntries
       .filter(entry => entry.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 50); // Limit to 50 results
+  };
+
+  const filterCommandSuggestions = (query: string): Command[] => {
+    if (!localCommands) return []; // Return empty array if commands not loaded
+    if (!query) return localCommands.slice(0, 50); // Show first 50 commands when no query
+    
+    const lowerQuery = query.toLowerCase();
+    return localCommands
+      .filter(command => command.name.toLowerCase().includes(lowerQuery))
       .slice(0, 50); // Limit to 50 results
   };
 
@@ -350,6 +448,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       query: '',
       suggestions: [],
       focusedIndex: 0,
+      type: 'file',
     });
   };
 
@@ -373,25 +472,46 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     }
   };
 
-  const handlePathSelection = (path: string) => {
+  const handleAutocompleteSelection = (selection: string) => {
     if (!textareaRef.current) return;
     
     const cursorPos = textareaRef.current.selectionStart;
-    const newText = value.substring(0, autocomplete.triggerIndex + 1) + path + value.substring(cursorPos);
-    setValue(newText);
     
-    // Reset autocomplete state immediately
-    resetAutocomplete();
-    
-    // Set cursor position after the inserted path and adjust height
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPos = autocomplete.triggerIndex + 1 + path.length;
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
-        textareaRef.current.focus();
-        adjustTextareaHeight();
-      }
-    }, 0);
+    if (autocomplete.type === 'command') {
+      // For commands, replace the entire trigger sequence (including the /) with the selected command
+      const newText = value.substring(0, autocomplete.triggerIndex) + selection + value.substring(cursorPos);
+      setValue(newText);
+      
+      // Reset autocomplete state immediately
+      resetAutocomplete();
+      
+      // Set cursor position after the inserted selection and adjust height
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const newCursorPos = autocomplete.triggerIndex + selection.length;
+          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          textareaRef.current.focus();
+          adjustTextareaHeight();
+        }
+      }, 0);
+    } else {
+      // For files, keep the existing behavior (append after the @ symbol)
+      const newText = value.substring(0, autocomplete.triggerIndex + 1) + selection + value.substring(cursorPos);
+      setValue(newText);
+      
+      // Reset autocomplete state immediately
+      resetAutocomplete();
+      
+      // Set cursor position after the inserted selection and adjust height
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const newCursorPos = autocomplete.triggerIndex + 1 + selection.length;
+          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          textareaRef.current.focus();
+          adjustTextareaHeight();
+        }
+      }, 0);
+    }
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -399,25 +519,45 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     setValue(newValue);
     adjustTextareaHeight();
     
-    if (!enableFileAutocomplete) return;
-
-    // Detect autocomplete trigger
+    // Detect autocomplete triggers
     const cursorPos = e.target.selectionStart;
-    const autocompleteInfo = detectAutocomplete(newValue, cursorPos);
     
-    if (autocompleteInfo) {
-      const suggestions = filterSuggestions(autocompleteInfo.query);
+    // Check for slash command autocomplete first (higher priority)
+    const commandAutocompleteInfo = detectSlashCommandAutocomplete(newValue, cursorPos);
+    if (commandAutocompleteInfo && onFetchCommands) {
+      const suggestions = filterCommandSuggestions(commandAutocompleteInfo.query);
       setAutocomplete(prev => ({
         isActive: true,
-        triggerIndex: autocompleteInfo.triggerIndex,
-        query: autocompleteInfo.query,
+        triggerIndex: commandAutocompleteInfo.triggerIndex,
+        query: commandAutocompleteInfo.query,
         suggestions,
+        type: commandAutocompleteInfo.type,
         // Keep focusedIndex if it's still valid, otherwise reset to 0
         focusedIndex: prev.focusedIndex < suggestions.length ? prev.focusedIndex : 0,
       }));
-    } else {
-      resetAutocomplete();
+      return;
     }
+    
+    // Check for file autocomplete if enabled
+    if (enableFileAutocomplete) {
+      const fileAutocompleteInfo = detectAutocomplete(newValue, cursorPos);
+      if (fileAutocompleteInfo) {
+        const suggestions = filterSuggestions(fileAutocompleteInfo.query);
+        setAutocomplete(prev => ({
+          isActive: true,
+          triggerIndex: fileAutocompleteInfo.triggerIndex,
+          query: fileAutocompleteInfo.query,
+          suggestions,
+          type: fileAutocompleteInfo.type,
+          // Keep focusedIndex if it's still valid, otherwise reset to 0
+          focusedIndex: prev.focusedIndex < suggestions.length ? prev.focusedIndex : 0,
+        }));
+        return;
+      }
+    }
+    
+    // No autocomplete triggers found
+    resetAutocomplete();
   };
 
   const handleSubmit = (permissionMode: string) => {
@@ -439,7 +579,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (enableFileAutocomplete && autocomplete.isActive) {
+    if (autocomplete.isActive) {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -465,7 +605,11 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
             e.preventDefault();
             if (autocomplete.suggestions.length > 0) {
               // Select the currently focused suggestion
-              handlePathSelection(autocomplete.suggestions[autocomplete.focusedIndex].name);
+              const suggestion = autocomplete.suggestions[autocomplete.focusedIndex];
+              const suggestionName = autocomplete.type === 'command' 
+                ? (suggestion as Command).name 
+                : (suggestion as FileSystemEntry).name;
+              handleAutocompleteSelection(suggestionName);
             }
           }
           break;
@@ -524,14 +668,15 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       e.preventDefault();
       handleSubmit(selectedPermissionMode);
     }}>
-      {enableFileAutocomplete && dropdownPosition === 'above' && (
+      {(enableFileAutocomplete || onFetchCommands) && dropdownPosition === 'above' && (
         <AutocompleteDropdown
           suggestions={autocomplete.suggestions}
-          onSelect={handlePathSelection}
+          onSelect={handleAutocompleteSelection}
           onClose={resetAutocomplete}
           isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
           focusedIndex={autocomplete.focusedIndex}
           position={dropdownPosition}
+          type={autocomplete.type}
         />
       )}
       <div className={styles.container}>
@@ -625,7 +770,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               >
                 <Square size={18} />
               </button>
-            ) : value.trim() ? (
+            ) : (
               <div className={styles.permissionModeButtons}>
                 {/* Combined Permission Mode Button with Dropdown */}
                 <div className={styles.combinedPermissionButton}>
@@ -633,7 +778,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                     type="button"
                     className={styles.permissionMainButton}
                     title={getPermissionModeTitle(selectedPermissionMode)}
-                    disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                    disabled={!value.trim() || isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                     onClick={() => handleSubmit(selectedPermissionMode)}
                   >
                     <div className={styles.btnContent}>
@@ -665,7 +810,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                         type="button"
                         className={styles.permissionDropdownButton}
                         onClick={onClick}
-                        disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                        disabled={!value.trim() || isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                         aria-label="Select permission mode"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -676,29 +821,20 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                   />
                 </div>
               </div>
-            ) : (
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Dictate button"
-                disabled={isLoading || disabled}
-                title="Voice input"
-              >
-                <Mic size={18} />
-              </button>
             )}
           </div>
         </div>
       </div>
-      {enableFileAutocomplete && dropdownPosition === 'below' && (
+      {(enableFileAutocomplete || onFetchCommands) && dropdownPosition === 'below' && (
         <AutocompleteDropdown
           suggestions={autocomplete.suggestions}
-          onSelect={handlePathSelection}
+          onSelect={handleAutocompleteSelection}
           onClose={resetAutocomplete}
           isOpen={autocomplete.isActive && autocomplete.suggestions.length > 0}
           focusedIndex={autocomplete.focusedIndex}
           position={dropdownPosition}
           triggerRef={textareaRef}
+          type={autocomplete.type}
         />
       )}
       
