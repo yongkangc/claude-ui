@@ -250,8 +250,10 @@ export class TestHelpers {
    */
   static createIntegrationTestServer(config?: {
     port?: number;
+    host?: string;
   }): CCUIServer {
     const randomPort = config?.port || (3000 + Math.floor(Math.random() * 1000));
+    const host = config?.host || 'localhost';
     
     // Mock ConfigService for integration tests
     const { ConfigService } = require('@/services/config-service');
@@ -260,7 +262,7 @@ export class TestHelpers {
       getConfig: jest.fn().mockReturnValue({
         machine_id: 'test-machine-12345678',
         server: {
-          host: 'localhost',
+          host: host,
           port: randomPort
         },
         logging: {
@@ -269,7 +271,8 @@ export class TestHelpers {
       })
     });
     
-    return new CCUIServer();
+    // Pass config overrides to ensure the server uses our test port/host
+    return new CCUIServer({ port: randomPort, host: host });
   }
 
   /**

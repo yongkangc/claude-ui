@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { CCUIError, PermissionDecisionRequest, PermissionDecisionResponse } from '@/types';
 import { PermissionTracker } from '@/services/permission-tracker';
-import { createLogger, type Logger } from '@/services/logger';
+import { createLogger } from '@/services/logger';
 
 export function createPermissionRoutes(
   permissionTracker: PermissionTracker

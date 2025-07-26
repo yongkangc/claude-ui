@@ -86,6 +86,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const TIMEOUT = 60 * 60 * 1000; // 1 hour
     const startTime = Date.now();
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       // Check timeout
       if (Date.now() - startTime > TIMEOUT) {

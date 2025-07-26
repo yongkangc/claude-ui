@@ -15,7 +15,7 @@ interface NotificationPayload {
 }
 
 // Service worker lifecycle events
-self.addEventListener('install', (event: ExtendableEvent) => {
+self.addEventListener('install', (_event: ExtendableEvent) => {
   console.log('[Service Worker] Install event');
   // Skip waiting to activate immediately
   self.skipWaiting();
