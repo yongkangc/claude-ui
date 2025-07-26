@@ -179,24 +179,6 @@ export interface SystemStatusResponse {
   activeConversations: number;
 }
 
-export interface ModelsResponse {
-  models: string[];
-  defaultModel: string;
-}
-
-// MCP types
-export interface MCPPermissionToolInput {
-  tool_name: string;
-  input: Record<string, any>;
-  session_id: string; // Claude CLI's session ID
-}
-
-export interface MCPPermissionResponse {
-  behavior: 'allow' | 'deny';
-  updatedInput?: Record<string, any>;
-  message?: string;
-}
-
 // Stream event types
 export type StreamEvent = 
   | { type: 'connected'; streaming_id: string; timestamp: string }
@@ -214,12 +196,6 @@ export class CCUIError extends Error {
     super(message);
     this.name = 'CCUIError';
   }
-}
-
-// Config types
-export interface CCUIConfig {
-  machine_id: string;
-  // Additional fields can be added here in the future
 }
 
 // File system types

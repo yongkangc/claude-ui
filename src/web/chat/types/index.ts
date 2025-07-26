@@ -52,15 +52,6 @@ export interface ChatMessage {
   // isStreaming removed
 }
 
-export interface ConversationState {
-  sessionId: string | null;
-  streamingId: string | null;
-  messages: ChatMessage[];
-  isLoading: boolean;
-  isStreaming: boolean;
-  error: string | null;
-}
-
 export interface Theme {
   mode: 'light' | 'dark';
   toggle: () => void;
