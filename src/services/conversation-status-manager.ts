@@ -24,9 +24,9 @@ export interface ConversationStatusContext {
  * - Emit events for session lifecycle (started/ended)
  */
 export class ConversationStatusManager extends EventEmitter {
-  // Maps Claude session ID -> CCUI streaming ID
+  // Maps Claude session ID -> CUI streaming ID
   private sessionToStreaming: Map<string, string> = new Map();
-  // Maps CCUI streaming ID -> Claude session ID (reverse lookup)
+  // Maps CUI streaming ID -> Claude session ID (reverse lookup)
   private streamingToSession: Map<string, string> = new Map();
   // Maps Claude session ID -> conversation context for active sessions
   private sessionContext: Map<string, ConversationStatusContext> = new Map();

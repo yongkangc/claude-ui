@@ -14,7 +14,7 @@ import { WorkingDirectoriesService } from './services/working-directories-servic
 import { ToolMetricsService } from './services/ToolMetricsService';
 import { 
   StreamEvent,
-  CCUIError,
+  CUIError,
   PermissionRequest
 } from './types';
 import { createLogger, type Logger } from './services/logger';
@@ -38,9 +38,9 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 /**
- * Main CCUI server class
+ * Main CUI server class
  */
-export class CCUIServer {
+export class CUIServer {
   private app: Express;
   private server?: import('http').Server;
   private processManager: ClaudeProcessManager;
@@ -65,10 +65,10 @@ export class CCUIServer {
     this.app = express();
     this.configOverrides = configOverrides;
     
-    this.logger = createLogger('CCUIServer');
+    this.logger = createLogger('CUIServer');
     
     // TEST: Add debug log right at the start
-    this.logger.debug('🔍 TEST: CCUIServer constructor started - this should be visible if debug logging works');
+    this.logger.debug('🔍 TEST: CUIServer constructor started - this should be visible if debug logging works');
     
     // Initialize config service first
     this.configService = ConfigService.getInstance();
@@ -77,7 +77,7 @@ export class CCUIServer {
     this.port = 0;
     this.host = '';
     
-    this.logger.debug('Initializing CCUIServer', {
+    this.logger.debug('Initializing CUIServer', {
       nodeEnv: process.env.NODE_ENV,
       configOverrides
     });
@@ -163,7 +163,7 @@ export class CCUIServer {
           try {
             // ViteExpress.listen returns a promise in newer versions
             this.server = this.app.listen(this.port, this.host, () => {
-              this.logger.info(`CCUI server with Vite running on ${this.host}:${this.port}`);
+              this.logger.info(`CUI server with Vite running on ${this.host}:${this.port}`);
               this.logger.debug('Server successfully bound to port', {
                 port: this.port,
                 host: this.host,
@@ -185,7 +185,7 @@ export class CCUIServer {
           }
         } else {
           this.server = this.app.listen(this.port, this.host, () => {
-            this.logger.info(`CCUI server running on ${this.host}:${this.port}`);
+            this.logger.info(`CUI server running on ${this.host}:${this.port}`);
             this.logger.debug('Server successfully bound to port', {
               port: this.port,
               host: this.host,
@@ -203,7 +203,7 @@ export class CCUIServer {
               port: this.port,
               host: this.host
             });
-            reject(new CCUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
+            reject(new CUIError('HTTP_SERVER_START_FAILED', `Failed to start HTTP server: ${error.message}`, 500));
           });
         }
       });
@@ -217,10 +217,10 @@ export class CCUIServer {
       // Attempt cleanup on startup failure
       await this.cleanup();
       
-      if (error instanceof CCUIError) {
+      if (error instanceof CUIError) {
         throw error;
       } else {
-        throw new CCUIError('SERVER_START_FAILED', `Server startup failed: ${error}`, 500);
+        throw new CUIError('SERVER_START_FAILED', `Server startup failed: ${error}`, 500);
       }
     }
   }

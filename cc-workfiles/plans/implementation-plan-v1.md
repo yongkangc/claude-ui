@@ -1,11 +1,11 @@
-# CCUI Backend Implementation Plan
+# CUI Backend Implementation Plan
 
 ## 1. Framework, Toolchain & Architecture
 
 ### Core Technologies
 ```
 # The backend requires these specific technologies to function properly
-# Each technology serves a specific purpose in the CCUI ecosystem
+# Each technology serves a specific purpose in the CUI ecosystem
 ```
 - **Runtime**: Node.js v20+ with TypeScript
 - **Web Framework**: Express.js (for familiarity) or Fastify (for performance)
@@ -25,7 +25,7 @@
 ```
 ```
 ┌─────────────────┐     ┌────────────────┐     ┌───────────────┐
-│   Frontend      │────▶│  CCUI Backend  │────▶│  Claude CLI   │
+│   Frontend      │────▶│  CUI Backend  │────▶│  Claude CLI   │
 │   (Browser)     │◀────│    Server      │◀────│   Process     │
 └─────────────────┘     └────────────────┘     └───────────────┘
          │                       │                      │
@@ -221,7 +221,7 @@ Response: Newline-delimited JSON stream (not SSE!)
 Format: Each line is a complete JSON object
 
 # Example stream:
-{"type":"system","subtype":"init","cwd":"/home/user/project","session_id":"abc123","tools":["bash","read_file"],"mcp_servers":[{"name":"ccui","status":"connected"}],"model":"claude-3-5-sonnet-20241022","permissionMode":"ask","apiKeySource":"environment"}
+{"type":"system","subtype":"init","cwd":"/home/user/project","session_id":"abc123","tools":["bash","read_file"],"mcp_servers":[{"name":"cui","status":"connected"}],"model":"claude-3-5-sonnet-20241022","permissionMode":"ask","apiKeySource":"environment"}
 {"type":"assistant","message":{"id":"msg_123","content":[{"type":"text","text":"Hello! How can I help you?"}],"model":"claude-3-5-sonnet-20241022","role":"assistant","stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":12}},"session_id":"abc123"}
 {"type":"user","message":{"role":"user","content":"List files in the current directory"},"session_id":"abc123"}
 {"type":"result","subtype":"success","cost_usd":0.003,"is_error":false,"duration_ms":1500,"duration_api_ms":800,"num_turns":2,"result":"Conversation completed successfully","total_cost":0.003,"usage":{"input_tokens":45,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":25,"server_tool_use":{"web_search_requests":0}},"session_id":"abc123"}
@@ -305,7 +305,7 @@ class ClaudeProcessManager {
     const args = [
       '-p',                      # Print mode - required for programmatic use
       '--output-format', 'stream-json',  # JSONL output format
-      '--permission-prompt-tool', 'mcp__ccui__permission_prompt'  # Our MCP tool name
+      '--permission-prompt-tool', 'mcp__cui__permission_prompt'  # Our MCP tool name
     ];
     
     # Add optional configuration flags
@@ -548,7 +548,7 @@ class ClaudeHistoryReader {
 # Model Context Protocol server that handles permission requests
 # This runs as a separate process and communicates with Claude
 
-class CCUIMCPServer {
+class CUIMCPServer {
   # MCP server instance
   private server: McpServer;
   
@@ -561,7 +561,7 @@ class CCUIMCPServer {
   constructor() {
     # Initialize MCP server with metadata
     this.server = new McpServer({
-      name: "ccui-permissions",
+      name: "cui-permissions",
       version: "1.0.0"
     });
     
@@ -663,15 +663,15 @@ class CCUIMCPServer {
 ### F. Main Server Implementation
 ```typescript
 # Main Express server that ties everything together
-# This is the entry point for the CCUI backend
+# This is the entry point for the CUI backend
 
-class CCUIServer {
+class CUIServer {
   # Core components
   private app: Express;
   private processManager: ClaudeProcessManager;
   private historyReader: ClaudeHistoryReader;
   private streamManager: StreamManager;
-  private mcpServer: CCUIMCPServer;
+  private mcpServer: CUIMCPServer;
   
   constructor() {
     this.app = express();
@@ -789,11 +789,11 @@ class CCUIServer {
 # Place in project root and reference in CLI args
 {
   "mcpServers": {
-    "ccui": {
+    "cui": {
       "command": "node",                    # How to run the MCP server
       "args": ["./mcp-server/index.js"],    # Path to MCP server script
       "env": {
-        "CCUI_API_URL": "http://localhost:3001"  # Backend URL for MCP to call
+        "CUI_API_URL": "http://localhost:3001"  # Backend URL for MCP to call
       }
     }
   }
@@ -803,7 +803,7 @@ class CCUIServer {
 ### Environment Variables
 ```
 # Required environment configuration
-PORT=3001                           # Port for CCUI backend server
+PORT=3001                           # Port for CUI backend server
 CLAUDE_HOME_PATH=~/.claude          # Path to Claude data directory
 MCP_CONFIG_PATH=./mcp-config.json   # Path to MCP configuration
 LOG_LEVEL=info                      # Logging verbosity

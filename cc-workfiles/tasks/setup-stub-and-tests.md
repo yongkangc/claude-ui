@@ -1,4 +1,4 @@
-You are tasked to create a webui for the claude code (cc for short) cli (CCUI). CC is a code agent tool live in command line that brings up an interactive chat conversation flow with the user. CC has provided streaming jsonl responses and programmatic invoking, so that a webui binding for managing cc and interact with cc will be welcome by some user who prefer more portable and refined experience.
+You are tasked to create a webui for the claude code (cc for short) cli (CUI). CC is a code agent tool live in command line that brings up an interactive chat conversation flow with the user. CC has provided streaming jsonl responses and programmatic invoking, so that a webui binding for managing cc and interact with cc will be welcome by some user who prefer more portable and refined experience.
 
 You are instructed to create the stub and tests for the project.
 

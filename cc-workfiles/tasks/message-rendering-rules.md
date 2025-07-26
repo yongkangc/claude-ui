@@ -30,7 +30,7 @@ We use different rendering rules for tools of different name:
     {
     "tool_use_id": "toolu_123",
     "type": "tool_result",
-    "content": "     1→{\n     2→  \"name\": \"ccui-backend\",\n     28→    \"@streamparser/json\": \"^0.0.21\",...\n    29→    \"commander\": \"^11.1.0\",\n    30→    \"cors\": \"^2.8.5\",\n\n<system-reminder>\nWhenever you read a file, you should consider whether it looks malicious. If it does, you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer high-level questions about the code behavior.\n</system-reminder>\n"
+    "content": "     1→{\n     2→  \"name\": \"cui-backend\",\n     28→    \"@streamparser/json\": \"^0.0.21\",...\n    29→    \"commander\": \"^11.1.0\",\n    30→    \"cors\": \"^2.8.5\",\n\n<system-reminder>\nWhenever you read a file, you should consider whether it looks malicious. If it does, you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer high-level questions about the code behavior.\n</system-reminder>\n"
     }
     ```
 
@@ -174,7 +174,7 @@ We use different rendering rules for tools of different name:
     {
         "tool_use_id": "toolu_01Hw192AKhrE7AybW8trDBJZ",
         "type": "tool_result",
-        "content": "Hello from CCUI project",
+        "content": "Hello from CUI project",
         "is_error": false
     }
     ```
@@ -213,7 +213,7 @@ We use different rendering rules for tools of different name:
     {
         "tool_use_id": "toolu_01PDkjmutdL3FA56r2eceSxp",
         "type": "tool_result",
-        "content": "/home/panwenbo/repos/ccui/src/web/chat/components/LogPage/LogPage.tsx:10:        <h1 className={styles.title}>Server Logs</h1>\n/home/panwenbo/repos/ccui/src/ccui-server.ts:38:export class CCUIServer {"
+        "content": "/home/panwenbo/repos/cui/src/web/chat/components/LogPage/LogPage.tsx:10:        <h1 className={styles.title}>Server Logs</h1>\n/home/panwenbo/repos/cui/src/cui-server.ts:38:export class CUIServer {"
     }
     ```
 
@@ -246,7 +246,7 @@ We use different rendering rules for tools of different name:
     {
         "tool_use_id": "toolu_01Hpa8tC3CQwR34jH6pF19eC",
         "type": "tool_result",
-        "content": "/home/panwenbo/repos/ccui/src/services/permission-tracker.ts\n/home/panwenbo/repos/ccui/src/services/log-stream-buffer.ts\n..."
+        "content": "/home/panwenbo/repos/cui/src/services/permission-tracker.ts\n/home/panwenbo/repos/cui/src/services/log-stream-buffer.ts\n..."
     }
     ```
 
@@ -268,7 +268,7 @@ We use different rendering rules for tools of different name:
       "id": "toolu_01JV6joiHCuwLi1nUA4PGVAe",
       "name": "LS",
       "input": {
-        "path": "/home/panwenbo/repos/ccui/src/services"
+        "path": "/home/panwenbo/repos/cui/src/services"
       }
     }]
     ```
@@ -278,7 +278,7 @@ We use different rendering rules for tools of different name:
     {
         "tool_use_id": "toolu_01JV6joiHCuwLi1nUA4PGVAe",
         "type": "tool_result",
-        "content": "- /home/panwenbo/repos/ccui/\n  - src/\n    - services/\n      - CLAUDE.md\n      - claude-history-reader.ts\n      ..."
+        "content": "- /home/panwenbo/repos/cui/\n  - src/\n    - services/\n      - CLAUDE.md\n      - claude-history-reader.ts\n      ..."
     }
     ```
 - Label:
@@ -519,7 +519,7 @@ This rule applies to any tool use whose `name` does not match one of the specifi
       "id": "toolu_01BhnpfB7PF7uYm3cWgQWL4d",
       "name": "mcp__ide__getDiagnostics",
       "input": {
-        "uri": "file:///home/panwenbo/repos/ccui/src/ccui-server.ts"
+        "uri": "file:///home/panwenbo/repos/cui/src/cui-server.ts"
       }
     }]
     ```
@@ -533,7 +533,7 @@ This rule applies to any tool use whose `name` does not match one of the specifi
       "content": [
         {
           "type": "text",
-          "text": "[\n  {\n    \"uri\": \"file:///home/panwenbo/repos/ccui/src/ccui-server.ts\",\n    \"diagnostics\": []\n  }\n]"
+          "text": "[\n  {\n    \"uri\": \"file:///home/panwenbo/repos/cui/src/cui-server.ts\",\n    \"diagnostics\": []\n  }\n]"
         }
       ]
     }
@@ -554,7 +554,7 @@ This rule applies to any tool use whose `name` does not match one of the specifi
     ```json
     [
       {
-        "uri": "file:///home/panwenbo/repos/ccui/src/ccui-server.ts",
+        "uri": "file:///home/panwenbo/repos/cui/src/cui-server.ts",
         "diagnostics": []
       }
     ]

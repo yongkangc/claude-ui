@@ -1,4 +1,4 @@
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ConversationConfig } from '@/types';
 import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import * as path from 'path';
@@ -15,7 +15,7 @@ function getMockClaudeExecutablePath(): string {
  * Tests: Server -> ProcessManager -> Mock Claude CLI -> StreamManager -> SSE Client
  */
 describe('Streaming Integration', () => {
-  let server: CCUIServer;
+  let server: CUIServer;
   let serverPort: number;
   let baseUrl: string;
 
@@ -25,7 +25,7 @@ describe('Streaming Integration', () => {
     baseUrl = `http://localhost:${serverPort}`;
     
     // Create server
-    server = new CCUIServer({ port: serverPort });
+    server = new CUIServer({ port: serverPort });
     
     // Override the ProcessManager with one that uses mock Claude path
     const mockClaudePath = getMockClaudeExecutablePath();

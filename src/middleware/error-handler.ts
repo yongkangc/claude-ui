@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { CCUIError } from '@/types';
+import { CUIError } from '@/types';
 import { createLogger } from '@/services/logger';
 
 const logger = createLogger('ErrorHandler');
@@ -7,8 +7,8 @@ const logger = createLogger('ErrorHandler');
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   const requestId = (req as any).requestId || 'unknown';
   
-  if (err instanceof CCUIError) {
-    logger.warn('CCUIError in request', {
+  if (err instanceof CUIError) {
+    logger.warn('CUIError in request', {
       requestId,
       code: err.code,
       message: err.message,

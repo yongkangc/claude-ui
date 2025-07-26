@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CCUIError, SystemInitMessage, StreamEvent } from '@/types';
+import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
@@ -86,7 +86,7 @@ export class ClaudeProcessManager extends EventEmitter {
       const fetchedWorkingDirectory = await this.historyReader.getConversationWorkingDirectory(config.resumedSessionId);
       
       if (!fetchedWorkingDirectory) {
-        throw new CCUIError(
+        throw new CUIError(
           'CONVERSATION_NOT_FOUND',
           `Could not find working directory for session ${config.resumedSessionId}`,
           404
@@ -231,7 +231,7 @@ export class ClaudeProcessManager extends EventEmitter {
             errorMessage += `. Error output: ${stderrOutput}`;
           }
           
-          reject(new CCUIError('SYSTEM_INIT_TIMEOUT', errorMessage, 500));
+          reject(new CUIError('SYSTEM_INIT_TIMEOUT', errorMessage, 500));
         }
       }, 60000);
       
@@ -278,7 +278,7 @@ export class ClaudeProcessManager extends EventEmitter {
           errorMessage += `. Exit code: ${code}`;
         }
 
-        reject(new CCUIError('CLAUDE_PROCESS_EXITED_EARLY', errorMessage, 500));
+        reject(new CUIError('CLAUDE_PROCESS_EXITED_EARLY', errorMessage, 500));
       };
 
       // Listen for process errors (including stderr output)
@@ -325,7 +325,7 @@ export class ClaudeProcessManager extends EventEmitter {
             expectedType: 'system',
             expectedSubtype: 'init'
           });
-          reject(new CCUIError('INVALID_SYSTEM_INIT', `Expected system init message as first message, but got: ${message?.type}/${'subtype' in message ? message.subtype : 'undefined'}`, 500));
+          reject(new CUIError('INVALID_SYSTEM_INIT', `Expected system init message as first message, but got: ${message?.type}/${'subtype' in message ? message.subtype : 'undefined'}`, 500));
           return;
         }
 
@@ -342,7 +342,7 @@ export class ClaudeProcessManager extends EventEmitter {
             missingFields,
             availableFields: Object.keys(systemInitMessage)
           });
-          reject(new CCUIError('INCOMPLETE_SYSTEM_INIT', `System init message missing required fields: ${missingFields.join(', ')}`, 500));
+          reject(new CUIError('INCOMPLETE_SYSTEM_INIT', `System init message missing required fields: ${missingFields.join(', ')}`, 500));
           return;
         }
 
@@ -409,7 +409,7 @@ export class ClaudeProcessManager extends EventEmitter {
     errorCode: string,
     errorPrefix: string
   ): Promise<{streamingId: string; systemInit: SystemInitMessage}> {
-    const streamingId = uuidv4(); // CCUI's internal streaming identifier
+    const streamingId = uuidv4(); // CUI's internal streaming identifier
     
     // Store config for use in waitForSystemInit
     this.conversationConfigs.set(streamingId, config);
@@ -440,7 +440,7 @@ export class ClaudeProcessManager extends EventEmitter {
       
       const envWithStreamingId = {
         ...cleanEnv,
-        CCUI_STREAMING_ID: streamingId,
+        CUI_STREAMING_ID: streamingId,
         PWD: spawnConfig.cwd,
         INIT_CWD: spawnConfig.cwd
       };
@@ -517,7 +517,7 @@ export class ClaudeProcessManager extends EventEmitter {
         streamingId,
         errorName: error instanceof Error ? error.name : 'Unknown',
         errorMessage: error instanceof Error ? error.message : String(error),
-        errorCode: error instanceof CCUIError ? error.code : undefined,
+        errorCode: error instanceof CUIError ? error.code : undefined,
         ...loggerContext
       });
       
@@ -531,10 +531,10 @@ export class ClaudeProcessManager extends EventEmitter {
       this.outputBuffers.delete(streamingId);
       this.conversationConfigs.delete(streamingId);
       
-      if (error instanceof CCUIError) {
+      if (error instanceof CUIError) {
         throw error;
       }
-      throw new CCUIError(errorCode, `${errorPrefix}: ${error}`, 500);
+      throw new CUIError(errorCode, `${errorPrefix}: ${error}`, 500);
     }
   }
 
@@ -567,9 +567,9 @@ export class ClaudeProcessManager extends EventEmitter {
     if (this.mcpConfigPath) {
       args.push('--mcp-config', this.mcpConfigPath);
       // Add the permission prompt tool flag
-      args.push('--permission-prompt-tool', 'mcp__ccui-permissions__approval_prompt');
+      args.push('--permission-prompt-tool', 'mcp__cui-permissions__approval_prompt');
       // Allow the MCP permission tool
-      args.push('--allowedTools', 'mcp__ccui-permissions__approval_prompt');
+      args.push('--allowedTools', 'mcp__cui-permissions__approval_prompt');
     }
 
     this.logger.debug('Built Claude resume args', { args, hasMCPConfig: !!this.mcpConfigPath });
@@ -629,11 +629,11 @@ export class ClaudeProcessManager extends EventEmitter {
     if (this.mcpConfigPath) {
       args.push('--mcp-config', this.mcpConfigPath);
       // Add the permission prompt tool flag
-      args.push('--permission-prompt-tool', 'mcp__ccui-permissions__approval_prompt');
+      args.push('--permission-prompt-tool', 'mcp__cui-permissions__approval_prompt');
       // Allow the MCP permission tool
       const currentAllowedTools = config.allowedTools || [];
-      if (!currentAllowedTools.includes('mcp__ccui-permissions__approval_prompt')) {
-        args.push('--allowedTools', 'mcp__ccui-permissions__approval_prompt');
+      if (!currentAllowedTools.includes('mcp__cui-permissions__approval_prompt')) {
+        args.push('--allowedTools', 'mcp__cui-permissions__approval_prompt');
       }
     }
 
@@ -728,9 +728,9 @@ export class ClaudeProcessManager extends EventEmitter {
             attemptedPath: executablePath,
             PATH: env.PATH
           });
-          this.emit('spawn-error', new CCUIError('CLAUDE_NOT_FOUND', 'Claude CLI not found. Please ensure Claude is installed and in PATH.', 500));
+          this.emit('spawn-error', new CUIError('CLAUDE_NOT_FOUND', 'Claude CLI not found. Please ensure Claude is installed and in PATH.', 500));
         } else {
-          this.emit('spawn-error', new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error.message}`, 500));
+          this.emit('spawn-error', new CUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error.message}`, 500));
         }
       });
       
@@ -753,10 +753,10 @@ export class ClaudeProcessManager extends EventEmitter {
       return claudeProcess;
     } catch (error) {
       this.logger.error('Error in spawnProcess', error, { streamingId });
-      if (error instanceof CCUIError) {
+      if (error instanceof CUIError) {
         throw error;
       }
-      throw new CCUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error}`, 500);
+      throw new CUIError('PROCESS_SPAWN_FAILED', `Failed to spawn Claude process: ${error}`, 500);
     }
   }
 

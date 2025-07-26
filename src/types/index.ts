@@ -1,4 +1,4 @@
-// Core types and interfaces for CCUI backend
+// Core types and interfaces for CUI backend
 import Anthropic from '@anthropic-ai/sdk';
 
 // Tool metrics types
@@ -21,7 +21,7 @@ export interface ConversationSummary {
   totalDuration: number;
   model: string;
   status: 'completed' | 'ongoing' | 'pending'; // Conversation status based on active streams
-  streamingId?: string; // CCUI's internal streaming ID (only present when status is 'ongoing')
+  streamingId?: string; // CUI's internal streaming ID (only present when status is 'ongoing')
   toolMetrics?: ToolMetrics; // Optional tool usage metrics
 }
 
@@ -90,7 +90,7 @@ export interface ResultStreamMessage extends StreamMessage {
 // Permission types
 export interface PermissionRequest {
   id: string;
-  streamingId: string; // CCUI's internal streaming identifier
+  streamingId: string; // CUI's internal streaming identifier
   toolName: string;
   toolInput: Record<string, any>;
   timestamp: string;
@@ -126,7 +126,7 @@ export interface StartConversationRequest {
 
 
 export interface StartConversationResponse {
-  streamingId: string; // CCUI's internal streaming identifier for managing streaming connections
+  streamingId: string; // CUI's internal streaming identifier for managing streaming connections
   streamUrl: string;
   // System init fields from Claude CLI
   sessionId: string; // Claude CLI's session ID
@@ -191,10 +191,10 @@ export type StreamEvent =
   | ResultStreamMessage;
 
 // Error types
-export class CCUIError extends Error {
+export class CUIError extends Error {
   constructor(public code: string, message: string, public statusCode: number = 500) {
     super(message);
-    this.name = 'CCUIError';
+    this.name = 'CUIError';
   }
 }
 

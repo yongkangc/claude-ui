@@ -1,5 +1,5 @@
 /**
- * Configuration types for CCUI
+ * Configuration types for CUI
  */
 
 export interface ServerConfig {
@@ -7,7 +7,7 @@ export interface ServerConfig {
   port: number;
 }
 
-export interface CCUIConfig {
+export interface CUIConfig {
   /**
    * Unique machine identifier
    * Format: {hostname}-{8char_hash}
@@ -25,7 +25,7 @@ export interface CCUIConfig {
 /**
  * Default configuration values
  */
-export const DEFAULT_CONFIG: Omit<CCUIConfig, 'machine_id'> = {
+export const DEFAULT_CONFIG: Omit<CUIConfig, 'machine_id'> = {
   server: {
     host: 'localhost',
     port: 3001

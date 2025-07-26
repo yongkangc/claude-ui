@@ -13,10 +13,10 @@ export interface LogContext {
  * Wrapper class for Pino logger that provides an intuitive API
  * Translates logger.method('message', context) to Pino's logger.method(context, 'message')
  */
-// Re-export CCUILogger as Logger for backward compatibility
-export type Logger = CCUILogger;
+// Re-export CUILogger as Logger for backward compatibility
+export type Logger = CUILogger;
 
-export class CCUILogger {
+export class CUILogger {
   constructor(private pinoLogger: PinoLogger) {}
 
   debug(message: string, context?: any): void {
@@ -76,14 +76,14 @@ export class CCUILogger {
   }
 
   // Support for creating child loggers
-  child(context: LogContext): CCUILogger {
-    return new CCUILogger(this.pinoLogger.child(context));
+  child(context: LogContext): CUILogger {
+    return new CUILogger(this.pinoLogger.child(context));
   }
 }
 
 /**
  * Centralized logger service using Pino
- * Provides consistent logging across all CCUI components
+ * Provides consistent logging across all CUI components
  * Log level is controlled by LOG_LEVEL environment variable
  */
 class LoggerService {
@@ -145,19 +145,19 @@ class LoggerService {
   /**
    * Create a child logger with context
    */
-  child(context: LogContext): CCUILogger {
+  child(context: LogContext): CUILogger {
     const contextKey = JSON.stringify(context);
     if (!this.childLoggers.has(contextKey)) {
       this.childLoggers.set(contextKey, this.baseLogger.child(context));
     }
-    return new CCUILogger(this.childLoggers.get(contextKey)!);
+    return new CUILogger(this.childLoggers.get(contextKey)!);
   }
 
   /**
    * Get the base logger
    */
-  getLogger(): CCUILogger {
-    return new CCUILogger(this.baseLogger);
+  getLogger(): CUILogger {
+    return new CUILogger(this.baseLogger);
   }
 
   /**
@@ -222,7 +222,7 @@ class LoggerService {
 export const logger = LoggerService.getInstance();
 
 // Export factory function for creating component loggers
-export function createLogger(component: string, baseContext?: LogContext): CCUILogger {
+export function createLogger(component: string, baseContext?: LogContext): CUILogger {
   const context = { component, ...baseContext };
   return logger.child(context);
 }

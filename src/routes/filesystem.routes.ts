@@ -1,6 +1,6 @@
 import { Router, Request } from 'express';
 import { 
-  CCUIError,
+  CUIError,
   FileSystemListQuery,
   FileSystemListResponse,
   FileSystemReadQuery,
@@ -28,7 +28,7 @@ export function createFileSystemRoutes(
     try {
       // Validate required parameters
       if (!req.query.path) {
-        throw new CCUIError('MISSING_PATH', 'path query parameter is required', 400);
+        throw new CUIError('MISSING_PATH', 'path query parameter is required', 400);
       }
       
       const result = await fileSystemService.listDirectory(
@@ -65,7 +65,7 @@ export function createFileSystemRoutes(
     try {
       // Validate required parameters
       if (!req.query.path) {
-        throw new CCUIError('MISSING_PATH', 'path query parameter is required', 400);
+        throw new CUIError('MISSING_PATH', 'path query parameter is required', 400);
       }
       
       const result = await fileSystemService.readFile(req.query.path);

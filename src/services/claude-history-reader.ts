@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { ConversationSummary, ConversationMessage, ConversationListQuery, CCUIError } from '@/types';
+import { ConversationSummary, ConversationMessage, ConversationListQuery, CUIError } from '@/types';
 import { createLogger, type Logger } from './logger';
 import { SessionInfoService } from './session-info-service';
 import { ConversationCache, ConversationChain } from './conversation-cache';
@@ -119,7 +119,7 @@ export class ClaudeHistoryReader {
         total: filtered.length
       };
     } catch (error) {
-      throw new CCUIError('HISTORY_READ_FAILED', `Failed to read conversation history: ${error}`, 500);
+      throw new CUIError('HISTORY_READ_FAILED', `Failed to read conversation history: ${error}`, 500);
     }
   }
 
@@ -132,13 +132,13 @@ export class ClaudeHistoryReader {
       const conversation = conversationChains.find(chain => chain.sessionId === sessionId);
       
       if (!conversation) {
-        throw new CCUIError('CONVERSATION_NOT_FOUND', `Conversation ${sessionId} not found`, 404);
+        throw new CUIError('CONVERSATION_NOT_FOUND', `Conversation ${sessionId} not found`, 404);
       }
       
       return conversation.messages;
     } catch (error) {
-      if (error instanceof CCUIError) throw error;
-      throw new CCUIError('CONVERSATION_READ_FAILED', `Failed to read conversation: ${error}`, 500);
+      if (error instanceof CUIError) throw error;
+      throw new CUIError('CONVERSATION_READ_FAILED', `Failed to read conversation: ${error}`, 500);
     }
   }
 

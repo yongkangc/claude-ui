@@ -1331,7 +1331,7 @@ index 9423542acb603c677da93025fdb149d8ac67ffe0..eda35a222396f277cf37bcd3a8fce4b8
     * Separated to allow re-initialization during testing
     */
    private initializePaths(): void {
-     this.configDir = path.join(os.homedir(), '.ccui');
+     this.configDir = path.join(os.homedir(), '.cui');
      this.dbPath = path.join(this.configDir, 'session-info.json');
      
      this.logger.debug('Initializing paths', { 
@@ -1945,7 +1945,7 @@ index fd93144f3841992dcef3259976a7280895712ca5..c1bedc47bc4bf31f4e0a29a7027cfee6
  
    beforeEach(() => {
      PreferencesService.resetInstance();
-     const ccuiDir = path.join(testDir, '.ccui');
+     const ccuiDir = path.join(testDir, '.cui');
      if (fs.existsSync(ccuiDir)) {
        fs.rmSync(ccuiDir, { recursive: true, force: true });
      }
@@ -1955,7 +1955,7 @@ index fd93144f3841992dcef3259976a7280895712ca5..c1bedc47bc4bf31f4e0a29a7027cfee6
      const service = PreferencesService.getInstance();
      await service.initialize();
      await service.updatePreferences({ colorScheme: 'dark' });
-     const dbPath = path.join(testDir, '.ccui', 'preferences.json');
+     const dbPath = path.join(testDir, '.cui', 'preferences.json');
      expect(fs.existsSync(dbPath)).toBe(true);
      const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
      expect(data.preferences.colorScheme).toBe('dark');
@@ -1986,7 +1986,7 @@ index 8b903f7ba56d967136ebf423aa722ce8146e8184..ed13b1d1851ac8b645b9b1c48a249a36
 @@ -60,51 +60,51 @@ describe('SessionInfoService', () => {
      it('should create config directory if it does not exist', async () => {
        const service = SessionInfoService.getInstance();
-       const ccuiDir = path.join(testConfigDir, '.ccui');
+       const ccuiDir = path.join(testConfigDir, '.cui');
        
        expect(fs.existsSync(ccuiDir)).toBe(false);
        
@@ -2003,7 +2003,7 @@ index 8b903f7ba56d967136ebf423aa722ce8146e8184..ed13b1d1851ac8b645b9b1c48a249a36
        // Trigger a write to create the file
        await service.updateCustomName('test-session', 'Test Name');
        
-       const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+       const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
        const dbContent = fs.readFileSync(dbPath, 'utf-8');
        const dbData: SessionInfoDatabase = JSON.parse(dbContent);
        

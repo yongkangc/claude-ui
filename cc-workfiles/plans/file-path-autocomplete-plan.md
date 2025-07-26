@@ -1,7 +1,7 @@
 # File Path Autocomplete Implementation Plan
 
 ## Context
-This plan implements a file path autocomplete system for the Composer component in CCUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
+This plan implements a file path autocomplete system for the Composer component in CUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
 
 ## Expected Behavior
 1. **Trigger**: When "@" is typed, dropdown appears immediately
@@ -321,7 +321,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CCUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
+CUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
 - TypeScript Express backend that manages Claude CLI processes
 - React frontend with TUI-inspired design
 - Single-port architecture using vite-express (port 3001)
@@ -360,7 +360,7 @@ npx jest -t "test name"                                    # Run test by name pa
 - **ClaudeProcessManager**: Spawns and manages Claude CLI processes
 - **StreamManager**: Handles HTTP streaming connections for real-time updates
 - **ClaudeHistoryReader**: Reads conversation history from ~/.claude directory
-- **CCUIMCPServer**: MCP server for handling tool permission requests
+- **CUIMCPServer**: MCP server for handling tool permission requests
 - **SessionInfoService**: Manages extended session metadata (pinning, archiving, continuation sessions, git HEAD tracking)
 
 ### Frontend (`src/web/`)
@@ -403,7 +403,7 @@ npx jest -t "test name"                                    # Run test by name pa
 
 - Enable debug logs: `LOG_LEVEL=debug npm run dev`
 - Test logs are silenced by default, use `npm run test:debug` for verbose output
-- Check `~/.ccui/config.json` for server configuration
+- Check `~/.cui/config.json` for server configuration
 - MCP configuration is in `config/mcp-config.json`
 
 ## Session Information
@@ -428,4 +428,4 @@ Sessions are automatically migrated to include these fields when the schema vers
 ## Development Gotchas
 
 - Do not run npm run dev to verify frontend update
-- Before running test for the first time, run `npm run build` to build the backend and frontend, especially it build the mcp executable. Other wise the test will fail with Error: MCP tool mcp__ccui-permissions__approval_prompt (passed via --permission-prompt-tool) not found.
+- Before running test for the first time, run `npm run build` to build the backend and frontend, especially it build the mcp executable. Other wise the test will fail with Error: MCP tool mcp__cui-permissions__approval_prompt (passed via --permission-prompt-tool) not found.

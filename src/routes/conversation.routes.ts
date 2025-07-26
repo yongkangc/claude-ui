@@ -4,7 +4,7 @@ import {
   StartConversationResponse,
   ConversationListQuery,
   ConversationDetailsResponse,
-  CCUIError,
+  CUIError,
   SessionRenameRequest,
   SessionRenameResponse,
   SessionUpdateRequest,
@@ -48,17 +48,17 @@ export function createConversationRoutes(
     try {
       // Validate required fields
       if (!req.body.workingDirectory) {
-        throw new CCUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
+        throw new CUIError('MISSING_WORKING_DIRECTORY', 'workingDirectory is required', 400);
       }
       if (!req.body.initialPrompt) {
-        throw new CCUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
+        throw new CUIError('MISSING_INITIAL_PROMPT', 'initialPrompt is required', 400);
       }
       
       // Validate permissionMode if provided
       if (req.body.permissionMode) {
         const validModes = ['acceptEdits', 'bypassPermissions', 'default', 'plan'];
         if (!validModes.includes(req.body.permissionMode)) {
-          throw new CCUIError('INVALID_PERMISSION_MODE', `permissionMode must be one of: ${validModes.join(', ')}`, 400);
+          throw new CUIError('INVALID_PERMISSION_MODE', `permissionMode must be one of: ${validModes.join(', ')}`, 400);
         }
       }
       
@@ -291,7 +291,7 @@ export function createConversationRoutes(
         const metadata = await historyReader.getConversationMetadata(req.params.sessionId);
         
         if (!metadata) {
-          throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
+          throw new CUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
         }
         
         const response: ConversationDetailsResponse = {
@@ -321,7 +321,7 @@ export function createConversationRoutes(
         res.json(response);
       } catch (historyError) {
         // If not found in history, check if it's an active session
-        if (historyError instanceof CCUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
+        if (historyError instanceof CUIError && historyError.code === 'CONVERSATION_NOT_FOUND') {
           const activeDetails = conversationStatusManager.getActiveConversationDetails(sessionId);
           
           if (activeDetails) {
@@ -396,21 +396,21 @@ export function createConversationRoutes(
     try {
       // Validate required fields
       if (!sessionId || !sessionId.trim()) {
-        throw new CCUIError('MISSING_SESSION_ID', 'sessionId is required', 400);
+        throw new CUIError('MISSING_SESSION_ID', 'sessionId is required', 400);
       }
       if (customName === undefined || customName === null) {
-        throw new CCUIError('MISSING_CUSTOM_NAME', 'customName is required', 400);
+        throw new CUIError('MISSING_CUSTOM_NAME', 'customName is required', 400);
       }
       
       // Validate custom name length (reasonable limit)
       if (customName.length > 200) {
-        throw new CCUIError('CUSTOM_NAME_TOO_LONG', 'customName must be 200 characters or less', 400);
+        throw new CUIError('CUSTOM_NAME_TOO_LONG', 'customName must be 200 characters or less', 400);
       }
       
       // Check if session exists by trying to get its metadata
       const metadata = await historyReader.getConversationMetadata(sessionId);
       if (!metadata) {
-        throw new CCUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
+        throw new CUIError('CONVERSATION_NOT_FOUND', 'Conversation not found', 404);
       }
       
       // Update custom name

@@ -2,7 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import { createPermissionRoutes } from '@/routes/permission.routes';
 import { PermissionTracker } from '@/services/permission-tracker';
-import { CCUIError } from '@/types';
+import { CUIError } from '@/types';
 
 jest.mock('@/services/logger');
 

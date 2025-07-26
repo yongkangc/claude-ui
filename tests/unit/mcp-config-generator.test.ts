@@ -29,17 +29,17 @@ describe('MCPConfigGenerator', () => {
 
       // Verify structure
       expect(config).toHaveProperty('mcpServers');
-      expect(config.mcpServers).toHaveProperty('ccui-permissions');
+      expect(config.mcpServers).toHaveProperty('cui-permissions');
       
-      const serverConfig = config.mcpServers['ccui-permissions'];
+      const serverConfig = config.mcpServers['cui-permissions'];
       expect(serverConfig.command).toBe('node');
       expect(serverConfig.args).toHaveLength(1);
       expect(serverConfig.args[0]).toContain('mcp-server/index.js');
       
       // Check environment variables
       expect(serverConfig.env).toEqual({
-        CCUI_SERVER_URL: `http://localhost:${port}`,
-        CCUI_SERVER_PORT: String(port),
+        CUI_SERVER_URL: `http://localhost:${port}`,
+        CUI_SERVER_PORT: String(port),
         LOG_LEVEL: expect.any(String)
       });
     });
@@ -65,8 +65,8 @@ describe('MCPConfigGenerator', () => {
       const configContent = readFileSync(configPath, 'utf-8');
       const config = JSON.parse(configContent);
 
-      expect(config.mcpServers['ccui-permissions'].env.CCUI_SERVER_URL).toBe(`http://localhost:${port}`);
-      expect(config.mcpServers['ccui-permissions'].env.CCUI_SERVER_PORT).toBe('4567');
+      expect(config.mcpServers['cui-permissions'].env.CUI_SERVER_URL).toBe(`http://localhost:${port}`);
+      expect(config.mcpServers['cui-permissions'].env.CUI_SERVER_PORT).toBe('4567');
     });
   });
 

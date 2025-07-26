@@ -1,10 +1,10 @@
-# CCUI API Documentation
+# CUI API Documentation
 
 ## Server Configuration
 
 ### Command Line Options
 
-The CCUI server supports the following command-line options:
+The CUI server supports the following command-line options:
 
 ```bash
 # Start on a custom port
@@ -23,16 +23,16 @@ You can also configure the server using environment variables:
 
 ```bash
 # Set custom port
-CCUI_PORT=3002 npm run dev
+CUI_PORT=3002 npm run dev
 
 # Set custom host
-CCUI_HOST=0.0.0.0 npm run dev
+CUI_HOST=0.0.0.0 npm run dev
 
 # Both
-CCUI_HOST=0.0.0.0 CCUI_PORT=3002 npm run dev
+CUI_HOST=0.0.0.0 CUI_PORT=3002 npm run dev
 ```
 
-Note: Command-line arguments take precedence over environment variables, and both take precedence over the configuration file (`~/.ccui/config.json`).
+Note: Command-line arguments take precedence over environment variables, and both take precedence over the configuration file (`~/.cui/config.json`).
 
 ## Conversation Endpoints
 
@@ -70,7 +70,7 @@ interface StartConversationRequest {
 
 ```typescript
 interface StartConversationResponse {
-  streamingId: string;          // CCUI's internal streaming identifier
+  streamingId: string;          // CUI's internal streaming identifier
   streamUrl: string;            // URL for streaming updates
   sessionId: string;            // Claude CLI's session ID
   cwd: string;                  // Working directory

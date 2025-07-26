@@ -243,7 +243,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   onFetchCommands,
 }: ComposerProps, ref: React.Ref<ComposerRef>) {
   // Load cached state
-  const [cachedState, setCachedState] = useLocalStorage<ComposerCache>('ccui-composer', {
+  const [cachedState, setCachedState] = useLocalStorage<ComposerCache>('cui-composer', {
     selectedPermissionMode: 'default',
     draft: '',
   });

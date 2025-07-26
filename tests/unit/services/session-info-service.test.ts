@@ -10,7 +10,7 @@ describe('SessionInfoService', () => {
 
   beforeAll(() => {
     // Create temporary config directory for tests
-    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccui-session-test-'));
+    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cui-session-test-'));
     
     // Mock the home directory to use our test directory
     originalHome = os.homedir();
@@ -29,9 +29,9 @@ describe('SessionInfoService', () => {
 
   beforeEach(() => {
     // Clear any existing config directory
-    const ccuiDir = path.join(testConfigDir, '.ccui');
-    if (fs.existsSync(ccuiDir)) {
-      fs.rmSync(ccuiDir, { recursive: true, force: true });
+    const cuiDir = path.join(testConfigDir, '.cui');
+    if (fs.existsSync(cuiDir)) {
+      fs.rmSync(cuiDir, { recursive: true, force: true });
     }
     
     // Reset SessionInfoService singleton
@@ -43,29 +43,29 @@ describe('SessionInfoService', () => {
       const service = SessionInfoService.getInstance();
       
       // Config directory should not exist initially
-      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(false);
+      expect(fs.existsSync(path.join(testConfigDir, '.cui'))).toBe(false);
       
       await service.initialize();
       
       // Config directory should be created
-      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(true);
+      expect(fs.existsSync(path.join(testConfigDir, '.cui'))).toBe(true);
       
       // File should be created when there's a write operation
       await service.updateCustomName('test-session', 'Test Name');
       
-      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
       expect(fs.existsSync(dbPath)).toBe(true);
     });
 
     it('should create config directory if it does not exist', async () => {
       const service = SessionInfoService.getInstance();
-      const ccuiDir = path.join(testConfigDir, '.ccui');
+      const cuiDir = path.join(testConfigDir, '.cui');
       
-      expect(fs.existsSync(ccuiDir)).toBe(false);
+      expect(fs.existsSync(cuiDir)).toBe(false);
       
       await service.initialize();
       
-      expect(fs.existsSync(ccuiDir)).toBe(true);
+      expect(fs.existsSync(cuiDir)).toBe(true);
     });
 
     it('should initialize with default database structure', async () => {
@@ -76,7 +76,7 @@ describe('SessionInfoService', () => {
       // Trigger a write to create the file
       await service.updateCustomName('test-session', 'Test Name');
       
-      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
       const dbContent = fs.readFileSync(dbPath, 'utf-8');
       const dbData: SessionInfoDatabase = JSON.parse(dbContent);
       
@@ -304,7 +304,7 @@ describe('SessionInfoService', () => {
       await service.updateCustomName(testSessionId, testCustomName);
       
       // Read database directly to check metadata
-      const dbPath = path.join(testConfigDir, '.ccui', 'session-info.json');
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
       const dbContent = fs.readFileSync(dbPath, 'utf-8');
       const dbData: SessionInfoDatabase = JSON.parse(dbContent);
       

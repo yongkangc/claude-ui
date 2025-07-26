@@ -1,6 +1,6 @@
 # Testing Architecture
 
-This directory contains comprehensive test coverage for CCUI backend services.
+This directory contains comprehensive test coverage for CUI backend services.
 
 ## Testing Philosophy
 
@@ -21,7 +21,7 @@ tests/
 │   └── streaming-integration.test.ts
 ├── setup.ts
 ├── unit
-│   ├── ccui-server.test.ts
+│   ├── cui-server.test.ts
 │   ├── claude-history-reader.test.ts
 │   ├── claude-process-long-running.test.ts
 │   ├── claude-process-manager.test.ts
@@ -57,7 +57,7 @@ function getMockClaudeExecutablePath(): string {
 
 // Server setup with random port to avoid conflicts
 const serverPort = 9000 + Math.floor(Math.random() * 1000);
-const server = new CCUIServer({ port: serverPort });
+const server = new CUIServer({ port: serverPort });
 
 // Override ProcessManager with mock path
 const mockClaudePath = getMockClaudeExecutablePath();

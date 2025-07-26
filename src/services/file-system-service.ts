@@ -3,7 +3,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import ignore from 'ignore';
-import { CCUIError, FileSystemEntry } from '@/types';
+import { CUIError, FileSystemEntry } from '@/types';
 import { createLogger } from './logger';
 import { type Logger } from './logger';
 
@@ -44,7 +44,7 @@ export class FileSystemService {
       // Check if path exists and is a directory
       const stats = await fs.stat(safePath);
       if (!stats.isDirectory()) {
-        throw new CCUIError('NOT_A_DIRECTORY', `Path is not a directory: ${requestedPath}`, 400);
+        throw new CUIError('NOT_A_DIRECTORY', `Path is not a directory: ${requestedPath}`, 400);
       }
       
       // Initialize gitignore if requested
@@ -79,19 +79,19 @@ export class FileSystemService {
         total: entries.length
       };
     } catch (error) {
-      if (error instanceof CCUIError) {
+      if (error instanceof CUIError) {
         throw error;
       }
       
       const errorCode = (error as NodeJS.ErrnoException).code;
       if (errorCode === 'ENOENT') {
-        throw new CCUIError('PATH_NOT_FOUND', `Path not found: ${requestedPath}`, 404);
+        throw new CUIError('PATH_NOT_FOUND', `Path not found: ${requestedPath}`, 404);
       } else if (errorCode === 'EACCES') {
-        throw new CCUIError('ACCESS_DENIED', `Access denied to path: ${requestedPath}`, 403);
+        throw new CUIError('ACCESS_DENIED', `Access denied to path: ${requestedPath}`, 403);
       }
       
       this.logger.error('Error listing directory', error, { requestedPath });
-      throw new CCUIError('LIST_DIRECTORY_FAILED', `Failed to list directory: ${error}`, 500);
+      throw new CUIError('LIST_DIRECTORY_FAILED', `Failed to list directory: ${error}`, 500);
     }
   }
 
@@ -108,12 +108,12 @@ export class FileSystemService {
       // Check if path exists and is a file
       const stats = await fs.stat(safePath);
       if (!stats.isFile()) {
-        throw new CCUIError('NOT_A_FILE', `Path is not a file: ${requestedPath}`, 400);
+        throw new CUIError('NOT_A_FILE', `Path is not a file: ${requestedPath}`, 400);
       }
       
       // Check file size
       if (stats.size > this.maxFileSize) {
-        throw new CCUIError(
+        throw new CUIError(
           'FILE_TOO_LARGE', 
           `File size (${stats.size} bytes) exceeds maximum allowed size (${this.maxFileSize} bytes)`, 
           400
@@ -125,7 +125,7 @@ export class FileSystemService {
       
       // Check if content is valid UTF-8 text
       if (!this.isValidUtf8(content)) {
-        throw new CCUIError('BINARY_FILE', 'File appears to be binary or not valid UTF-8', 400);
+        throw new CUIError('BINARY_FILE', 'File appears to be binary or not valid UTF-8', 400);
       }
       
       this.logger.debug('File read successfully', { 
@@ -141,19 +141,19 @@ export class FileSystemService {
         encoding: 'utf-8'
       };
     } catch (error) {
-      if (error instanceof CCUIError) {
+      if (error instanceof CUIError) {
         throw error;
       }
       
       const errorCode = (error as NodeJS.ErrnoException).code;
       if (errorCode === 'ENOENT') {
-        throw new CCUIError('FILE_NOT_FOUND', `File not found: ${requestedPath}`, 404);
+        throw new CUIError('FILE_NOT_FOUND', `File not found: ${requestedPath}`, 404);
       } else if (errorCode === 'EACCES') {
-        throw new CCUIError('ACCESS_DENIED', `Access denied to file: ${requestedPath}`, 403);
+        throw new CUIError('ACCESS_DENIED', `Access denied to file: ${requestedPath}`, 403);
       }
       
       this.logger.error('Error reading file', error, { requestedPath });
-      throw new CCUIError('READ_FILE_FAILED', `Failed to read file: ${error}`, 500);
+      throw new CUIError('READ_FILE_FAILED', `Failed to read file: ${error}`, 500);
     }
   }
 
@@ -163,7 +163,7 @@ export class FileSystemService {
   private async validatePath(requestedPath: string): Promise<string> {
     // Require absolute paths
     if (!path.isAbsolute(requestedPath)) {
-      throw new CCUIError('INVALID_PATH', 'Path must be absolute', 400);
+      throw new CUIError('INVALID_PATH', 'Path must be absolute', 400);
     }
     
     // Check for path traversal attempts before normalization
@@ -171,7 +171,7 @@ export class FileSystemService {
       this.logger.warn('Path traversal attempt detected', { 
         requestedPath 
       });
-      throw new CCUIError('PATH_TRAVERSAL_DETECTED', 'Invalid path: path traversal detected', 400);
+      throw new CUIError('PATH_TRAVERSAL_DETECTED', 'Invalid path: path traversal detected', 400);
     }
     
     // Normalize the path to resolve . segments and clean up
@@ -189,7 +189,7 @@ export class FileSystemService {
           normalizedPath,
           allowedBasePaths: this.allowedBasePaths 
         });
-        throw new CCUIError('PATH_NOT_ALLOWED', 'Path is outside allowed directories', 403);
+        throw new CUIError('PATH_NOT_ALLOWED', 'Path is outside allowed directories', 403);
       }
     }
     
@@ -205,7 +205,7 @@ export class FileSystemService {
           requestedPath, 
           segment 
         });
-        throw new CCUIError('INVALID_PATH', 'Path contains hidden files/directories', 400);
+        throw new CUIError('INVALID_PATH', 'Path contains hidden files/directories', 400);
       }
       
       // Check for null bytes
@@ -214,7 +214,7 @@ export class FileSystemService {
           requestedPath, 
           segment 
         });
-        throw new CCUIError('INVALID_PATH', 'Path contains null bytes', 400);
+        throw new CUIError('INVALID_PATH', 'Path contains null bytes', 400);
       }
       
       // Check for invalid characters
@@ -223,7 +223,7 @@ export class FileSystemService {
           requestedPath, 
           segment 
         });
-        throw new CCUIError('INVALID_PATH', 'Path contains invalid characters', 400);
+        throw new CUIError('INVALID_PATH', 'Path contains invalid characters', 400);
       }
     }
     

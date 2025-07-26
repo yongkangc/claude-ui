@@ -9,7 +9,7 @@ describe('PreferencesService', () => {
   let originalHome: string;
 
   beforeAll(() => {
-    testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccui-prefs-test-'));
+    testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cui-prefs-test-'));
     originalHome = os.homedir();
     jest.spyOn(os, 'homedir').mockReturnValue(testDir);
   });
@@ -23,9 +23,9 @@ describe('PreferencesService', () => {
 
   beforeEach(() => {
     PreferencesService.resetInstance();
-    const ccuiDir = path.join(testDir, '.ccui');
-    if (fs.existsSync(ccuiDir)) {
-      fs.rmSync(ccuiDir, { recursive: true, force: true });
+    const cuiDir = path.join(testDir, '.cui');
+    if (fs.existsSync(cuiDir)) {
+      fs.rmSync(cuiDir, { recursive: true, force: true });
     }
   });
 
@@ -33,7 +33,7 @@ describe('PreferencesService', () => {
     const service = PreferencesService.getInstance();
     await service.initialize();
     await service.updatePreferences({ colorScheme: 'dark' });
-    const dbPath = path.join(testDir, '.ccui', 'preferences.json');
+    const dbPath = path.join(testDir, '.cui', 'preferences.json');
     expect(fs.existsSync(dbPath)).toBe(true);
     const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
     expect(data.preferences.colorScheme).toBe('dark');

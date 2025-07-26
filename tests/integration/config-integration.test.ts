@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import { ConfigService } from '@/services/config-service';
 import { generateMachineId } from '@/utils/machine-id';
-import { CCUIConfig } from '@/types/config';
+import { CUIConfig } from '@/types/config';
 
 describe('Configuration System Basic Integration', () => {
   let testConfigDir: string;
@@ -11,7 +11,7 @@ describe('Configuration System Basic Integration', () => {
 
   beforeAll(() => {
     // Create temporary config directory for tests
-    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccui-config-basic-test-'));
+    testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cui-config-basic-test-'));
     
     // Mock the home directory to use our test directory
     originalHome = os.homedir();
@@ -30,9 +30,9 @@ describe('Configuration System Basic Integration', () => {
 
   beforeEach(() => {
     // Clear any existing config directory
-    const ccuiDir = path.join(testConfigDir, '.ccui');
-    if (fs.existsSync(ccuiDir)) {
-      fs.rmSync(ccuiDir, { recursive: true, force: true });
+    const cuiDir = path.join(testConfigDir, '.cui');
+    if (fs.existsSync(cuiDir)) {
+      fs.rmSync(cuiDir, { recursive: true, force: true });
     }
     
     // Reset ConfigService singleton
@@ -46,15 +46,15 @@ describe('Configuration System Basic Integration', () => {
       const configService = ConfigService.getInstance();
       
       // Config directory should not exist initially
-      expect(fs.existsSync(path.join(testConfigDir, '.ccui'))).toBe(false);
+      expect(fs.existsSync(path.join(testConfigDir, '.cui'))).toBe(false);
       
       await configService.initialize();
       
       // Config directory and file should now exist
-      const ccuiDir = path.join(testConfigDir, '.ccui');
-      const configPath = path.join(ccuiDir, 'config.json');
+      const cuiDir = path.join(testConfigDir, '.cui');
+      const configPath = path.join(cuiDir, 'config.json');
       
-      expect(fs.existsSync(ccuiDir)).toBe(true);
+      expect(fs.existsSync(cuiDir)).toBe(true);
       expect(fs.existsSync(configPath)).toBe(true);
       
       // Verify config file structure
@@ -69,10 +69,10 @@ describe('Configuration System Basic Integration', () => {
 
     it('should load existing config file if it exists', async () => {
       // Create a pre-existing config file
-      const ccuiDir = path.join(testConfigDir, '.ccui');
-      fs.mkdirSync(ccuiDir, { recursive: true });
+      const cuiDir = path.join(testConfigDir, '.cui');
+      fs.mkdirSync(cuiDir, { recursive: true });
       
-      const existingConfig: CCUIConfig = {
+      const existingConfig: CUIConfig = {
         machine_id: 'test-machine-12345678',
         server: {
           host: '127.0.0.1',
@@ -81,7 +81,7 @@ describe('Configuration System Basic Integration', () => {
       };
       
       fs.writeFileSync(
-        path.join(ccuiDir, 'config.json'), 
+        path.join(cuiDir, 'config.json'), 
         JSON.stringify(existingConfig, null, 2)
       );
       
@@ -160,11 +160,11 @@ describe('Configuration System Basic Integration', () => {
   describe('Error Handling', () => {
     it('should handle malformed config file gracefully', async () => {
       // Create malformed config file
-      const ccuiDir = path.join(testConfigDir, '.ccui');
-      fs.mkdirSync(ccuiDir, { recursive: true });
+      const cuiDir = path.join(testConfigDir, '.cui');
+      fs.mkdirSync(cuiDir, { recursive: true });
       
       fs.writeFileSync(
-        path.join(ccuiDir, 'config.json'), 
+        path.join(cuiDir, 'config.json'), 
         '{ invalid json content'
       );
       
@@ -175,11 +175,11 @@ describe('Configuration System Basic Integration', () => {
 
     it('should handle missing config file fields', async () => {
       // Create incomplete config file
-      const ccuiDir = path.join(testConfigDir, '.ccui');
-      fs.mkdirSync(ccuiDir, { recursive: true });
+      const cuiDir = path.join(testConfigDir, '.cui');
+      fs.mkdirSync(cuiDir, { recursive: true });
       
       fs.writeFileSync(
-        path.join(ccuiDir, 'config.json'), 
+        path.join(cuiDir, 'config.json'), 
         JSON.stringify({ machine_id: 'test' }) // Missing server
       );
       

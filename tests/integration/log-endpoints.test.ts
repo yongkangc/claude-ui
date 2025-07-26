@@ -1,15 +1,15 @@
 import request from 'supertest';
 import { Express } from 'express';
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { logStreamBuffer } from '@/services/log-stream-buffer';
 
 describe('Log Endpoints Integration', () => {
-  let server: CCUIServer;
+  let server: CUIServer;
   let app: Express;
 
   beforeAll(async () => {
     // Create server instance for testing
-    server = new CCUIServer({ port: 0 }); // Use port 0 for random available port
+    server = new CUIServer({ port: 0 }); // Use port 0 for random available port
     app = (server as any).app; // Access the Express app for testing
     
     // Start the server for integration tests

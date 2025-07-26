@@ -1,4 +1,4 @@
-import { CCUIServer } from '@/ccui-server';
+import { CUIServer } from '@/cui-server';
 import { ConversationStatusManager } from '@/services/conversation-status-manager';
 import { ToolMetricsService } from '@/services/ToolMetricsService';
 import * as path from 'path';
@@ -16,7 +16,7 @@ function getMockClaudeExecutablePath(): string {
  */
 describe('Tool Metrics Integration', () => {
   jest.setTimeout(10000); // Set reasonable timeout
-  let server: CCUIServer;
+  let server: CUIServer;
   let serverPort: number;
   let baseUrl: string;
   let toolMetricsService: ToolMetricsService;
@@ -28,7 +28,7 @@ describe('Tool Metrics Integration', () => {
     baseUrl = `http://localhost:${serverPort}`;
     
     // Create server
-    server = new CCUIServer({ port: serverPort });
+    server = new CUIServer({ port: serverPort });
     
     // Get reference to toolMetricsService
     toolMetricsService = (server as any).toolMetricsService;

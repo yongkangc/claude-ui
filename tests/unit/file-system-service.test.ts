@@ -1,5 +1,5 @@
 import { FileSystemService } from '@/services/file-system-service';
-import { CCUIError } from '@/types';
+import { CUIError } from '@/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -14,38 +14,38 @@ describe('FileSystemService', () => {
   describe('Path validation', () => {
     it('should reject relative paths', async () => {
       await expect(service.listDirectory('../etc')).rejects.toThrow(
-        new CCUIError('INVALID_PATH', 'Path must be absolute', 400)
+        new CUIError('INVALID_PATH', 'Path must be absolute', 400)
       );
     });
 
     it('should reject paths with traversal attempts', async () => {
       await expect(service.listDirectory('/home/../etc')).rejects.toThrow(
-        new CCUIError('PATH_TRAVERSAL_DETECTED', 'Invalid path: path traversal detected', 400)
+        new CUIError('PATH_TRAVERSAL_DETECTED', 'Invalid path: path traversal detected', 400)
       );
     });
 
     it('should reject paths with null bytes', async () => {
       await expect(service.listDirectory('/home/user\u0000/file')).rejects.toThrow(
-        new CCUIError('INVALID_PATH', 'Path contains null bytes', 400)
+        new CUIError('INVALID_PATH', 'Path contains null bytes', 400)
       );
     });
 
     it('should reject paths with invalid characters', async () => {
       await expect(service.listDirectory('/home/user<file>')).rejects.toThrow(
-        new CCUIError('INVALID_PATH', 'Path contains invalid characters', 400)
+        new CUIError('INVALID_PATH', 'Path contains invalid characters', 400)
       );
     });
 
     it('should reject paths with hidden directories', async () => {
       await expect(service.listDirectory('/home/.hidden')).rejects.toThrow(
-        new CCUIError('INVALID_PATH', 'Path contains hidden files/directories', 400)
+        new CUIError('INVALID_PATH', 'Path contains hidden files/directories', 400)
       );
     });
 
     it('should accept valid absolute paths', async () => {
       // This will fail with PATH_NOT_FOUND which is expected for non-existent paths
       await expect(service.listDirectory('/this/path/does/not/exist')).rejects.toThrow(
-        new CCUIError('PATH_NOT_FOUND', 'Path not found: /this/path/does/not/exist', 404)
+        new CUIError('PATH_NOT_FOUND', 'Path not found: /this/path/does/not/exist', 404)
       );
     });
   });
@@ -64,7 +64,7 @@ describe('FileSystemService', () => {
       const restrictedService = new FileSystemService(undefined, ['/home/user']);
       
       await expect(restrictedService.listDirectory('/etc/passwd')).rejects.toThrow(
-        new CCUIError('PATH_NOT_ALLOWED', 'Path is outside allowed directories', 403)
+        new CUIError('PATH_NOT_ALLOWED', 'Path is outside allowed directories', 403)
       );
     });
 
@@ -73,7 +73,7 @@ describe('FileSystemService', () => {
       
       // This will fail with PATH_NOT_FOUND which is expected
       await expect(restrictedService.listDirectory('/home/user/documents')).rejects.toThrow(
-        new CCUIError('PATH_NOT_FOUND', 'Path not found: /home/user/documents', 404)
+        new CUIError('PATH_NOT_FOUND', 'Path not found: /home/user/documents', 404)
       );
     });
   });
@@ -83,7 +83,7 @@ describe('FileSystemService', () => {
 
     beforeEach(async () => {
       // Create a temporary test directory structure
-      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-'));
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cui-test-'));
       
       // Create test structure
       await fs.mkdir(path.join(testDir, 'src'));
@@ -126,7 +126,7 @@ describe('FileSystemService', () => {
 
     beforeEach(async () => {
       // Create a temporary test directory structure
-      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-test-'));
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cui-test-'));
       
       // Create test structure
       await fs.mkdir(path.join(testDir, 'src'));
@@ -186,7 +186,7 @@ describe('FileSystemService', () => {
     let testDir: string;
 
     beforeEach(async () => {
-      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ccui-git-test-'));
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cui-git-test-'));
     });
 
     afterEach(async () => {

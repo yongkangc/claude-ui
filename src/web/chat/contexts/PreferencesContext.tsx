@@ -10,7 +10,7 @@ interface PreferencesContextType {
   error: Error | null;
 }
 
-const THEME_KEY = 'ccui-theme';
+const THEME_KEY = 'cui-theme';
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
 

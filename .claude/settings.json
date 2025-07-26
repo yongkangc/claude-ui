@@ -46,7 +46,7 @@
       "Bash(LOG_LEVEL=debug npm test -- tests/unit/claude-process-manager.test.ts --testNamePattern=\"should start a conversation\")",
       "Bash(HOME=/tmp/test-claude-home node node_modules/@anthropic-ai/claude-code/cli.js -p \"test\" --output-format stream-json)",
       "Bash(HOME=/tmp/test-claude-home node node_modules/@anthropic-ai/claude-code/cli.js -p \"test\" --output-format stream-json --verbose)",
-      "Bash(/Users/panwenbo/Repos/ccui/node_modules/@anthropic-ai/claude-code/cli.js -p \"Output what is 34 + 1 and quit\" --output-format stream-json --verbose --add-dir /Users/panwenbo/Repos/ccui)",
+      "Bash(/Users/panwenbo/Repos/cui/node_modules/@anthropic-ai/claude-code/cli.js -p \"Output what is 34 + 1 and quit\" --output-format stream-json --verbose --add-dir /Users/panwenbo/Repos/cui)",
       "Bash(npm run:*)",
       "Bash(npm run:*)",
       "Bash(LOG_LEVEL=debug npm run integration-tests 2 >& 1)",

@@ -1,6 +1,6 @@
-# CCUI Backend
+# CUI Backend
 
-Backend server for the Claude Code Web UI (CCUI) project.
+Backend server for the Claude Code Web UI (CUI) project.
 
 ## Overview
 
@@ -23,7 +23,7 @@ The project now includes a modern React-based web interface with TUI-inspired de
 - `ClaudeProcessManager` - Manages Claude CLI process lifecycle
 - `StreamManager` - Handles client streaming connections
 - `ClaudeHistoryReader` - Reads conversation history from ~/.claude
-- `CCUIMCPServer` - MCP server for permission requests
+- `CUIMCPServer` - MCP server for permission requests
 - `JsonLinesParser` - Parses JSONL streams from Claude CLI
 
 ## API Endpoints
@@ -83,8 +83,8 @@ npm run dev -- --port 3002
 npm run dev -- --host 0.0.0.0
 
 # Using environment variables
-CCUI_PORT=3002 npm run dev
-CCUI_HOST=0.0.0.0 CCUI_PORT=3002 npm run dev
+CUI_PORT=3002 npm run dev
+CUI_HOST=0.0.0.0 CUI_PORT=3002 npm run dev
 ```
 
 Access the UI at `http://localhost:3001` (or your configured port) - both backend API and frontend are served on the same port.
@@ -119,8 +119,8 @@ npm run lint
 
 ## Configuration
 
-CCUI uses a configuration file at `~/.ccui/config.json` for server settings. The file is automatically created on first startup.
-User preferences are stored separately in `~/.ccui/preferences.json`. Currently this file tracks the UI color scheme and language.
+CUI uses a configuration file at `~/.cui/config.json` for server settings. The file is automatically created on first startup.
+User preferences are stored separately in `~/.cui/preferences.json`. Currently this file tracks the UI color scheme and language.
 
 ### Logging Configuration
 
@@ -139,7 +139,7 @@ LOG_LEVEL=info npm run dev
 Alternatively, use the CLI flag:
 
 ```bash
-ccui serve --log-level debug
+cui serve --log-level debug
 ```
 
 ## Testing

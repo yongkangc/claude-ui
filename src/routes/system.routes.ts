@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { SystemStatusResponse, CCUIError, CommandsResponse } from '@/types';
+import { SystemStatusResponse, CUIError, CommandsResponse } from '@/types';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { createLogger, type Logger } from '@/services/logger';
@@ -20,7 +20,7 @@ export function createSystemRoutes(
 
   // Hello endpoint
   router.get('/hello', (req, res) => {
-    res.json({ message: 'Hello from CCUI!' });
+    res.json({ message: 'Hello from CUI!' });
   });
 
   // Get system status
@@ -113,6 +113,6 @@ async function getSystemStatus(
       activeConversations: processManager.getActiveSessions().length
     };
   } catch (error) {
-    throw new CCUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
+    throw new CUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
   }
 }

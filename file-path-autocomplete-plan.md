@@ -1,7 +1,7 @@
 # File Path Autocomplete Implementation Plan
 
 ## Context
-This plan implements a file path autocomplete system for the Composer component in CCUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
+This plan implements a file path autocomplete system for the Composer component in CUI (Claude Code Web UI). The system allows users to type "@" followed by a file path and get autocomplete suggestions from the filesystem.
 
 ## Expected Behavior
 1. **Trigger**: When "@" is typed, dropdown appears immediately

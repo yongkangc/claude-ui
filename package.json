@@ -1,5 +1,5 @@
 {
-  "name": "ccui-backend",
+  "name": "cui-backend",
   "version": "0.1.1",
   "description": "Backend for Claude Code Web UI",
   "main": "dist/server.js",
