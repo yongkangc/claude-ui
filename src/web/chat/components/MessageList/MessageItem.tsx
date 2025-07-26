@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code, Globe, Settings, FileText, Edit, Terminal, Search, List, CheckSquare, ExternalLink, Play, FileEdit, ClipboardList } from 'lucide-react';
+import { Copy, Check, Code, Globe, Settings, FileText, Edit, Terminal, Search, List, CheckSquare, ExternalLink, Play, FileEdit, ClipboardList, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { JsonViewer } from '../JsonViewer/JsonViewer';
 import { ToolUseRenderer } from '../ToolRendering/ToolUseRenderer';
@@ -86,6 +86,7 @@ export function MessageItem({
   isStreaming = false
 }: MessageItemProps) {
   const [copiedBlocks, setCopiedBlocks] = useState<Set<string>>(new Set());
+  const [isUserMessageExpanded, setIsUserMessageExpanded] = useState(false);
 
   const copyContent = async (content: string, blockId: string) => {
     try {
@@ -111,11 +112,46 @@ export function MessageItem({
         ? message.content.filter((block: any) => block.type === 'text').map((block: any) => block.text).join('\n')
         : '';
     
+    const lines = content.split('\n');
+    const shouldShowExpandButton = lines.length > 8;
+    const displayLines = isUserMessageExpanded ? lines : lines.slice(0, 8);
+    const hiddenLinesCount = lines.length - 8;
+    const displayContent = displayLines.join('\n');
+    
     return (
       <div className={styles.userMessage}>
-        <div className={styles.userMessageContent}>
+        <div className={styles.userMessageContent} style={{ position: 'relative' }}>
+          {shouldShowExpandButton && (
+            <button
+              onClick={() => setIsUserMessageExpanded(!isUserMessageExpanded)}
+              title={isUserMessageExpanded ? "Show fewer lines" : "Show all lines"}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                width: '24px',
+                height: '24px',
+                border: 'none',
+                background: 'none',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                zIndex: 10,
+              }}
+            >
+              {isUserMessageExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          )}
           <div className={styles.userMessageText}>
-            {content}
+            {displayContent}
+            {!isUserMessageExpanded && shouldShowExpandButton && (
+              <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                {'\n'}... +{hiddenLinesCount} lines
+              </span>
+            )}
           </div>
         </div>
       </div>
