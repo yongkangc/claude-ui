@@ -770,7 +770,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               >
                 <Square size={18} />
               </button>
-            ) : value.trim() ? (
+            ) : (
               <div className={styles.permissionModeButtons}>
                 {/* Combined Permission Mode Button with Dropdown */}
                 <div className={styles.combinedPermissionButton}>
@@ -778,7 +778,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                     type="button"
                     className={styles.permissionMainButton}
                     title={getPermissionModeTitle(selectedPermissionMode)}
-                    disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                    disabled={!value.trim() || isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                     onClick={() => handleSubmit(selectedPermissionMode)}
                   >
                     <div className={styles.btnContent}>
@@ -810,7 +810,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                         type="button"
                         className={styles.permissionDropdownButton}
                         onClick={onClick}
-                        disabled={isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
+                        disabled={!value.trim() || isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                         aria-label="Select permission mode"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -821,16 +821,6 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                   />
                 </div>
               </div>
-            ) : (
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Dictate button"
-                disabled={isLoading || disabled}
-                title="Voice input"
-              >
-                <Mic size={18} />
-              </button>
             )}
           </div>
         </div>

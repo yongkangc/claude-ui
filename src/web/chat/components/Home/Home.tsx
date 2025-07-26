@@ -161,6 +161,10 @@ export function Home() {
                     });
                     return response.entries;
                   }}
+                  onFetchCommands={async (workingDirectory) => {
+                    const response = await api.getCommands(workingDirectory);
+                    return response.commands;
+                  }}
                 />
               </div>
 
