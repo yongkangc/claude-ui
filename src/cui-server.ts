@@ -143,14 +143,12 @@ export class CUIServer {
       this.setupRoutes();
       
       // Generate MCP config before starting server
-      this.logger.debug('Generating MCP config');
       const mcpConfigPath = this.mcpConfigGenerator.generateConfig(this.port);
       this.processManager.setMCPConfigPath(mcpConfigPath);
-      this.logger.info('MCP config generated and set', { path: mcpConfigPath });
+      this.logger.debug('MCP config generated and set', { path: mcpConfigPath });
 
       // Start Express server
       const isTestEnv = process.env.NODE_ENV === 'test';
-      this.logger.info(`Starting HTTP server${!isTestEnv ? ' with Vite' : ''} on ${this.host}:${this.port}...`);
       this.logger.debug('Creating HTTP server listener', { 
         useViteExpress: !isTestEnv,
         environment: process.env.NODE_ENV 
@@ -205,7 +203,7 @@ export class CUIServer {
           });
         }
       });
-      this.logger.debug('Server start successful');
+      this.logger.info(`cui server started on http://${this.host}:${this.port}`);
     } catch (error) {
       this.logger.error('Failed to start server:', error, {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
@@ -227,7 +225,6 @@ export class CUIServer {
    * Stop the server gracefully
    */
   async stop(): Promise<void> {
-    this.logger.info('Starting graceful shutdown...');
     this.logger.debug('Stop method called', {
       hasServer: !!this.server,
       activeSessions: this.processManager.getActiveSessions().length,
@@ -269,8 +266,6 @@ export class CUIServer {
     // Clean up MCP config
     this.logger.debug('Cleaning up MCP config');
     this.mcpConfigGenerator.cleanup();
-    
-    this.logger.info('Graceful shutdown complete');
   }
 
   /**

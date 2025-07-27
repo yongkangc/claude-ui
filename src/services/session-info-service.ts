@@ -72,8 +72,6 @@ export class SessionInfoService {
       return;
     }
 
-    this.logger.info('Initializing session info database', { dbPath: this.dbPath });
-
     try {
       // Ensure config directory exists
       if (!fs.existsSync(this.configDir)) {
@@ -89,11 +87,6 @@ export class SessionInfoService {
 
       this.isInitialized = true;
 
-      this.logger.info('Session info database initialized successfully', {
-        dbPath: this.dbPath,
-        sessionCount: Object.keys(data.sessions).length,
-        schemaVersion: data.metadata.schema_version
-      });
     } catch (error) {
       this.logger.error('Failed to initialize session info database', error);
       throw new Error(`Session info database initialization failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -132,7 +125,6 @@ export class SessionInfoService {
 
       // Create entry in database for the new session
       try {
-        this.logger.debug('Creating session info entry for unrecorded session', { sessionId });
         const createdSessionInfo = await this.updateSessionInfo(sessionId, defaultSessionInfo);
         return createdSessionInfo;
       } catch (createError) {
@@ -163,7 +155,6 @@ export class SessionInfoService {
    * Supports partial updates - only provided fields will be updated
    */
   async updateSessionInfo(sessionId: string, updates: Partial<SessionInfo>): Promise<SessionInfo> {
-    this.logger.info('Updating session info', { sessionId, updates });
 
     try {
       let updatedSession: SessionInfo | null = null;
@@ -203,7 +194,6 @@ export class SessionInfoService {
         return data;
       });
 
-      this.logger.info('Session info updated successfully', { sessionId, updatedSession });
       return updatedSession!;
     } catch (error) {
       this.logger.error('Failed to update session info', { sessionId, updates, error });

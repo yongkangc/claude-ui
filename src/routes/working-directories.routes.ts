@@ -17,7 +17,7 @@ export function createWorkingDirectoriesRoutes(
     try {
       const result = await workingDirectoriesService.getWorkingDirectories();
       
-      logger.info('Retrieved working directories', {
+      logger.debug('Retrieved working directories', {
         requestId,
         totalDirectories: result.totalCount
       });

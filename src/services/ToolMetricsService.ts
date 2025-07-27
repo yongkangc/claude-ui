@@ -37,12 +37,6 @@ export class ToolMetricsService extends EventEmitter {
    */
   getMetrics(sessionId: string): ToolMetrics | undefined {
     const metrics = this.metrics.get(sessionId);
-    this.logger.debug('Getting metrics', {
-      sessionId,
-      found: !!metrics,
-      metrics,
-      allSessionIds: Array.from(this.metrics.keys())
-    });
     return metrics;
   }
 
@@ -183,13 +177,6 @@ export class ToolMetricsService extends EventEmitter {
     metrics.linesAdded += linesAdded;
     metrics.linesRemoved += linesRemoved;
 
-    this.logger.debug('Edit diff calculated', {
-      oldLines: this.countLines(oldString),
-      newLines: this.countLines(newString),
-      linesAdded,
-      linesRemoved,
-      changeCount: changes.length
-    });
   }
 
   /**

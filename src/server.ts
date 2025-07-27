@@ -12,7 +12,7 @@ async function main() {
     
     // Handle graceful shutdown
     const shutdown = async (signal: string) => {
-      logger.info(`Received ${signal}, shutting down gracefully...`);
+      logger.info(`Received ${signal}, shutting down...`);
       await server.stop();
       process.exit(0);
     };

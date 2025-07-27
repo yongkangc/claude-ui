@@ -200,7 +200,6 @@ export class ClaudeProcessManager extends EventEmitter {
    */
   isSessionActive(streamingId: string): boolean {
     const active = this.processes.has(streamingId);
-    this.logger.debug('Checking session active status', { streamingId, active });
     return active;
   }
 
@@ -346,7 +345,7 @@ export class ClaudeProcessManager extends EventEmitter {
           return;
         }
 
-        this.logger.info('Successfully received valid system init message', {
+        this.logger.debug('Successfully received valid system init message', {
           streamingId,
           sessionId: systemInitMessage.session_id,
           cwd: systemInitMessage.cwd,
@@ -502,7 +501,7 @@ export class ClaudeProcessManager extends EventEmitter {
         }
       }
       
-      this.logger.info(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
+      this.logger.debug(`${operation.charAt(0).toUpperCase() + operation.slice(1)} conversation successfully`, {
         streamingId,
         sessionId: systemInit.session_id,
         model: systemInit.model,
@@ -655,7 +654,7 @@ export class ClaudeProcessManager extends EventEmitter {
     const mcpConfigIndex = args.indexOf('--mcp-config');
     if (mcpConfigIndex !== -1 && mcpConfigIndex + 1 < args.length) {
       const mcpConfigPath = args[mcpConfigIndex + 1];
-      this.logger.info('MCP config specified', { 
+      this.logger.debug('MCP config specified', { 
         streamingId,
         mcpConfigPath,
         exists: existsSync(mcpConfigPath)
@@ -693,7 +692,7 @@ export class ClaudeProcessManager extends EventEmitter {
       
       // Log the exact command for debugging
       const fullCommand = `${executablePath} ${args.join(' ')}`;
-      this.logger.info('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
+      this.logger.debug('SPAWNING CLAUDE COMMAND: ' + fullCommand, { 
         streamingId,
         fullCommand,
         executablePath,
@@ -835,12 +834,6 @@ export class ClaudeProcessManager extends EventEmitter {
 
     // Handle process termination
     process.on('close', (code, signal) => {
-      this.logger.info('Process closed', { 
-        streamingId,
-        exitCode: code,
-        signal: signal,
-        wasKilled: process.killed
-      });
       this.handleProcessClose(streamingId, code);
     });
 
@@ -851,7 +844,7 @@ export class ClaudeProcessManager extends EventEmitter {
 
     // Handle process exit
     process.on('exit', (code, signal) => {
-      this.logger.error('Process exited', { 
+      this.logger.debug('Process exited', { 
         streamingId,
         exitCode: code,
         signal: signal,
@@ -876,15 +869,6 @@ export class ClaudeProcessManager extends EventEmitter {
   private handleProcessClose(streamingId: string, code: number | null): void {
     const hadProcess = this.processes.has(streamingId);
     const hadBuffer = this.outputBuffers.has(streamingId);
-    
-    this.logger.info('Process closed, cleaning up', { 
-      streamingId, 
-      exitCode: code,
-      exitStatus: code === 0 ? 'success' : 'failure',
-      hadActiveProcess: hadProcess,
-      hadOutputBuffer: hadBuffer,
-      remainingProcesses: this.processes.size - (hadProcess ? 1 : 0)
-    });
     
     // Clear any pending timeouts for this session
     const timeouts = this.timeouts.get(streamingId);
