@@ -33,7 +33,7 @@
 .logoLink {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   color: var(--color-text-primary);
   text-decoration: none;
   margin-left: 5px;
