@@ -266,6 +266,17 @@ export class CUIServer {
     // Clean up MCP config
     this.logger.debug('Cleaning up MCP config');
     this.mcpConfigGenerator.cleanup();
+    
+    // Only close server in test environment
+    if (process.env.NODE_ENV === 'test' && this.server) {
+      this.logger.debug('Closing HTTP server (test environment)');
+      await new Promise<void>((resolve) => {
+        this.server!.close(() => {
+          this.logger.info('HTTP server closed successfully');
+          resolve();
+        });
+      });
+    }
   }
 
   /**
