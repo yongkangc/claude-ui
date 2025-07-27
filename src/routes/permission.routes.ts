@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CUIError, PermissionDecisionRequest, PermissionDecisionResponse } from '@/types';
+import { RequestWithRequestId } from '@/types/express';
 import { PermissionTracker } from '@/services/permission-tracker';
 import { createLogger } from '@/services/logger';
 
@@ -10,8 +11,8 @@ export function createPermissionRoutes(
   const logger = createLogger('PermissionRoutes');
 
   // Notify endpoint - called by MCP server when permission is requested
-  router.post('/notify', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.post('/notify', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('Permission notification received', {
       requestId,
       body: req.body
@@ -45,8 +46,8 @@ export function createPermissionRoutes(
   });
 
   // List permissions
-  router.get('/', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('List permissions request', {
       requestId,
       query: req.query
@@ -74,8 +75,8 @@ export function createPermissionRoutes(
   });
 
   // Permission decision endpoint - called by frontend to approve/deny permissions
-  router.post('/:requestId/decision', async (req, res, next) => {
-    const requestIdHeader = (req as any).requestId;
+  router.post('/:requestId/decision', async (req: RequestWithRequestId, res, next) => {
+    const requestIdHeader = req.requestId;
     const { requestId } = req.params;
     const decisionRequest: PermissionDecisionRequest = req.body;
     

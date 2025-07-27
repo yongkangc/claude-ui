@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import * as path from 'path';
 import { ClaudeProcessManager } from './services/claude-process-manager';
 import { StreamManager } from './services/stream-manager';
 import { ClaudeHistoryReader } from './services/claude-history-reader';
@@ -30,9 +31,9 @@ import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
 import { queryParser } from './middleware/query-parser';
 
-// Conditionally import ViteExpress only in non-test environments
+// Conditionally import ViteExpress only in development environment
 let ViteExpress: typeof import('vite-express') | undefined;
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV === 'development') {
   ViteExpress = require('vite-express');
 }
 
@@ -148,19 +149,18 @@ export class CUIServer {
       this.logger.debug('MCP config generated and set', { path: mcpConfigPath });
 
       // Start Express server
-      const isTestEnv = process.env.NODE_ENV === 'test';
+      const isDev = process.env.NODE_ENV === 'development';
       this.logger.debug('Creating HTTP server listener', { 
-        useViteExpress: !isTestEnv,
+        useViteExpress: isDev,
         environment: process.env.NODE_ENV 
       });
       
       await new Promise<void>((resolve, reject) => {
-        // Use ViteExpress in non-test environments, regular Express in tests
-        if (!isTestEnv && ViteExpress) {
+        // Use ViteExpress only in development
+        if (isDev && ViteExpress) {
           try {
-            // ViteExpress.listen returns a promise in newer versions
             this.server = this.app.listen(this.port, this.host, () => {
-              this.logger.debug('Server successfully bound to port', {
+              this.logger.debug('Server successfully bound to port (dev mode)', {
                 port: this.port,
                 host: this.host,
                 address: this.server?.address()
@@ -168,24 +168,27 @@ export class CUIServer {
               resolve();
             });
             
-            // Configure ViteExpress to use existing server
+            // Configure ViteExpress for development
             ViteExpress.config({
               mode: 'development',
               viteConfigFile: 'vite.config.ts'
             });
             
             ViteExpress.bind(this.app, this.server);
+            this.logger.info(`CUI development server running on http://${this.host}:${this.port}`);
           } catch (error) {
             this.logger.error('Failed to start ViteExpress server', error);
             reject(error);
           }
         } else {
+          // Production/test mode - regular Express server
           this.server = this.app.listen(this.port, this.host, () => {
-            this.logger.info(`CUI server running on ${this.host}:${this.port}`);
+            this.logger.info(`CUI server running on http://${this.host}:${this.port}`);
             this.logger.debug('Server successfully bound to port', {
               port: this.port,
               host: this.host,
-              address: this.server?.address()
+              address: this.server?.address(),
+              mode: process.env.NODE_ENV || 'production'
             });
             resolve();
           });
@@ -266,6 +269,17 @@ export class CUIServer {
     // Clean up MCP config
     this.logger.debug('Cleaning up MCP config');
     this.mcpConfigGenerator.cleanup();
+    
+    // Only close server in test environment
+    if (process.env.NODE_ENV === 'test' && this.server) {
+      this.logger.debug('Closing HTTP server (test environment)');
+      await new Promise<void>((resolve) => {
+        this.server!.close(() => {
+          this.logger.info('HTTP server closed successfully');
+          resolve();
+        });
+      });
+    }
   }
 
   /**
@@ -304,11 +318,15 @@ export class CUIServer {
     this.app.use(createCorsMiddleware());
     this.app.use(express.json());
     
-    // In test environment, serve static files normally
-    // In production/dev, ViteExpress handles static file serving
-    if (process.env.NODE_ENV === 'test') {
-      this.app.use(express.static('public'));
+    // Static file serving
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!isDev) {
+      // In production/test, serve built static files
+      const staticPath = path.join(__dirname, 'web');
+      this.logger.debug('Serving static files from', { path: staticPath });
+      this.app.use(express.static(staticPath));
     }
+    // In development, ViteExpress handles static file serving
     
     // Request logging
     this.app.use(requestLogger);
@@ -340,7 +358,15 @@ export class CUIServer {
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
     
-    // ViteExpress handles React app routing automatically
+    // React Router catch-all - must be after all API routes
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!isDev) {
+      // In production/test, serve index.html for all non-API routes
+      this.app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'web/index.html'));
+      });
+    }
+    // In development, ViteExpress handles React routing
     
     // Error handling - MUST be last
     this.app.use(errorHandler);

@@ -401,7 +401,7 @@ export class ClaudeProcessManager extends EventEmitter {
    */
   private async executeConversationFlow(
     operation: string,
-    loggerContext: Record<string, any>,
+    loggerContext: Record<string, unknown>,
     config: ConversationConfig,
     args: string[],
     spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
@@ -833,7 +833,7 @@ export class ClaudeProcessManager extends EventEmitter {
     }
 
     // Handle process termination
-    process.on('close', (code, signal) => {
+    process.on('close', (code, _signal) => {
       this.handleProcessClose(streamingId, code);
     });
 
@@ -867,8 +867,6 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   private handleProcessClose(streamingId: string, code: number | null): void {
-    const hadProcess = this.processes.has(streamingId);
-    const hadBuffer = this.outputBuffers.has(streamingId);
     
     // Clear any pending timeouts for this session
     const timeouts = this.timeouts.get(streamingId);

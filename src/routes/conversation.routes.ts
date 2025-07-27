@@ -10,8 +10,10 @@ import {
   SessionUpdateRequest,
   SessionUpdateResponse,
   ConversationMessage,
-  ConversationSummary
+  ConversationSummary,
+  SessionInfo
 } from '@/types';
+import { RequestWithRequestId } from '@/types/express';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { SessionInfoService } from '@/services/session-info-service';
@@ -31,8 +33,8 @@ export function createConversationRoutes(
   const logger = createLogger('ConversationRoutes');
 
   // Start new conversation (also handles resume if resumedSessionId is provided)
-  router.post('/start', async (req: Request<Record<string, never>, StartConversationResponse, StartConversationRequest>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.post('/start', async (req: Request<Record<string, never>, StartConversationResponse, StartConversationRequest> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const isResume = !!req.body.resumedSessionId;
     
     logger.debug('Start conversation request', {
@@ -210,8 +212,8 @@ export function createConversationRoutes(
 
 
   // List conversations
-  router.get('/', async (req: Request<Record<string, never>, { conversations: ConversationSummary[]; total: number }, Record<string, never>, ConversationListQuery>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/', async (req: Request<Record<string, never>, { conversations: ConversationSummary[]; total: number }, Record<string, never>, ConversationListQuery> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('List conversations request', {
       requestId,
       query: req.query
@@ -275,8 +277,8 @@ export function createConversationRoutes(
   });
 
   // Get conversation details
-  router.get('/:sessionId', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/:sessionId', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const { sessionId } = req.params;
     
     logger.debug('Get conversation details request', {
@@ -352,8 +354,8 @@ export function createConversationRoutes(
   });
 
   // Stop conversation
-  router.post('/:streamingId/stop', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.post('/:streamingId/stop', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const { streamingId } = req.params;
     
     logger.debug('Stop conversation request', {
@@ -382,8 +384,8 @@ export function createConversationRoutes(
   });
 
   // Rename session (update custom name)
-  router.put('/:sessionId/rename', async (req: Request<{ sessionId: string }, SessionRenameResponse, SessionRenameRequest>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.put('/:sessionId/rename', async (req: Request<{ sessionId: string }, SessionRenameResponse, SessionRenameRequest> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const { sessionId } = req.params;
     const { customName } = req.body;
     
@@ -439,8 +441,8 @@ export function createConversationRoutes(
   });
 
   // Update session info (replaces rename endpoint)
-  router.put('/:sessionId/update', async (req: Request<{ sessionId: string }, SessionUpdateResponse, SessionUpdateRequest>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.put('/:sessionId/update', async (req: Request<{ sessionId: string }, SessionUpdateResponse, SessionUpdateRequest> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const { sessionId } = req.params;
     const updates = req.body;
     
@@ -457,9 +459,9 @@ export function createConversationRoutes(
         return res.status(400).json({
           success: false,
           sessionId: '',
-          updatedFields: {} as any,
+          updatedFields: {} as SessionInfo,
           error: 'Session ID is required'
-        } as any);
+        } as SessionUpdateResponse & { error: string });
       }
       
       // Check if session exists
@@ -471,9 +473,9 @@ export function createConversationRoutes(
         return res.status(404).json({
           success: false,
           sessionId,
-          updatedFields: {} as any,
+          updatedFields: {} as SessionInfo,
           error: 'Conversation session not found'
-        } as any);
+        } as SessionUpdateResponse & { error: string });
       }
       
       // Validate fields if provided
@@ -482,13 +484,13 @@ export function createConversationRoutes(
         return res.status(400).json({
           success: false,
           sessionId,
-          updatedFields: {} as any,
+          updatedFields: {} as SessionInfo,
           error: 'Custom name must be 200 characters or less'
-        } as any);
+        } as SessionUpdateResponse & { error: string });
       }
       
       // Prepare updates object - map camelCase to snake_case
-      const sessionUpdates: any = {};
+      const sessionUpdates: Partial<SessionInfo> = {};
       if (updates.customName !== undefined) sessionUpdates.custom_name = updates.customName.trim();
       if (updates.pinned !== undefined) sessionUpdates.pinned = updates.pinned;
       if (updates.archived !== undefined) sessionUpdates.archived = updates.archived;
@@ -502,9 +504,9 @@ export function createConversationRoutes(
           return res.status(400).json({
             success: false,
             sessionId,
-            updatedFields: {} as any,
+            updatedFields: {} as SessionInfo,
             error: `Permission mode must be one of: ${validModes.join(', ')}`
-          } as any);
+          } as SessionUpdateResponse & { error: string });
         }
         sessionUpdates.permission_mode = updates.permissionMode;
       }
@@ -535,8 +537,8 @@ export function createConversationRoutes(
   });
 
   // Archive all sessions
-  router.post('/archive-all', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.post('/archive-all', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     
     logger.debug('Archive all sessions request', {
       requestId

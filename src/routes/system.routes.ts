@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { SystemStatusResponse, CUIError, CommandsResponse } from '@/types';
+import { RequestWithRequestId } from '@/types/express';
 import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { createLogger, type Logger } from '@/services/logger';
@@ -24,8 +25,8 @@ export function createSystemRoutes(
   });
 
   // Get system status
-  router.get('/status', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/status', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('Get system status request', { requestId });
     
     try {
@@ -47,8 +48,8 @@ export function createSystemRoutes(
   });
 
   // Get available commands
-  router.get('/commands', async (req, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/commands', async (req: RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     const workingDirectory = req.query.workingDirectory as string | undefined;
     
     logger.debug('Get commands request', { requestId, workingDirectory });
@@ -102,7 +103,7 @@ async function getSystemStatus(
     } catch (error) {
       logger.warn('Failed to get Claude version information', { 
         error: error instanceof Error ? error.message : String(error),
-        errorCode: (error as any).code
+        errorCode: error instanceof Error && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined
       });
     }
     

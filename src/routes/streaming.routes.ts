@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { StreamManager } from '@/services/stream-manager';
 import { createLogger } from '@/services/logger';
+import { RequestWithRequestId } from '@/types/express';
 
 export function createStreamingRoutes(streamManager: StreamManager): Router {
   const router = Router();
   const logger = createLogger('StreamingRoutes');
 
-  router.get('/:streamingId', (req, res) => {
+  router.get('/:streamingId', (req: RequestWithRequestId, res) => {
     const { streamingId } = req.params;
-    const requestId = (req as any).requestId;
+    const requestId = req.requestId;
     
     logger.debug('Stream connection request', {
       requestId,

@@ -1,12 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '@/services/logger';
+import { Response, NextFunction } from 'express';
+import { RequestWithRequestId } from '@/types/express';
 
-const logger = createLogger('RequestLogger');
-
-export function requestLogger(req: Request, res: Response, next: NextFunction): void {
+export function requestLogger(req: RequestWithRequestId, res: Response, next: NextFunction): void {
   const requestId = Math.random().toString(36).substring(7);
-  (req as any).requestId = requestId;
+  req.requestId = requestId;
   
+  // Commented out for now - keeping structure for future use
   // logger.debug('Incoming request', { 
   //   method: req.method, 
   //   url: req.url,
@@ -20,7 +19,6 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   // });
   
   // Log response when finished
-  const startTime = Date.now();
   res.on('finish', () => {
     // logger.debug('Request completed', {
     //   requestId,

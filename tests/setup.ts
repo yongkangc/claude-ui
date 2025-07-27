@@ -12,3 +12,13 @@ TestHelpers.setupTestLogging(false);
 
 // Configure Jest timeout for integration tests
 jest.setTimeout(30000);
+
+// Global cleanup to ensure all timers are cleared after tests
+afterAll(async () => {
+  // Clear all timers
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  
+  // Give async operations a chance to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});

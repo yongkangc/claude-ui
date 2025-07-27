@@ -7,6 +7,7 @@ export interface LogContext {
   sessionId?: string;
   streamingId?: string;
   requestId?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -20,6 +21,7 @@ export type Logger = CUILogger;
 export class CUILogger {
   constructor(private pinoLogger: PinoLogger) {}
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debug(message: string, context?: any): void {
     if (context !== undefined) {
       this.pinoLogger.debug(context, message);
@@ -28,6 +30,7 @@ export class CUILogger {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   info(message: string, context?: any): void {
     if (context !== undefined) {
       this.pinoLogger.info(context, message);
@@ -36,6 +39,7 @@ export class CUILogger {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   warn(message: string, context?: any): void {
     if (context !== undefined) {
       this.pinoLogger.warn(context, message);
@@ -44,6 +48,7 @@ export class CUILogger {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error(message: string, error?: Error | unknown, context?: any): void {
     if (error instanceof Error) {
       const logData = { err: error, ...context };
@@ -60,6 +65,7 @@ export class CUILogger {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fatal(message: string, error?: Error | unknown, context?: any): void {
     if (error instanceof Error) {
       const logData = { err: error, ...context };

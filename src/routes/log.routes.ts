@@ -1,14 +1,15 @@
 import { Router, Request } from 'express';
 import { logStreamBuffer } from '@/services/log-stream-buffer';
 import { createLogger } from '@/services/logger';
+import { RequestWithRequestId } from '@/types/express';
 
 export function createLogRoutes(): Router {
   const router = Router();
   const logger = createLogger('LogRoutes');
 
   // Get recent logs
-  router.get('/recent', (req: Request<Record<string, never>, unknown, Record<string, never>, { limit?: number }>, res) => {
-    const requestId = (req as any).requestId;
+  router.get('/recent', (req: Request<Record<string, never>, unknown, Record<string, never>, { limit?: number }> & RequestWithRequestId, res) => {
+    const requestId = req.requestId;
     const limit = req.query.limit !== undefined ? req.query.limit : 100;
     
     logger.debug('Get recent logs request', {
@@ -26,8 +27,8 @@ export function createLogRoutes(): Router {
   });
   
   // Stream logs via SSE
-  router.get('/stream', (req, res) => {
-    const requestId = (req as any).requestId;
+  router.get('/stream', (req: RequestWithRequestId, res) => {
+    const requestId = req.requestId;
     
     logger.debug('Log stream connection request', {
       requestId,

@@ -80,7 +80,7 @@ export class SessionInfoService {
       }
 
       // Read existing data or initialize with defaults
-      const data = await this.jsonManager.read();
+      await this.jsonManager.read();
 
       // Ensure metadata exists and update schema if needed
       await this.ensureMetadata();

@@ -5,6 +5,23 @@ import { CallToolRequestSchema, ListToolsRequestSchema, McpError, ErrorCode } fr
 import fetch from 'node-fetch';
 import { logger } from '@/services/logger';
 
+// Type definitions
+interface PermissionNotificationResponse {
+  success: boolean;
+  id: string;
+}
+
+interface Permission {
+  id: string;
+  status: 'pending' | 'approved' | 'denied';
+  modifiedInput?: Record<string, unknown>;
+  denyReason?: string;
+}
+
+interface PermissionsResponse {
+  permissions: Permission[];
+}
+
 // Get CUI server URL from environment
 const CUI_SERVER_URL = process.env.CUI_SERVER_URL || `http://localhost:${process.env.CUI_SERVER_PORT || '3001'}`;
 
@@ -49,7 +66,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
   }
 
-  const { tool_name, input } = request.params.arguments as { tool_name: string; input: Record<string, any> };
+  const { tool_name, input } = request.params.arguments as { tool_name: string; input: Record<string, unknown> };
 
   try {
     
@@ -76,7 +93,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     // Get the permission request ID from the notification response
-    const notificationData = await response.json() as { success: boolean; id: string };
+    const notificationData = await response.json() as PermissionNotificationResponse;
     const permissionRequestId = notificationData.id;
 
     logger.debug('Permission request created', { permissionRequestId, streamingId: CUI_STREAMING_ID });
@@ -119,8 +136,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Failed to poll permission status: ${pollResponse.status}`);
       }
 
-      const { permissions } = await pollResponse.json() as { permissions: Array<any> };
-      const permission = permissions.find((p: any) => p.id === permissionRequestId);
+      const { permissions } = await pollResponse.json() as PermissionsResponse;
+      const permission = permissions.find((p) => p.id === permissionRequestId);
 
       if (!permission) {
         // Permission has been processed (no longer pending)
@@ -140,8 +157,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error(`Failed to fetch all permissions: ${allPermissionsResponse.status}`);
         }
 
-        const { permissions: allPermissions } = await allPermissionsResponse.json() as { permissions: Array<any> };
-        const processedPermission = allPermissions.find((p: any) => p.id === permissionRequestId);
+        const { permissions: allPermissions } = await allPermissionsResponse.json() as PermissionsResponse;
+        const processedPermission = allPermissions.find((p) => p.id === permissionRequestId);
 
         if (processedPermission) {
           if (processedPermission.status === 'approved') {

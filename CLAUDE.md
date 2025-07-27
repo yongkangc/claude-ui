@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 CUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
 - TypeScript Express backend that manages Claude CLI processes
 - React frontend with TUI-inspired design
-- Single-port architecture using vite-express (port 3001)
+- Single-port architecture (port 3001)
+  - Development: Uses vite-express for hot reloading
+  - Production: Serves pre-built static files from dist/web
 - Real-time streaming of Claude responses via newline-delimited JSON
 - MCP (Model Context Protocol) integration for permission management
 
@@ -108,3 +110,7 @@ Sessions are automatically migrated to include these fields when the schema vers
 
 - Do not run npm run dev to verify frontend update
 - Before running test for the first time, run `npm run build` to build the backend and frontend, especially it build the mcp executable. Other wise the test will fail with Error: MCP tool mcp__cui-permissions__approval_prompt (passed via --permission-prompt-tool) not found.
+
+## Best Practices
+
+- Use strict typing. Avoid any, undefined, unknown type as much as possible

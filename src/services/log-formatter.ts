@@ -8,17 +8,16 @@ interface LogObject {
   requestId?: string;
   sessionId?: string;
   streamingId?: string;
-  [key: string]: any;
+  err?: {
+    message?: string;
+    stack?: string;
+  };
+  error?: {
+    message?: string;
+    stack?: string;
+  };
+  [key: string]: unknown;
 }
-
-const LEVELS: Record<number, { label: string; color: string }> = {
-  10: { label: 'TRACE', color: '\x1b[90m' },    // gray
-  20: { label: 'DEBUG', color: '\x1b[36m' },    // cyan
-  30: { label: 'INFO', color: '\x1b[32m' },     // green
-  40: { label: 'WARN', color: '\x1b[33m' },     // yellow
-  50: { label: 'ERROR', color: '\x1b[31m' },    // red
-  60: { label: 'FATAL', color: '\x1b[35m' }     // magenta
-};
 
 const RESET = '\x1b[0m';
 const GRAY = '\x1b[90m';
@@ -29,9 +28,9 @@ export class LogFormatter extends Transform {
   constructor() {
     super({
       writableObjectMode: true,
-      transform(chunk: any, encoding: string, callback: Function) {
+      transform(chunk: unknown, _encoding: string, callback: (error?: Error | null, data?: unknown) => void) {
         try {
-          const logLine = chunk.toString().trim();
+          const logLine = String(chunk).trim();
           if (!logLine) {
             callback();
             return;
@@ -59,9 +58,6 @@ function formatLog(log: LogObject): string {
   const displayHours = (hours % 12 || 12).toString().padStart(2, '0');
   const timestamp = `${displayHours}:${minutes}:${seconds} ${ampm}`;
 
-  // Get level info
-  const levelInfo = LEVELS[log.level] || { label: 'UNKNOWN', color: '' };
-
   // Build the formatted message
   let formatted = `${GRAY}${timestamp}${RESET}`;
 
@@ -83,8 +79,8 @@ function formatLog(log: LogObject): string {
       const value = log[key];
       
       // Special handling for error objects
-      if ((key === 'err' || key === 'error') && typeof value === 'object' && value.message) {
-        return `${key}="${value.message}"`;
+      if ((key === 'err' || key === 'error') && typeof value === 'object' && value !== null && 'message' in value) {
+        return `${key}="${(value as { message: string }).message}"`;
       }
       
       // Format based on value type
@@ -102,7 +98,7 @@ function formatLog(log: LogObject): string {
   }
 
   // Handle error stack traces
-  if (log.err && log.err.stack) {
+  if (log.err && typeof log.err === 'object' && 'stack' in log.err && log.err.stack) {
     formatted += `\n${log.err.stack}`;
   }
 
