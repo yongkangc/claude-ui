@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 CUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
 - TypeScript Express backend that manages Claude CLI processes
 - React frontend with TUI-inspired design
-- Single-port architecture using vite-express (port 3001)
+- Single-port architecture (port 3001)
+  - Development: Uses vite-express for hot reloading
+  - Production: Serves pre-built static files from dist/web
 - Real-time streaming of Claude responses via newline-delimited JSON
 - MCP (Model Context Protocol) integration for permission management
 
