@@ -140,8 +140,9 @@ describe('CUIServer', () => {
 
   // Helper function to generate random test ports in a safe range
   const generateTestPort = () => {
-    // Use high port numbers (9000-9999) to avoid conflicts with common services
-    return 9000 + Math.floor(Math.random() * 1000);
+    // Use high port numbers (10000-59999) to avoid conflicts with common services
+    // and increase range to reduce collision probability
+    return 10000 + Math.floor(Math.random() * 50000);
   };
 
   // Helper function to create server instances for tests
@@ -530,9 +531,24 @@ describe('CUIServer', () => {
     let server: CUIServer;
 
     beforeEach(async () => {
-      server = createTestServer();
-      await server.start();
-      app = (server as any).app;
+      // Try to start server with retry on port conflict
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          server = createTestServer();
+          await server.start();
+          app = (server as any).app;
+          break;
+        } catch (error: any) {
+          if (error.message?.includes('EADDRINUSE') && retries > 1) {
+            retries--;
+            // Wait a bit before retry
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } else {
+            throw error;
+          }
+        }
+      }
       
       // Set up method spies on the actual instances
       jest.spyOn((server as any).processManager, 'getActiveSessions').mockReturnValue([]);

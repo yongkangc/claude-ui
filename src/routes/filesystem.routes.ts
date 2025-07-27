@@ -6,6 +6,7 @@ import {
   FileSystemReadQuery,
   FileSystemReadResponse 
 } from '@/types';
+import { RequestWithRequestId } from '@/types/express';
 import { FileSystemService } from '@/services/file-system-service';
 import { createLogger } from '@/services/logger';
 
@@ -16,8 +17,8 @@ export function createFileSystemRoutes(
   const logger = createLogger('FileSystemRoutes');
 
   // List directory contents
-  router.get('/list', async (req: Request<Record<string, never>, FileSystemListResponse, Record<string, never>, FileSystemListQuery>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/list', async (req: Request<Record<string, never>, FileSystemListResponse, Record<string, never>, FileSystemListQuery> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('List directory request', {
       requestId,
       path: req.query.path,
@@ -55,8 +56,8 @@ export function createFileSystemRoutes(
   });
 
   // Read file contents
-  router.get('/read', async (req: Request<Record<string, never>, FileSystemReadResponse, Record<string, never>, FileSystemReadQuery>, res, next) => {
-    const requestId = (req as any).requestId;
+  router.get('/read', async (req: Request<Record<string, never>, FileSystemReadResponse, Record<string, never>, FileSystemReadQuery> & RequestWithRequestId, res, next) => {
+    const requestId = req.requestId;
     logger.debug('Read file request', {
       requestId,
       path: req.query.path

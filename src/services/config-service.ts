@@ -160,6 +160,7 @@ export class ConfigService {
    * Reset singleton instance (for testing)
    */
   static resetInstance(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ConfigService.instance = null as any;
   }
 }

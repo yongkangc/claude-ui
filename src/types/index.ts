@@ -92,10 +92,10 @@ export interface PermissionRequest {
   id: string;
   streamingId: string; // CUI's internal streaming identifier
   toolName: string;
-  toolInput: Record<string, any>;
+  toolInput: Record<string, unknown>;
   timestamp: string;
   status: 'pending' | 'approved' | 'denied';
-  modifiedInput?: Record<string, any>;
+  modifiedInput?: Record<string, unknown>;
   denyReason?: string;
 }
 
@@ -163,7 +163,7 @@ export interface ConversationDetailsResponse {
 
 export interface PermissionDecisionRequest {
   action: 'approve' | 'deny';
-  modifiedInput?: Record<string, any>;
+  modifiedInput?: Record<string, unknown>;
   denyReason?: string;
 }
 

@@ -1,11 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { CUIError } from '@/types';
 import { createLogger } from '@/services/logger';
+import { RequestWithRequestId } from '@/types/express';
 
 const logger = createLogger('ErrorHandler');
 
-export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
-  const requestId = (req as any).requestId || 'unknown';
+export function errorHandler(err: Error, req: RequestWithRequestId, res: Response, _next: NextFunction): void {
+  const requestId = req.requestId || 'unknown';
   
   if (err instanceof CUIError) {
     logger.warn('CUIError in request', {

@@ -108,3 +108,7 @@ Sessions are automatically migrated to include these fields when the schema vers
 
 - Do not run npm run dev to verify frontend update
 - Before running test for the first time, run `npm run build` to build the backend and frontend, especially it build the mcp executable. Other wise the test will fail with Error: MCP tool mcp__cui-permissions__approval_prompt (passed via --permission-prompt-tool) not found.
+
+## Best Practices
+
+- Use strict typing. Avoid any, undefined, unknown type as much as possible

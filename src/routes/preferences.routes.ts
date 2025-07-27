@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { Preferences } from '@/types';
 import { PreferencesService } from '@/services/preferences-service';
 import { createLogger } from '@/services/logger';
@@ -17,7 +17,7 @@ export function createPreferencesRoutes(service: PreferencesService): Router {
     }
   });
 
-  router.put('/', async (req: { body: Partial<Preferences> } & any, res, next) => {
+  router.put('/', async (req: Request<Record<string, never>, unknown, Partial<Preferences>>, res, next) => {
     try {
       const updated = await service.updatePreferences(req.body);
       res.json(updated);

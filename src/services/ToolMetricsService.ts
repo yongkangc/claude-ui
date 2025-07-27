@@ -25,6 +25,7 @@ export class ToolMetricsService extends EventEmitter {
       this.logger.debug('Received claude-message in ToolMetricsService', {
         streamingId,
         messageType: message?.type,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sessionId: (message as any)?.session_id
       });
       this.handleClaudeMessage(streamingId, message);
@@ -91,6 +92,7 @@ export class ToolMetricsService extends EventEmitter {
    */
   private processToolUse(sessionId: string, toolUse: Anthropic.ToolUseBlock): void {
     const toolName = toolUse.name;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const input = toolUse.input as Record<string, any>;
 
     this.logger.debug('Processing tool use', {
@@ -148,6 +150,7 @@ export class ToolMetricsService extends EventEmitter {
   /**
    * Calculate line diff for an edit operation using proper diff algorithm
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private calculateEditLineDiff(input: Record<string, any>, metrics: ToolMetrics): void {
     const oldString = input.old_string as string;
     const newString = input.new_string as string;
@@ -234,6 +237,7 @@ export class ToolMetricsService extends EventEmitter {
    */
   private processToolUseForMetrics(toolUse: Anthropic.ToolUseBlock, metrics: ToolMetrics): void {
     const toolName = toolUse.name;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const input = toolUse.input as Record<string, any>;
 
     if (toolName === 'Edit' || toolName === 'MultiEdit') {
