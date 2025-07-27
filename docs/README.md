@@ -1,6 +1,6 @@
-# CUI
+# cui
 
-A web UI for agents powered by [Claude Code](https://claude.ai/code).
+A web UI for agents powered by [Claude Code](https://claude.ai/code). Start the server and access claude code anywhere in your browser.
 
 <div align="center">
   <img src="assets/demo.gif" alt="Demo" width="100%">

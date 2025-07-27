@@ -114,3 +114,7 @@ Sessions are automatically migrated to include these fields when the schema vers
 ## Best Practices
 
 - Use strict typing. Avoid any, undefined, unknown type as much as possible
+
+## Project Memories
+
+- Migration is not needed for project at this stage
