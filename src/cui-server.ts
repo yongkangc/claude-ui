@@ -5,7 +5,6 @@ import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
-import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
 import { PreferencesService } from './services/preferences-service';
@@ -32,7 +31,7 @@ import { createCorsMiddleware } from './middleware/cors-setup';
 import { queryParser } from './middleware/query-parser';
 
 // Conditionally import ViteExpress only in non-test environments
-let ViteExpress: any;
+let ViteExpress: typeof import('vite-express') | undefined;
 if (process.env.NODE_ENV !== 'test') {
   ViteExpress = require('vite-express');
 }
@@ -163,7 +162,6 @@ export class CUIServer {
           try {
             // ViteExpress.listen returns a promise in newer versions
             this.server = this.app.listen(this.port, this.host, () => {
-              this.logger.info(`CUI server with Vite running on ${this.host}:${this.port}`);
               this.logger.debug('Server successfully bound to port', {
                 port: this.port,
                 host: this.host,
@@ -238,18 +236,10 @@ export class CUIServer {
     
     // Stop accepting new connections
     if (this.server) {
-      this.logger.debug('Closing HTTP server');
-      await new Promise<void>((resolve, reject) => {
-        this.server!.close((error) => {
-          if (error) {
-            this.logger.error('Error closing HTTP server:', error);
-            reject(error);
-          } else {
-            this.logger.info('HTTP server closed');
-            resolve();
-          }
-        });
-      });
+      // Since Node v18.2.0, closeAllConnections is available to close all connections.
+      if (typeof this.server.closeAllConnections === 'function') {
+        this.server.closeAllConnections();
+      }
     }
     
     // Stop all active Claude processes
