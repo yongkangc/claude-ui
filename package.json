@@ -1,10 +1,10 @@
 {
   "name": "cui-server",
-  "version": "0.2",
-  "description": "Web UI Server for Claude CLI - Interactive browser interface for Claude Code",
+  "version": "0.2.0",
+  "description": "Web UI Agent Platform based on Claude Code",
   "main": "dist/cui-server.js",
   "bin": {
-    "cui-server": "dist/server/index.js"
+    "cui-server": "dist/server.js"
   },
   "files": [
     "dist/**/*",
@@ -12,22 +12,22 @@
   ],
   "keywords": [
     "claude",
-    "claude-cli",
     "claude-code",
     "ai",
     "web-ui",
-    "anthropic"
+    "agent",
+    "mcp"
   ],
   "author": "Wenbo Pan",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ccui.git"
+    "url": "https://github.com/bmpixel/cui.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/ccui/issues"
+    "url": "https://github.com/bmpixel/cui/issues"
   },
-  "homepage": "https://github.com/yourusername/ccui#readme",
+  "homepage": "https://github.com/bmpixel/cui#readme",
   "engines": {
     "node": ">=18.0.0"
   },

@@ -83,7 +83,7 @@ Control Claude's behavior during an interactive session:
 | `/logout`                 | Sign out from your Anthropic account                                  |
 | `/memory`                 | Edit CLAUDE.md memory files                                           |
 | `/model`                  | Select or change the AI model                                         |
-| `/permissions`            | View or update [permissions](../settings#permissions)                    |
+| `/permissions`            | View or update [permissions](./settings#permissions)                    |
 | `/pr_comments`            | View pull request comments                                            |
 | `/review`                 | Request code review                                                   |
 | `/status`                 | View account and system statuses                                      |
