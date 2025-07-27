@@ -26,15 +26,6 @@ export function Header() {
 
           {/* Navigation */}
           <nav className={styles.navMenu}>
-            <div className={styles.navItems}>
-              <a href="#" className={styles.navLink}>
-                Environments
-              </a>
-              <a href="#" className={styles.navLink} target="_blank" rel="noopener">
-                Docs
-              </a>
-            </div>
-
             {/* Settings Button */}
             <button className={styles.settingButton} aria-label="Open Settings" onClick={() => setShowPrefs(true)}>
               <Settings size={18} />
