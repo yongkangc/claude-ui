@@ -223,7 +223,7 @@ export class ConversationCache {
 
     // If already parsing, wait for it to complete
     if (this.parsingPromise) {
-      this.logger.info('Parsing already in progress, waiting for completion');
+      this.logger.debug('Parsing already in progress, waiting for completion');
       try {
         const result = await this.parsingPromise;
         this.logger.debug('Concurrent parsing completed, returning result', {
@@ -236,11 +236,6 @@ export class ConversationCache {
         this.parsingPromise = null;
       }
     }
-
-    // Start new parsing operation with file-level caching
-    this.logger.info('Starting parsing operation with file-level caching', {
-      fileCount: currentFileModTimes.size
-    });
 
     this.parsingPromise = this.executeFileBasedParsing(
       currentFileModTimes,
@@ -283,7 +278,7 @@ export class ConversationCache {
     const conversations = processAllEntries(allEntries);
     const parseElapsed = Date.now() - parseStartTime;
 
-    this.logger.info('File-based parsing completed', {
+    this.logger.debug('File-based parsing completed', {
       conversationCount: conversations.length,
       totalEntries: allEntries.length,
       parseElapsedMs: parseElapsed

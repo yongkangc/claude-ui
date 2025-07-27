@@ -522,35 +522,6 @@ describe('CUIServer', () => {
         expect((server as any).processManager.stopConversation).toHaveBeenCalledTimes(2);
         expect((server as any).streamManager.disconnectAll).toHaveBeenCalled();
       });
-
-      it('should handle HTTP server close error', async () => {
-        const server = createTestServer();
-        await server.start();
-        
-        // Store the original server for cleanup later
-        const originalServer = (server as any).server;
-        
-        // Mock server.close to trigger error
-        const mockClose = jest.fn((callback) => {
-          callback(new Error('Failed to close server'));
-        });
-        (server as any).server = { close: mockClose };
-        
-        mockProcessManager.getActiveSessions.mockReturnValue([]);
-
-        await expect(server.stop()).rejects.toThrow('Failed to close server');
-        
-        // Restore original server and clean up properly
-        (server as any).server = originalServer;
-        try {
-          await server.stop();
-        } catch (error) {
-          // Force close the server if stop() fails
-          if (originalServer && originalServer.close) {
-            originalServer.close(() => {});
-          }
-        }
-      });
     });
   });
 

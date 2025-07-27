@@ -1,3 +1,0 @@
-Please implement a resume conversation api endpoint. Firt read cc-workfiles/knowledge/claude-code-sdk.md we can see cc use --resume to continue an conversation with given session id. Please implement a api endpoint `resume` just like the start/get conversation api endpoint. With session id and message as input, returning the streaming.
-
-First research and think for the best solution for this. You need to update code, test and claude.md for this feature. You develop in an TDD way, first write test with final test expectation and then implement the code to pass the test.

@@ -1,0 +1,36 @@
+# Source files (TypeScript)
+src/
+tests/
+
+# Development files
+knowledge/
+coverage/
+.husky/
+.github/
+
+# Config files
+tsconfig*.json
+jest.config.js
+vite.config.ts
+knip.json
+.eslintrc*
+.prettierrc*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Mac files
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Other
+*.md
+!README.md
+CLAUDE.md

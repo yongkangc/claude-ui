@@ -222,23 +222,11 @@ export class ClaudeHistoryReader {
         const files = await this.readDirectory(projectPath);
         const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
         
-        if (jsonlFiles.length > 0) {
-          this.logger.debug('Processing project directory', { 
-            project, 
-            jsonlFileCount: jsonlFiles.length 
-          });
-        }
-        
         for (const file of jsonlFiles) {
           const filePath = path.join(projectPath, file);
           try {
             const fileStats = await fs.stat(filePath);
             modTimes.set(filePath, fileStats.mtimeMs);
-            this.logger.debug('Recorded file modification time', {
-              filePath,
-              mtime: new Date(fileStats.mtimeMs).toISOString(),
-              size: fileStats.size
-            });
           } catch (error) {
             this.logger.warn('Failed to stat file', { filePath, error });
           }
@@ -330,7 +318,7 @@ export class ClaudeHistoryReader {
     );
     
     const totalElapsed = Date.now() - startTime;
-    this.logger.info('File-level cached conversation parsing completed', { 
+    this.logger.debug('File-level cached conversation parsing completed', { 
       conversationCount: conversations.length,
       totalElapsedMs: totalElapsed
     });
@@ -343,7 +331,6 @@ export class ClaudeHistoryReader {
    */
   private async parseJsonlFile(filePath: string): Promise<RawJsonEntry[]> {
     try {
-      this.logger.debug('Parsing JSONL file', { filePath });
       const content = await fs.readFile(filePath, 'utf-8');
       const lines = content.split('\n').filter(line => line.trim());
       const entries: RawJsonEntry[] = [];
@@ -360,11 +347,6 @@ export class ClaudeHistoryReader {
           });
         }
       }
-      
-      this.logger.debug('JSONL file parsed successfully', {
-        filePath,
-        entryCount: entries.length
-      });
       
       return entries;
     } catch (error) {

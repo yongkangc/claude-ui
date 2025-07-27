@@ -95,7 +95,7 @@ export class ConversationStatusManager extends EventEmitter {
       });
     }
 
-    this.logger.info('Active session registered', { 
+    this.logger.debug('Active session registered', { 
       streamingId, 
       claudeSessionId,
       totalActiveSessions: this.sessionToStreaming.size,
@@ -129,7 +129,7 @@ export class ConversationStatusManager extends EventEmitter {
 
       this.emit('session-ended', { streamingId, claudeSessionId });
     } else {
-      this.logger.warn('Attempted to unregister unknown streaming session', { streamingId });
+      this.logger.debug('Attempted to unregister unknown streaming session', { streamingId });
     }
   }
 
@@ -150,10 +150,6 @@ export class ConversationStatusManager extends EventEmitter {
    */
   isSessionActive(claudeSessionId: string): boolean {
     const isActive = this.sessionToStreaming.has(claudeSessionId);
-    this.logger.debug('Checking session active status', { 
-      claudeSessionId, 
-      isActive 
-    });
     return isActive;
   }
 
@@ -211,12 +207,6 @@ export class ConversationStatusManager extends EventEmitter {
   getConversationStatus(claudeSessionId: string): 'completed' | 'ongoing' | 'pending' {
     const isActive = this.isSessionActive(claudeSessionId);
     const status = isActive ? 'ongoing' : 'completed';
-    
-    this.logger.debug('Getting conversation status', { 
-      claudeSessionId, 
-      status 
-    });
-    
     return status;
   }
 

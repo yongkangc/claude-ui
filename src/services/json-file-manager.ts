@@ -102,7 +102,6 @@ export class JsonFileManager<T> {
       // Atomic rename (moves temp file to final location)
       await fs.promises.rename(tempPath, this.filePath);
 
-      this.logger.debug('Successfully wrote JSON file', { filePath: this.filePath });
     } catch (error) {
       this.logger.error('Failed to write JSON file', { filePath: this.filePath, error });
       
@@ -162,7 +161,6 @@ export class JsonFileManager<T> {
       try {
         // Try to create lock file exclusively
         await fs.promises.writeFile(this.lockPath, process.pid.toString(), { flag: 'wx' });
-        this.logger.debug('Acquired lock', { lockPath: this.lockPath });
         return;
       } catch (error: unknown) {
         if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'EEXIST') {
@@ -209,7 +207,6 @@ export class JsonFileManager<T> {
     try {
       if (fs.existsSync(this.lockPath)) {
         await fs.promises.unlink(this.lockPath);
-        this.logger.debug('Released lock', { lockPath: this.lockPath });
       }
     } catch (error) {
       this.logger.warn('Failed to release lock', { lockPath: this.lockPath, error });

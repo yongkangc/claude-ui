@@ -5,7 +5,6 @@ import { ClaudeHistoryReader } from './services/claude-history-reader';
 import { PermissionTracker } from './services/permission-tracker';
 import { MCPConfigGenerator } from './services/mcp-config-generator';
 import { FileSystemService } from './services/file-system-service';
-import { logStreamBuffer } from './services/log-stream-buffer';
 import { ConfigService } from './services/config-service';
 import { SessionInfoService } from './services/session-info-service';
 import { PreferencesService } from './services/preferences-service';
@@ -32,7 +31,7 @@ import { createCorsMiddleware } from './middleware/cors-setup';
 import { queryParser } from './middleware/query-parser';
 
 // Conditionally import ViteExpress only in non-test environments
-let ViteExpress: any;
+let ViteExpress: typeof import('vite-express') | undefined;
 if (process.env.NODE_ENV !== 'test') {
   ViteExpress = require('vite-express');
 }
@@ -144,14 +143,12 @@ export class CUIServer {
       this.setupRoutes();
       
       // Generate MCP config before starting server
-      this.logger.debug('Generating MCP config');
       const mcpConfigPath = this.mcpConfigGenerator.generateConfig(this.port);
       this.processManager.setMCPConfigPath(mcpConfigPath);
-      this.logger.info('MCP config generated and set', { path: mcpConfigPath });
+      this.logger.debug('MCP config generated and set', { path: mcpConfigPath });
 
       // Start Express server
       const isTestEnv = process.env.NODE_ENV === 'test';
-      this.logger.info(`Starting HTTP server${!isTestEnv ? ' with Vite' : ''} on ${this.host}:${this.port}...`);
       this.logger.debug('Creating HTTP server listener', { 
         useViteExpress: !isTestEnv,
         environment: process.env.NODE_ENV 
@@ -163,7 +160,6 @@ export class CUIServer {
           try {
             // ViteExpress.listen returns a promise in newer versions
             this.server = this.app.listen(this.port, this.host, () => {
-              this.logger.info(`CUI server with Vite running on ${this.host}:${this.port}`);
               this.logger.debug('Server successfully bound to port', {
                 port: this.port,
                 host: this.host,
@@ -207,7 +203,7 @@ export class CUIServer {
           });
         }
       });
-      this.logger.debug('Server start successful');
+      this.logger.info(`cui server started on http://${this.host}:${this.port}`);
     } catch (error) {
       this.logger.error('Failed to start server:', error, {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
@@ -229,7 +225,6 @@ export class CUIServer {
    * Stop the server gracefully
    */
   async stop(): Promise<void> {
-    this.logger.info('Starting graceful shutdown...');
     this.logger.debug('Stop method called', {
       hasServer: !!this.server,
       activeSessions: this.processManager.getActiveSessions().length,
@@ -238,18 +233,10 @@ export class CUIServer {
     
     // Stop accepting new connections
     if (this.server) {
-      this.logger.debug('Closing HTTP server');
-      await new Promise<void>((resolve, reject) => {
-        this.server!.close((error) => {
-          if (error) {
-            this.logger.error('Error closing HTTP server:', error);
-            reject(error);
-          } else {
-            this.logger.info('HTTP server closed');
-            resolve();
-          }
-        });
-      });
+      // Since Node v18.2.0, closeAllConnections is available to close all connections.
+      if (typeof this.server.closeAllConnections === 'function') {
+        this.server.closeAllConnections();
+      }
     }
     
     // Stop all active Claude processes
@@ -279,8 +266,6 @@ export class CUIServer {
     // Clean up MCP config
     this.logger.debug('Cleaning up MCP config');
     this.mcpConfigGenerator.cleanup();
-    
-    this.logger.info('Graceful shutdown complete');
   }
 
   /**

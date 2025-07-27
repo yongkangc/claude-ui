@@ -49,11 +49,6 @@ export class ConfigService {
 
       // Load and validate config
       await this.loadConfig();
-      
-      this.logger.info('Configuration initialized successfully', {
-        machineId: this.config?.machine_id,
-        serverPort: this.config?.server.port
-      });
     } catch (error) {
       this.logger.error('Failed to initialize configuration', error);
       throw new Error(`Configuration initialization failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -127,7 +122,7 @@ export class ConfigService {
       }
 
       this.config = config;
-      this.logger.debug('Configuration loaded', { config });
+      this.logger.debug('Configuration:', { config });
     } catch (error) {
       throw new Error(`Failed to load config: ${error instanceof Error ? error.message : String(error)}`);
     }
