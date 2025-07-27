@@ -1,6 +1,6 @@
 {
   "name": "cui-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Web UI Agent Platform based on Claude Code",
   "main": "dist/cui-server.js",
   "bin": {
