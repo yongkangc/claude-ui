@@ -8,7 +8,8 @@
   },
   "files": [
     "dist/**/*",
-    "config/**/*"
+    "config/**/*",
+    "scripts/postinstall.js"
   ],
   "keywords": [
     "claude",
@@ -46,7 +47,8 @@
     "test:leaks": "jest --detectOpenHandles --forceExit",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",
