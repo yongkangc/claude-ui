@@ -706,4 +706,368 @@ describe('SessionInfoService', () => {
       expect(sessionInfo.custom_name).toBe('Test Name');
     });
   });
+
+  describe('schema migrations', () => {
+    it('should create missing metadata', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Create database file without metadata
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      fs.writeFileSync(dbPath, JSON.stringify({
+        sessions: {
+          'test-session': {
+            custom_name: 'Test Session',
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            version: 1
+          }
+        }
+        // Note: no metadata field
+      }));
+      
+      await service.initialize();
+      
+      // Verify metadata was created
+      const dbContent = fs.readFileSync(dbPath, 'utf-8');
+      const dbData = JSON.parse(dbContent);
+      
+      expect(dbData.metadata).toBeDefined();
+      expect(dbData.metadata.schema_version).toBe(3);
+      expect(dbData.metadata.created_at).toBeDefined();
+      expect(dbData.metadata.last_updated).toBeDefined();
+    });
+
+    it('should migrate from schema version 1 to 3', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Create database file with schema version 1
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      fs.writeFileSync(dbPath, JSON.stringify({
+        sessions: {
+          'session-1': {
+            custom_name: 'Session 1',
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            version: 1
+          },
+          'session-2': {
+            custom_name: 'Session 2',
+            created_at: '2024-01-02T00:00:00.000Z',
+            updated_at: '2024-01-02T00:00:00.000Z',
+            version: 1
+          }
+        },
+        metadata: {
+          schema_version: 1,
+          created_at: '2024-01-01T00:00:00.000Z',
+          last_updated: '2024-01-01T00:00:00.000Z'
+        }
+      }));
+      
+      await service.initialize();
+      
+      // Verify sessions were migrated
+      const session1 = await service.getSessionInfo('session-1');
+      const session2 = await service.getSessionInfo('session-2');
+      
+      // Check version 2 fields
+      expect(session1.pinned).toBe(false);
+      expect(session1.archived).toBe(false);
+      expect(session1.continuation_session_id).toBe('');
+      expect(session1.initial_commit_head).toBe('');
+      
+      // Check version 3 fields
+      expect(session1.permission_mode).toBe('default');
+      expect(session1.version).toBe(3);
+      
+      expect(session2.pinned).toBe(false);
+      expect(session2.archived).toBe(false);
+      expect(session2.continuation_session_id).toBe('');
+      expect(session2.initial_commit_head).toBe('');
+      expect(session2.permission_mode).toBe('default');
+      expect(session2.version).toBe(3);
+      
+      // Verify metadata was updated
+      const dbContent = fs.readFileSync(dbPath, 'utf-8');
+      const dbData = JSON.parse(dbContent);
+      expect(dbData.metadata.schema_version).toBe(3);
+    });
+
+    it('should migrate from schema version 2 to 3', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Create database file with schema version 2
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      fs.writeFileSync(dbPath, JSON.stringify({
+        sessions: {
+          'session-1': {
+            custom_name: 'Session 1',
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            version: 2,
+            pinned: true,
+            archived: false,
+            continuation_session_id: 'next-session',
+            initial_commit_head: 'abc123'
+          }
+        },
+        metadata: {
+          schema_version: 2,
+          created_at: '2024-01-01T00:00:00.000Z',
+          last_updated: '2024-01-01T00:00:00.000Z'
+        }
+      }));
+      
+      await service.initialize();
+      
+      // Verify session was migrated
+      const session1 = await service.getSessionInfo('session-1');
+      
+      // Version 2 fields should be preserved
+      expect(session1.pinned).toBe(true);
+      expect(session1.archived).toBe(false);
+      expect(session1.continuation_session_id).toBe('next-session');
+      expect(session1.initial_commit_head).toBe('abc123');
+      
+      // Version 3 fields should be added
+      expect(session1.permission_mode).toBe('default');
+      expect(session1.version).toBe(3);
+      
+      // Verify metadata was updated
+      const dbContent = fs.readFileSync(dbPath, 'utf-8');
+      const dbData = JSON.parse(dbContent);
+      expect(dbData.metadata.schema_version).toBe(3);
+    });
+
+    it('should handle migration errors gracefully', async () => {
+      const service = SessionInfoService.getInstance();
+      
+      // Create database file with schema version 1
+      const dbPath = path.join(testConfigDir, '.cui', 'session-info.json');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      fs.writeFileSync(dbPath, JSON.stringify({
+        sessions: {},
+        metadata: {
+          schema_version: 1,
+          created_at: '2024-01-01T00:00:00.000Z',
+          last_updated: '2024-01-01T00:00:00.000Z'
+        }
+      }));
+      
+      // Mock update to throw error during migration
+      const mockError = new Error('Migration error');
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(mockError);
+      
+      // Initialize should throw the migration error
+      await expect(service.initialize()).rejects.toThrow('Session info database initialization failed: Migration error');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('getStats with file system errors', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should handle stat error when file does not exist', async () => {
+      // Mock statSync to throw error (file doesn't exist)
+      jest.spyOn(fs, 'statSync').mockImplementation(() => {
+        throw new Error('ENOENT: no such file or directory');
+      });
+      
+      const stats = await service.getStats();
+      
+      expect(stats.sessionCount).toBe(0);
+      expect(stats.dbSize).toBe(0); // Should be 0 when stat fails
+      expect(stats.lastUpdated).toBeDefined();
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
+
+  describe('testing helper methods', () => {
+    it('should reinitialize paths after mocking homedir', () => {
+      const service = SessionInfoService.getInstance();
+      const originalDbPath = service.getDbPath();
+      const originalConfigDir = service.getConfigDir();
+      
+      // Mock homedir to a different path
+      const newTestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cui-new-test-'));
+      jest.spyOn(os, 'homedir').mockReturnValue(newTestDir);
+      
+      // Reinitialize paths
+      service.reinitializePaths();
+      
+      // Verify paths have changed
+      const newDbPath = service.getDbPath();
+      const newConfigDir = service.getConfigDir();
+      
+      expect(newDbPath).not.toBe(originalDbPath);
+      expect(newConfigDir).not.toBe(originalConfigDir);
+      expect(newDbPath).toContain(newTestDir);
+      expect(newConfigDir).toContain(newTestDir);
+      
+      // Clean up
+      fs.rmSync(newTestDir, { recursive: true, force: true });
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+
+    it('should return correct database and config paths', async () => {
+      const service = SessionInfoService.getInstance();
+      await service.initialize();
+      
+      const dbPath = service.getDbPath();
+      const configDir = service.getConfigDir();
+      
+      expect(dbPath).toBe(path.join(testConfigDir, '.cui', 'session-info.json'));
+      expect(configDir).toBe(path.join(testConfigDir, '.cui'));
+    });
+  });
+
+  describe('concurrent access scenarios', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should handle concurrent updates to the same session', async () => {
+      const sessionId = 'concurrent-session';
+      
+      // Create multiple concurrent update promises
+      const updates = Array(5).fill(0).map((_, index) => 
+        service.updateSessionInfo(sessionId, {
+          custom_name: `Update ${index}`,
+          pinned: index % 2 === 0
+        })
+      );
+      
+      // Wait for all updates to complete
+      const results = await Promise.all(updates);
+      
+      // All updates should succeed
+      expect(results).toHaveLength(5);
+      results.forEach(result => {
+        expect(result).toBeDefined();
+        expect(result.version).toBe(3);
+      });
+      
+      // Final state should be from one of the updates
+      const finalSession = await service.getSessionInfo(sessionId);
+      expect(finalSession.custom_name).toMatch(/^Update \d$/);
+    });
+
+    it('should handle concurrent reads while updating', async () => {
+      const sessionId = 'read-write-session';
+      
+      // Create initial session
+      await service.updateSessionInfo(sessionId, { custom_name: 'Initial' });
+      
+      // Start an update and multiple reads concurrently
+      const updatePromise = service.updateSessionInfo(sessionId, { 
+        custom_name: 'Updated',
+        pinned: true 
+      });
+      
+      const readPromises = Array(3).fill(0).map(() => 
+        service.getSessionInfo(sessionId)
+      );
+      
+      // Wait for all operations
+      const [updateResult, ...readResults] = await Promise.all([
+        updatePromise,
+        ...readPromises
+      ]);
+      
+      // Update should succeed
+      expect(updateResult.custom_name).toBe('Updated');
+      expect(updateResult.pinned).toBe(true);
+      
+      // Reads should return either old or new state (both are valid during concurrent access)
+      readResults.forEach(result => {
+        expect(['Initial', 'Updated']).toContain(result.custom_name);
+        expect([false, true]).toContain(result.pinned);
+      });
+    });
+  });
+
+  describe('file system error handling', () => {
+    let service: SessionInfoService;
+
+    beforeEach(async () => {
+      service = SessionInfoService.getInstance();
+      await service.initialize();
+    });
+
+    it('should handle read errors during getSessionInfo', async () => {
+      const sessionId = 'error-session';
+      
+      // Create a session first
+      await service.updateSessionInfo(sessionId, { custom_name: 'Test' });
+      
+      // Mock read to fail
+      jest.spyOn(service['jsonManager'], 'read').mockRejectedValue(new Error('Read failed'));
+      
+      // Should return defaults on error
+      const sessionInfo = await service.getSessionInfo(sessionId);
+      
+      expect(sessionInfo.custom_name).toBe('');
+      expect(sessionInfo.version).toBe(3);
+      expect(sessionInfo.pinned).toBe(false);
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+
+    it('should handle write errors during updateSessionInfo', async () => {
+      const sessionId = 'write-error-session';
+      
+      // Mock update to fail
+      jest.spyOn(service['jsonManager'], 'update').mockRejectedValue(new Error('Write failed'));
+      
+      // Should throw error
+      await expect(
+        service.updateSessionInfo(sessionId, { custom_name: 'Test' })
+      ).rejects.toThrow('Failed to update session info: Write failed');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+
+    it('should handle permission errors during initialization', async () => {
+      // Reset service
+      SessionInfoService.resetInstance();
+      const freshService = SessionInfoService.getInstance();
+      
+      // Mock existsSync to return false so mkdirSync is called
+      jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      
+      // Mock mkdirSync to fail with permission error
+      jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {
+        throw new Error('EACCES: permission denied');
+      });
+      
+      // Should throw initialization error
+      await expect(freshService.initialize()).rejects.toThrow('Session info database initialization failed: EACCES: permission denied');
+      
+      // Restore mock
+      jest.restoreAllMocks();
+      jest.spyOn(os, 'homedir').mockReturnValue(testConfigDir);
+    });
+  });
 });
