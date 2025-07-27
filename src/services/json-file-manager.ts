@@ -176,17 +176,17 @@ export class JsonFileManager<T> {
               await new Promise(resolve => setTimeout(resolve, 100));
               retries++;
               continue;
-            } catch (processError) {
+            } catch (_processError) {
               // Process doesn't exist, remove stale lock
               await fs.promises.unlink(this.lockPath);
               this.logger.debug('Removed stale lock', { lockPath: this.lockPath });
               continue;
             }
-          } catch (readError) {
+          } catch (_readError) {
             // Can't read lock file, remove it
             try {
               await fs.promises.unlink(this.lockPath);
-            } catch (unlinkError) {
+            } catch (_unlinkError) {
               // Ignore unlink errors
             }
             continue;

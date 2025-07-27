@@ -39,7 +39,7 @@ export class LogFormatter extends Transform {
           const log: LogObject = JSON.parse(logLine);
           const formatted = formatLog(log);
           callback(null, formatted + '\n');
-        } catch (err) {
+        } catch (_err) {
           // If we can't parse it, pass it through as-is
           callback(null, chunk);
         }

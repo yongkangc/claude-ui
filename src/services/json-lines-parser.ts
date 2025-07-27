@@ -24,7 +24,7 @@ export class JsonLinesParser extends Transform {
         try {
           const parsed = JSON.parse(line);
           this.push(parsed);
-        } catch (error) {
+        } catch (_error) {
           this.emit('error', new Error(`Invalid JSON: ${line}`));
         }
       }
@@ -39,7 +39,7 @@ export class JsonLinesParser extends Transform {
       try {
         const parsed = JSON.parse(this.buffer);
         this.push(parsed);
-      } catch (error) {
+      } catch (_error) {
         this.emit('error', new Error(`Invalid JSON: ${this.buffer}`));
       }
     }

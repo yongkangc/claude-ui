@@ -113,7 +113,7 @@ async function getSystemStatus(
       configPath: historyReader.homePath,
       activeConversations: processManager.getActiveSessions().length
     };
-  } catch (error) {
+  } catch (_error) {
     throw new CUIError('SYSTEM_STATUS_ERROR', 'Failed to get system status', 500);
   }
 }

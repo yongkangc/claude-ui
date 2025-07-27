@@ -259,7 +259,7 @@ export class SessionInfoService {
       try {
         const stats = fs.statSync(this.dbPath);
         dbSize = stats.size;
-      } catch (statError) {
+      } catch (_statError) {
         // File might not exist yet
         dbSize = 0;
       }

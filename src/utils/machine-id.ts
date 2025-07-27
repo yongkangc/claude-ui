@@ -37,7 +37,7 @@ async function getPrimaryMacAddress(): Promise<string> {
     }
     
     return mac;
-  } catch (error) {
+  } catch (_error) {
     // Fallback: Use os.networkInterfaces()
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {

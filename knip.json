@@ -1,9 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "entry": [
-    "src/server.ts",
-    "src/web/main.tsx",
-    "src/mcp-server/index.ts"
+    "src/web/main.tsx"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
@@ -18,10 +16,7 @@
   ],
   "ignoreDependencies": [
     "@anthropic-ai/claude-code",
-    "@types/eventsource",
-    "@types/react",
-    "@types/react-dom",
-    "@types/prismjs"
+    "@types/eventsource"
   ],
   "ignoreExportsUsedInFile": true,
   "includeEntryExports": true,

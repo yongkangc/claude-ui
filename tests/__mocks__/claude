@@ -5,7 +5,7 @@
  * Simulates the real Claude CLI streaming JSONL output format
  */
 
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 function generateSessionId() {
   return crypto.randomUUID();
