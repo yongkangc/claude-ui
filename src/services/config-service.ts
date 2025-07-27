@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 import { CUIConfig, DEFAULT_CONFIG } from '@/types/config';
 import { generateMachineId } from '@/utils/machine-id';
 import { createLogger, type Logger } from './logger';
@@ -83,9 +84,14 @@ export class ConfigService {
       const machineId = await generateMachineId();
       this.logger.debug('Generated machine ID', { machineId });
 
+      // Generate crypto-secure auth token
+      const authToken = crypto.randomBytes(16).toString('hex'); // 32 character hex string
+      this.logger.debug('Generated auth token', { tokenLength: authToken.length });
+
       // Create default config
       const config: CUIConfig = {
         machine_id: machineId,
+        authToken,
         ...DEFAULT_CONFIG
       };
 
@@ -120,9 +126,12 @@ export class ConfigService {
       if (!config.server || typeof config.server.port !== 'number') {
         throw new Error('Invalid config: missing or invalid server configuration');
       }
+      if (!config.authToken) {
+        throw new Error('Invalid config: missing authToken');
+      }
 
       this.config = config;
-      this.logger.debug('Configuration:', { config });
+      this.logger.debug('Configuration loaded successfully');
     } catch (error) {
       throw new Error(`Failed to load config: ${error instanceof Error ? error.message : String(error)}`);
     }

@@ -30,6 +30,7 @@ import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
 import { queryParser } from './middleware/query-parser';
+import { authMiddleware } from './middleware/auth';
 
 // Conditionally import ViteExpress only in development environment
 let ViteExpress: typeof import('vite-express') | undefined;
@@ -183,7 +184,6 @@ export class CUIServer {
         } else {
           // Production/test mode - regular Express server
           this.server = this.app.listen(this.port, this.host, () => {
-            this.logger.info(`CUI server running on http://${this.host}:${this.port}`);
             this.logger.debug('Server successfully bound to port', {
               port: this.port,
               host: this.host,
@@ -206,7 +206,10 @@ export class CUIServer {
           });
         }
       });
+      // Display auth URL with token fragment
+      const authUrl = `http://${this.host}:${this.port}#token=${config.authToken}`;
       this.logger.info(`cui server started on http://${this.host}:${this.port}`);
+      this.logger.info(`Access with auth token: ${authUrl}`);
     } catch (error) {
       this.logger.error('Failed to start server:', error, {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
@@ -337,9 +340,12 @@ export class CUIServer {
   }
 
   private setupRoutes(): void {
-    // System routes (includes health check)
+    // System routes (includes health check) - before auth
     this.app.use('/api/system', createSystemRoutes(this.processManager, this.historyReader));
     this.app.use('/', createSystemRoutes(this.processManager, this.historyReader)); // For /health at root
+    
+    // Apply auth middleware to all other API routes
+    this.app.use('/api', authMiddleware);
     
     // API routes
     this.app.use('/api/conversations', createConversationRoutes(

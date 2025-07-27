@@ -12,6 +12,7 @@ import type {
   FileSystemListResponse,
 } from '../types';
 import type { CommandsResponse } from '@/types';
+import { getAuthToken } from '../../hooks/useAuth';
 
 class ApiService {
   private baseUrl = '';
@@ -26,13 +27,22 @@ class ApiService {
     // Log request
     console.log(`[API] ${method} ${fullUrl}`, options?.body ? JSON.parse(options.body as string) : '');
     
+    // Get auth token for Bearer authorization
+    const authToken = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    };
+    
+    // Add Bearer token if available
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+    
     try {
       const response = await fetch(fullUrl, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
+        headers,
       });
 
       const data = await response.json();
@@ -41,6 +51,9 @@ class ApiService {
       console.log(`[API Response] ${fullUrl}:`, data);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized');
+        }
         throw new Error((data as ApiError).error || `HTTP ${response.status}`);
       }
 

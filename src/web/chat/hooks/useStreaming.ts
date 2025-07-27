@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { StreamEvent } from '../types';
+import { getAuthToken } from '../../hooks/useAuth';
 
 interface UseStreamingOptions {
   onMessage: (event: StreamEvent) => void;
@@ -56,8 +57,18 @@ export function useStreaming(
     try {
       abortControllerRef.current = new AbortController();
       
+      // Get auth token for Bearer authorization
+      const authToken = getAuthToken();
+      const headers: Record<string, string> = {};
+      
+      // Add Bearer token if available
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+      
       const response = await fetch(`/api/stream/${streamingId}`, {
         signal: abortControllerRef.current.signal,
+        headers,
       });
 
       if (!response.ok) {

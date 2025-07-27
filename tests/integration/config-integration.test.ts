@@ -63,8 +63,10 @@ describe('Configuration System Basic Integration', () => {
       
       expect(config).toHaveProperty('machine_id');
       expect(config).toHaveProperty('server');
+      expect(config).toHaveProperty('authToken');
       expect(config.server).toHaveProperty('host', 'localhost');
       expect(config.server).toHaveProperty('port', 3001);
+      expect(config.authToken).toMatch(/^[a-f0-9]{32}$/);
     });
 
     it('should load existing config file if it exists', async () => {
@@ -74,6 +76,7 @@ describe('Configuration System Basic Integration', () => {
       
       const existingConfig: CUIConfig = {
         machine_id: 'test-machine-12345678',
+        authToken: 'abcd1234567890abcdef1234567890ab',
         server: {
           host: '127.0.0.1',
           port: 4000
@@ -91,6 +94,7 @@ describe('Configuration System Basic Integration', () => {
       const loadedConfig = configService.getConfig();
       
       expect(loadedConfig.machine_id).toBe('test-machine-12345678');
+      expect(loadedConfig.authToken).toBe('abcd1234567890abcdef1234567890ab');
       expect(loadedConfig.server.host).toBe('127.0.0.1');
       expect(loadedConfig.server.port).toBe(4000);
     });
@@ -180,7 +184,7 @@ describe('Configuration System Basic Integration', () => {
       
       fs.writeFileSync(
         path.join(cuiDir, 'config.json'), 
-        JSON.stringify({ machine_id: 'test' }) // Missing server
+        JSON.stringify({ machine_id: 'test' }) // Missing server and authToken
       );
       
       const configService = ConfigService.getInstance();
@@ -200,6 +204,8 @@ describe('Configuration System Basic Integration', () => {
       expect(config.server.port).toBe(3001);
       expect(config.machine_id).toBeDefined();
       expect(config.machine_id).toMatch(/^[a-z0-9\-]+\-[a-f0-9]{8}$/);
+      expect(config.authToken).toBeDefined();
+      expect(config.authToken).toMatch(/^[a-f0-9]{32}$/);
     });
 
     it('should generate machine ID with correct hostname prefix', async () => {

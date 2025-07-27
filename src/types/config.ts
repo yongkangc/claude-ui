@@ -20,12 +20,17 @@ export interface CUIConfig {
    */
   server: ServerConfig;
 
+  /**
+   * Authentication token for API access
+   * 32-character random string generated on first run
+   */
+  authToken: string;
 }
 
 /**
  * Default configuration values
  */
-export const DEFAULT_CONFIG: Omit<CUIConfig, 'machine_id'> = {
+export const DEFAULT_CONFIG: Omit<CUIConfig, 'machine_id' | 'authToken'> = {
   server: {
     host: 'localhost',
     port: 3001
