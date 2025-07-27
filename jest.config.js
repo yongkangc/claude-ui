@@ -9,6 +9,16 @@ module.exports = {
     '!src/index.ts',
     '!src/web/**/*'
   ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html', 'json'],
+  coverageThreshold: {
+    global: {
+      lines: 75,
+      functions: 80,
+      branches: 60,
+      statements: 75
+    }
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@modelcontextprotocol/sdk/server/index.js$': '<rootDir>/tests/__mocks__/mcp-server-mock.ts',
