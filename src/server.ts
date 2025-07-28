@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { CUIServer } from './cui-server';
 import { createLogger } from './services/logger';
+import { parseArgs } from './cli-parser';
 
 const logger = createLogger('Server');
 
 async function main() {
-  const server = new CUIServer();
+  const cliConfig = parseArgs(process.argv);
+  const server = new CUIServer(cliConfig);
   
   try {
     await server.start();

@@ -62,11 +62,26 @@ function recordFailedAttempt(ip: string): void {
 }
 
 /**
+ * Creates authentication middleware for API endpoints
+ * @param tokenOverride - Optional token to use instead of config token
+ * @returns Express middleware function
+ */
+export function createAuthMiddleware(tokenOverride?: string): (req: Request, res: Response, next: NextFunction) => void {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    authMiddlewareImpl(req, res, next, tokenOverride);
+  };
+}
+
+/**
  * Authentication middleware for API endpoints
  * Validates Bearer token against config
  * Disabled in test environment unless ENABLE_AUTH_IN_TESTS is set
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+  authMiddlewareImpl(req, res, next);
+}
+
+function authMiddlewareImpl(req: Request, res: Response, next: NextFunction, tokenOverride?: string): void {
   // Skip auth in test environment unless explicitly enabled for auth tests
   if (process.env.NODE_ENV === 'test' && !process.env.ENABLE_AUTH_IN_TESTS) {
     next();
@@ -93,12 +108,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
-    // Get expected token from config
-    const configService = ConfigService.getInstance();
-    const config = configService.getConfig();
+    // Get expected token from config or use override
+    const expectedToken = tokenOverride ?? ConfigService.getInstance().getConfig().authToken;
     
     // Validate token
-    if (token !== config.authToken) {
+    if (token !== expectedToken) {
       recordFailedAttempt(clientIp);
       logger.warn('Invalid auth token', { ip: clientIp });
       res.status(401).json({ error: 'Unauthorized' });

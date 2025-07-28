@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { authMiddleware, clearRateLimitStore } from '@/middleware/auth';
+import { authMiddleware, clearRateLimitStore, createAuthMiddleware } from '@/middleware/auth';
 import { ConfigService } from '@/services/config-service';
 
 describe('Auth Middleware', () => {
@@ -246,6 +246,72 @@ describe('Auth Middleware', () => {
       authMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
       
       expect(mockResponse.status).toHaveBeenCalledWith(429);
+    });
+  });
+  
+  describe('createAuthMiddleware with token override', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'development';
+      clearRateLimitStore();
+    });
+    
+    it('should use provided token instead of config token', () => {
+      const customToken = 'my-custom-token-123';
+      const middleware = createAuthMiddleware(customToken);
+      
+      mockRequest.headers = { authorization: `Bearer ${customToken}` };
+      
+      middleware(mockRequest as Request, mockResponse as Response, mockNext);
+      
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+    
+    it('should reject invalid token when custom token is set', () => {
+      const customToken = 'my-custom-token-123';
+      const middleware = createAuthMiddleware(customToken);
+      
+      mockRequest.headers = { authorization: 'Bearer wrong-token' };
+      
+      middleware(mockRequest as Request, mockResponse as Response, mockNext);
+      
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+    });
+    
+    it('should not call ConfigService when using token override', () => {
+      const customToken = 'my-custom-token-123';
+      const middleware = createAuthMiddleware(customToken);
+      
+      mockRequest.headers = { authorization: `Bearer ${customToken}` };
+      
+      middleware(mockRequest as Request, mockResponse as Response, mockNext);
+      
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockGetConfig).not.toHaveBeenCalled();
+    });
+    
+    it('should apply rate limiting with custom token', () => {
+      const customToken = 'my-custom-token-123';
+      const middleware = createAuthMiddleware(customToken);
+      
+      mockRequest.headers = { authorization: 'Bearer wrong-token' };
+      
+      // Make 10 failed attempts
+      for (let i = 0; i < 10; i++) {
+        middleware(mockRequest as Request, mockResponse as Response, mockNext);
+      }
+      
+      jest.clearAllMocks();
+      
+      // 11th attempt should be rate limited
+      middleware(mockRequest as Request, mockResponse as Response, mockNext);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+      expect(mockResponse.json).toHaveBeenCalledWith({ 
+        error: 'Too many authentication attempts. Try again later.' 
+      });
     });
   });
 });

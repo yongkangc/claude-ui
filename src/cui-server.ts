@@ -22,6 +22,7 @@ import { createConversationRoutes } from './routes/conversation.routes';
 import { createSystemRoutes } from './routes/system.routes';
 import { createPermissionRoutes } from './routes/permission.routes';
 import { createFileSystemRoutes } from './routes/filesystem.routes';
+import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
 import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
 import { createPreferencesRoutes } from './routes/preferences.routes';
@@ -29,7 +30,7 @@ import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
 import { queryParser } from './middleware/query-parser';
-import { authMiddleware } from './middleware/auth';
+import { authMiddleware, createAuthMiddleware } from './middleware/auth';
 
 // Conditionally import ViteExpress only in development environment
 let ViteExpress: typeof import('vite-express') | undefined;
@@ -59,9 +60,9 @@ export class CUIServer {
   private logger: Logger;
   private port: number;
   private host: string;
-  private configOverrides?: { port?: number; host?: string };
+  private configOverrides?: { port?: number; host?: string; token?: string; skipAuthToken?: boolean };
 
-  constructor(configOverrides?: { port?: number; host?: string }) {
+  constructor(configOverrides?: { port?: number; host?: string; token?: string; skipAuthToken?: boolean }) {
     this.app = express();
     this.configOverrides = configOverrides;
     
@@ -206,9 +207,14 @@ export class CUIServer {
         }
       });
       // Display auth URL with token fragment
-      const authUrl = `http://${this.host}:${this.port}#token=${config.authToken}`;
+      const authToken = this.configOverrides?.token ?? config.authToken;
+      const authUrl = `http://${this.host}:${this.port}#token=${authToken}`;
       this.logger.info(`cui server started on http://${this.host}:${this.port}`);
-      this.logger.info(`Access with auth token: ${authUrl}`);
+      if (!this.configOverrides?.skipAuthToken) {
+        this.logger.info(`Access with auth token: ${authUrl}`);
+      } else {
+        this.logger.info('Authentication is disabled (--skip-auth-token)');
+      }
     } catch (error) {
       this.logger.error('Failed to start server:', error, {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
@@ -343,8 +349,19 @@ export class CUIServer {
     this.app.use('/api/system', createSystemRoutes(this.processManager, this.historyReader));
     this.app.use('/', createSystemRoutes(this.processManager, this.historyReader)); // For /health at root
     
-    // Apply auth middleware to all other API routes
-    this.app.use('/api', authMiddleware);
+    // Apply auth middleware to all other API routes unless skipAuthToken is set
+    if (!this.configOverrides?.skipAuthToken) {
+      if (this.configOverrides?.token) {
+        // Use custom auth middleware with token override
+        this.app.use('/api', createAuthMiddleware(this.configOverrides.token));
+        this.logger.info('Using custom authentication token from CLI');
+      } else {
+        // Use default auth middleware
+        this.app.use('/api', authMiddleware);
+      }
+    } else {
+      this.logger.warn('Authentication middleware is disabled - API endpoints are not protected!');
+    }
     
     // API routes
     this.app.use('/api/conversations', createConversationRoutes(
@@ -358,6 +375,7 @@ export class CUIServer {
     
     this.app.use('/api/permissions', createPermissionRoutes(this.permissionTracker));
     this.app.use('/api/filesystem', createFileSystemRoutes(this.fileSystemService));
+    this.app.use('/api/logs', createLogRoutes());
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
