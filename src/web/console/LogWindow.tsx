@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './styles/console.module.css';
+import { api } from '../chat/services/api';
 
 interface LogEntry {
   timestamp: string;
@@ -38,16 +39,17 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
   const connectToLogStream = async () => {
     try {
       // First get recent logs
-      const recentResponse = await fetch('/api/logs/recent?limit=100');
-      if (recentResponse.ok) {
-        const recentData = await recentResponse.json();
+      try {
+        const recentData = await api.getRecentLogs(100);
         if (recentData.logs) {
           setLogs(recentData.logs);
         }
+      } catch (error) {
+        console.error('Failed to get recent logs:', error);
       }
 
       // Then connect to stream
-      const response = await fetch('/api/logs/stream');
+      const response = await api.fetchWithAuth(api.getLogStreamUrl());
       if (!response.ok) {
         console.error('Failed to connect to log stream');
         return;

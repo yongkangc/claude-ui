@@ -176,6 +176,49 @@ class ApiService {
     
     return this.apiCall(`/api/system/commands?${searchParams}`);
   }
+
+  async getSystemStatus(): Promise<any> {
+    return this.apiCall('/api/system/status');
+  }
+
+  async getRecentLogs(limit?: number): Promise<{ logs: string[] }> {
+    const searchParams = new URLSearchParams();
+    if (limit !== undefined) searchParams.append('limit', limit.toString());
+    return this.apiCall(`/api/logs/recent?${searchParams}`);
+  }
+
+  getLogStreamUrl(): string {
+    return '/api/logs/stream';
+  }
+
+  async readFile(path: string): Promise<{ content: string }> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('path', path);
+    return this.apiCall(`/api/filesystem/read?${searchParams}`);
+  }
+
+  async archiveAllSessions(): Promise<{ success: boolean; archivedCount: number }> {
+    return this.apiCall('/api/conversations/archive-all', {
+      method: 'POST',
+    });
+  }
+
+  // For endpoints that need direct fetch with auth (like SSE streams)
+  async fetchWithAuth(url: string, options?: RequestInit): Promise<Response> {
+    const authToken = getAuthToken();
+    const headers: Record<string, string> = {
+      ...options?.headers as Record<string, string>,
+    };
+    
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers,
+    });
+  }
 }
 
 export const api = new ApiService();

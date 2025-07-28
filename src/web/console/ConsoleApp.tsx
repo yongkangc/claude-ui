@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LogWindow from './LogWindow';
 import styles from './styles/console.module.css';
+import { api } from '../chat/services/api';
 
 declare global {
   namespace JSX {
@@ -89,8 +90,7 @@ function ConsoleApp() {
 
   const loadAvailableSessions = async () => {
     try {
-      const response = await fetch('/api/conversations?limit=100&sortBy=updated&order=desc');
-      const data = await response.json();
+      const data = await api.getConversations({ limit: 100 });
       setAvailableSessions(data.conversations || []);
     } catch (e) {
       // Silently fail
@@ -99,8 +99,7 @@ function ConsoleApp() {
 
   const getWorkingDirectories = async () => {
     try {
-      const response = await fetch('/api/working-directories');
-      const data = await response.json();
+      const data = await api.getWorkingDirectories();
       showJson('workingDirsResult', data);
       if (data.directories) {
         setWorkingDirectories(data.directories);
@@ -112,11 +111,7 @@ function ConsoleApp() {
 
   const getCommands = async () => {
     try {
-      const url = commandsWorkingDirectory 
-        ? `/api/system/commands?workingDirectory=${encodeURIComponent(commandsWorkingDirectory)}`
-        : '/api/system/commands';
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await api.getCommands(commandsWorkingDirectory || undefined);
       showJson('commandsResult', data);
     } catch (e: any) {
       showJson('commandsResult', { error: e.message });
@@ -129,8 +124,7 @@ function ConsoleApp() {
 
   const getSystemStatus = async () => {
     try {
-      const response = await fetch('/api/system/status');
-      const data = await response.json();
+      const data = await api.getSystemStatus();
       showJson('statusResult', data);
     } catch (e: any) {
       showJson('statusResult', { error: e.message });
@@ -139,15 +133,11 @@ function ConsoleApp() {
 
   const listConversationsSidebar = async () => {
     try {
-      const params = new URLSearchParams();
-      if (sidebarConversationsLimit) params.append('limit', sidebarConversationsLimit);
-      if (sidebarConversationsOffset) params.append('offset', sidebarConversationsOffset);
-      if (sidebarConversationsProjectPath) params.append('projectPath', sidebarConversationsProjectPath);
-      params.append('sortBy', 'updated');
-      params.append('order', 'desc');
-
-      const response = await fetch(`/api/conversations?${params}`);
-      const data = await response.json();
+      const data = await api.getConversations({
+        limit: sidebarConversationsLimit ? parseInt(sidebarConversationsLimit) : undefined,
+        offset: sidebarConversationsOffset ? parseInt(sidebarConversationsOffset) : undefined,
+        projectPath: sidebarConversationsProjectPath || undefined
+      });
       showJson('sidebarConversationsResult', data);
 
       if (data.conversations) {
@@ -170,12 +160,7 @@ function ConsoleApp() {
       if (claudeExecutablePath) body.claudeExecutablePath = claudeExecutablePath;
       if (permissionMode) body.permissionMode = permissionMode;
 
-      const response = await fetch('/api/conversations/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await response.json();
+      const data = await api.startConversation(body);
       showJson('startResult', data);
 
       if (data.streamingId) {
@@ -200,7 +185,7 @@ function ConsoleApp() {
     setStreamResult([<span key="connecting" style={{ color: '#51cf66' }}>Connecting to stream...</span>]);
 
     try {
-      const response = await fetch(`/api/stream/${streamId}`);
+      const response = await api.fetchWithAuth(api.getStreamUrl(streamId));
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
 
@@ -275,10 +260,7 @@ function ConsoleApp() {
 
   const stopConversation = async () => {
     try {
-      const response = await fetch(`/api/conversations/${stopStreamingId}/stop`, {
-        method: 'POST'
-      });
-      const data = await response.json();
+      const data = await api.stopConversation(stopStreamingId);
       showJson('stopResult', data);
     } catch (e: any) {
       showJson('stopResult', { error: e.message });
@@ -287,8 +269,7 @@ function ConsoleApp() {
 
   const getConversationDetails = async () => {
     try {
-      const response = await fetch(`/api/conversations/${detailSessionId}`);
-      const data = await response.json();
+      const data = await api.getConversationDetails(detailSessionId);
       showJson('detailsResult', data);
     } catch (e: any) {
       showJson('detailsResult', { error: e.message });
@@ -297,12 +278,10 @@ function ConsoleApp() {
 
   const listPermissions = async () => {
     try {
-      const params = new URLSearchParams();
-      if (permissionsStreamingId) params.append('streamingId', permissionsStreamingId);
-      if (permissionsStatus) params.append('status', permissionsStatus);
-
-      const response = await fetch(`/api/permissions?${params}`);
-      const data = await response.json();
+      const data = await api.getPermissions({
+        streamingId: permissionsStreamingId || undefined,
+        status: permissionsStatus as 'pending' | 'approved' | 'denied' | undefined
+      });
       showJson('permissionsResult', data);
     } catch (e: any) {
       showJson('permissionsResult', { error: e.message });
@@ -316,13 +295,11 @@ function ConsoleApp() {
         return;
       }
 
-      const params = new URLSearchParams();
-      params.append('path', listPath);
-      if (listRecursive) params.append('recursive', 'true');
-      if (listRespectGitignore) params.append('respectGitignore', 'true');
-
-      const response = await fetch(`/api/filesystem/list?${params}`);
-      const data = await response.json();
+      const data = await api.listDirectory({
+        path: listPath,
+        recursive: listRecursive,
+        respectGitignore: listRespectGitignore
+      });
       showJson('listResult', data);
     } catch (e: any) {
       showJson('listResult', { error: e.message });
@@ -336,11 +313,7 @@ function ConsoleApp() {
         return;
       }
 
-      const params = new URLSearchParams();
-      params.append('path', readPath);
-
-      const response = await fetch(`/api/filesystem/read?${params}`);
-      const data = await response.json();
+      const data = await api.readFile(readPath);
       showJson('readResult', data);
     } catch (e: any) {
       showJson('readResult', { error: e.message });
@@ -365,12 +338,7 @@ function ConsoleApp() {
       if (initialCommitHead.trim() !== '') updateData.initialCommitHead = initialCommitHead.trim();
       if (sessionPermissionMode.trim() !== '') updateData.permissionMode = sessionPermissionMode.trim();
       
-      const response = await fetch(`/api/conversations/${renameSessionId}/update`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
-      const data = await response.json();
+      const data = await api.updateSession(renameSessionId, updateData);
       showJson('renameResult', data);
       
       // Refresh available sessions to show updated names
@@ -384,11 +352,7 @@ function ConsoleApp() {
   
   const archiveAllSessions = async () => {
     try {
-      const response = await fetch('/api/conversations/archive-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await response.json();
+      const data = await api.archiveAllSessions();
       showJson('archiveAllResult', data);
       
       // Refresh available sessions to show updated archive status
@@ -415,12 +379,7 @@ function ConsoleApp() {
         return;
       }
 
-      const response = await fetch(`/api/permissions/${permissionRequestId}/decision`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await response.json();
+      const data = await api.sendPermissionDecision(permissionRequestId, body);
       showJson('permissionDecisionResult', data);
     } catch (e: any) {
       showJson('permissionDecisionResult', { error: e.message });
