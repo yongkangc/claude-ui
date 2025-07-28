@@ -36,7 +36,7 @@ Start the server:
 npx cui-server
 ```
 
-Open http://localhost:3001#/your-token in your browser (replace `your-token` with your actual session token).
+Open http://localhost:3001/#your-token in your browser (Please find the token in the cui-server command output).
 
 ## Usage
 
