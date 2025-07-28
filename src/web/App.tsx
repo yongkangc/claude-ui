@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ConsoleApp from './console/ConsoleApp';
+import InspectorApp from './inspector/InspectorApp';
 import ChatApp from './chat/ChatApp';
 import { useAuth, getAuthToken } from './hooks/useAuth';
 
@@ -24,7 +24,7 @@ function App() {
     >
       <Routes>
         <Route path="/*" element={<ChatApp />} />
-        <Route path="/console" element={<ConsoleApp />} />
+        <Route path="/inspector" element={<InspectorApp />} />
       </Routes>
     </Router>
   );

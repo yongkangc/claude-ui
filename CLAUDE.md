@@ -50,7 +50,7 @@ npx jest -t "test name"                                    # Run test by name pa
 
 ### Frontend (`src/web/`)
 - **chat/**: Main chat application components
-- **console/**: Console/log viewer components  
+- **inspector/**: Inspector/log monitor components  
 - **api/**: API client using fetch for backend communication
 - **styles/**: CSS modules with TUI-inspired design
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from './styles/console.module.css';
+import styles from './styles/inspector.module.css';
 import { api } from '../chat/services/api';
 
 interface LogEntry {
@@ -10,12 +10,12 @@ interface LogEntry {
   [key: string]: any;
 }
 
-interface LogWindowProps {
+interface LogMonitorProps {
   isVisible: boolean;
   onToggle: () => void;
 }
 
-function LogWindow({ isVisible, onToggle }: LogWindowProps) {
+function LogMonitor({ isVisible, onToggle }: LogMonitorProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -147,7 +147,7 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
     .filter(Boolean);
 
   return (
-    <div className={`${styles.logWindow} ${isVisible ? styles.visible : styles.hidden}`}>
+    <div className={`${styles.logMonitor} ${isVisible ? styles.visible : styles.hidden}`}>
       <div className={styles.logHeader}>
         <button className={styles.logToggle} onClick={onToggle}>
           {isVisible ? '▼' : '▲'} Logs
@@ -182,4 +182,4 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
   );
 }
 
-export default LogWindow;
+export default LogMonitor;

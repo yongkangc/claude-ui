@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import LogWindow from './LogWindow';
-import styles from './styles/console.module.css';
+import LogMonitor from './LogMonitor';
+import styles from './styles/inspector.module.css';
 import { api } from '../chat/services/api';
 
 declare global {
@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-function ConsoleApp() {
+function InspectorApp() {
   const [currentStream, setCurrentStream] = useState<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const [availableSessions, setAvailableSessions] = useState<any[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
@@ -49,7 +49,7 @@ function ConsoleApp() {
   const [listRecursive, setListRecursive] = useState(false);
   const [listRespectGitignore, setListRespectGitignore] = useState(false);
   const [readPath, setReadPath] = useState('');
-  const [logWindowVisible, setLogWindowVisible] = useState(false);
+  const [logMonitorVisible, setLogMonitorVisible] = useState(false);
   
   // Update session states
   const [renameSessionId, setRenameSessionId] = useState('');
@@ -853,13 +853,13 @@ function ConsoleApp() {
           </div>
         </div>
         </div>
-        <LogWindow 
-          isVisible={logWindowVisible}
-          onToggle={() => setLogWindowVisible(!logWindowVisible)}
+        <LogMonitor 
+          isVisible={logMonitorVisible}
+          onToggle={() => setLogMonitorVisible(!logMonitorVisible)}
         />
       </div>
     </div>
   );
 }
 
-export default ConsoleApp;
+export default InspectorApp;
