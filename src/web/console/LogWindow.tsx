@@ -158,6 +158,13 @@ function LogWindow({ isVisible, onToggle }: LogWindowProps) {
           onChange={(e) => setFilter(e.target.value)}
           disabled={!isVisible}
         />
+        <button 
+          className={styles.logToggle} 
+          onClick={() => setLogs([])}
+          disabled={!isVisible}
+        >
+          Clear
+        </button>
         <span className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
           {isConnected ? '● Connected' : '○ Disconnected'}
         </span>

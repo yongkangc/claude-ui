@@ -22,7 +22,6 @@ import { createConversationRoutes } from './routes/conversation.routes';
 import { createSystemRoutes } from './routes/system.routes';
 import { createPermissionRoutes } from './routes/permission.routes';
 import { createFileSystemRoutes } from './routes/filesystem.routes';
-import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
 import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
 import { createPreferencesRoutes } from './routes/preferences.routes';
@@ -359,7 +358,6 @@ export class CUIServer {
     
     this.app.use('/api/permissions', createPermissionRoutes(this.permissionTracker));
     this.app.use('/api/filesystem', createFileSystemRoutes(this.fileSystemService));
-    this.app.use('/api/logs', createLogRoutes());
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
