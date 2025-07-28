@@ -1,4 +1,4 @@
-/* CSS Module for Console App */
+/* CSS Module for Inspector App */
 
 .container {
     display: flex;
@@ -208,18 +208,18 @@
 }
 
 /* Log Window Styles */
-.logWindow {
+.logMonitor {
     display: flex;
     flex-direction: column;
     border-top: 2px solid #ccc;
     background: #1e1e1e;
 }
 
-.logWindow.hidden {
+.logMonitor.hidden {
     height: 40px;
 }
 
-.logWindow.visible {
+.logMonitor.visible {
     position: absolute;
     top: 0;
     left: 0;
