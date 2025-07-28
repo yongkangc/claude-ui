@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { StreamEvent } from '../types';
+import { getAuthToken } from '../../hooks/useAuth';
 
 interface StreamConnection {
   streamingId: string;
@@ -133,8 +134,18 @@ export function useMultipleStreams(
     setConnections(new Map(connectionsRef.current));
 
     try {
+      // Get auth token for Bearer authorization
+      const authToken = getAuthToken();
+      const headers: Record<string, string> = {};
+      
+      // Add Bearer token if available
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+      
       const response = await fetch(`/api/stream/${streamingId}`, {
         signal: connection.abortController.signal,
+        headers,
       });
 
       if (!response.ok) {
