@@ -10,8 +10,8 @@ export interface ServerConfig {
 export interface CUIConfig {
   /**
    * Unique machine identifier
-   * Format: {hostname}-{8char_hash}
-   * Example: "wenbomacbook-a1b2c3d4"
+   * Format: {hostname}-{16char_hash}
+   * Example: "wenbomacbook-a1b2c3d4e5f6g7h8"
    */
   machine_id: string;
   
