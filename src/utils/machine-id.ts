@@ -58,8 +58,8 @@ async function getPrimaryMacAddress(): Promise<string> {
 
 /**
  * Generate a machine ID based on hostname and MAC address
- * Format: {hostname}-{8char_hash}
- * Example: "wenbomacbook-a1b2c3d4"
+ * Format: {hostname}-{16char_hash}
+ * Example: "wenbomacbook-a1b2c3d4e5f6g7h8"
  */
 export async function generateMachineId(): Promise<string> {
   // Get hostname (lowercase)
@@ -73,7 +73,7 @@ export async function generateMachineId(): Promise<string> {
     .createHash('sha256')
     .update(macAddress.toLowerCase())
     .digest('hex')
-    .substring(0, 8); // Take first 8 characters
+    .substring(0, 16); // Take first 16 characters
   
   return `${hostname}-${hash}`;
 }
