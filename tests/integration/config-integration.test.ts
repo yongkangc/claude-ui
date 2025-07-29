@@ -104,8 +104,8 @@ describe('Configuration System Basic Integration', () => {
     it('should generate consistent machine ID format', async () => {
       const machineId = await generateMachineId();
       
-      // Should match format: {hostname}-{8char_hash}
-      const pattern = /^[a-z0-9\-]+\-[a-f0-9]{8}$/;
+      // Should match format: {hostname}-{16char_hash}
+      const pattern = /^[a-z0-9\-]+\-[a-f0-9]{16}$/;
       expect(machineId).toMatch(pattern);
       
       // Should start with lowercase hostname
@@ -203,7 +203,7 @@ describe('Configuration System Basic Integration', () => {
       expect(config.server.host).toBe('localhost');
       expect(config.server.port).toBe(3001);
       expect(config.machine_id).toBeDefined();
-      expect(config.machine_id).toMatch(/^[a-z0-9\-]+\-[a-f0-9]{8}$/);
+      expect(config.machine_id).toMatch(/^[a-z0-9\-]+\-[a-f0-9]{16}$/);
       expect(config.authToken).toBeDefined();
       expect(config.authToken).toMatch(/^[a-f0-9]{32}$/);
     });
