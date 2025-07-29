@@ -35,7 +35,8 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/server.ts",
     "dev:web": "NODE_ENV=development vite",
-    "build": "NODE_ENV=production npm run build:web && tsc && tsc-alias && npm run build:mcp",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && NODE_ENV=production npm run build:web && tsc && tsc-alias && npm run build:mcp",
     "build:web": "NODE_ENV=production vite build",
     "build:mcp": "chmod +x dist/mcp-server/index.js",
     "start": "NODE_ENV=production node dist/server.js",
