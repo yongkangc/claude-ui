@@ -177,6 +177,7 @@ export interface SystemStatusResponse {
   claudePath: string;
   configPath: string;
   activeConversations: number;
+  machineId: string;
 }
 
 // Stream event types

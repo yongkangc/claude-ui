@@ -451,6 +451,15 @@ function InspectorApp() {
             <div id="statusResult" className={styles.jsonViewerContainer}>
               {results.statusResult && <JsonViewer data={results.statusResult} resultId="statusResult" />}
             </div>
+            {results.statusResult && !results.statusResult.error && (
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                <div><strong>Claude Version:</strong> {results.statusResult.claudeVersion}</div>
+                <div><strong>Claude Path:</strong> {results.statusResult.claudePath}</div>
+                <div><strong>Config Path:</strong> {results.statusResult.configPath}</div>
+                <div><strong>Active Conversations:</strong> {results.statusResult.activeConversations}</div>
+                <div><strong>Machine ID:</strong> {results.statusResult.machineId}</div>
+              </div>
+            )}
           </div>
         </div>
 
