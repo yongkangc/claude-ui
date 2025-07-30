@@ -26,15 +26,15 @@ const tabs: Tab[] = [
 export function PreferencesModal({ onClose }: Props) {
   const [prefs, setPrefs] = useState<Preferences>({ 
     colorScheme: 'system', 
-    language: 'auto-detect',
-    notificationsEnabled: false,
-    pushSubscriptions: []
+    language: 'auto-detect'
   });
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [archiveStatus, setArchiveStatus] = useState<string>('');
+  const [machineId, setMachineId] = useState<string>('');
 
   useEffect(() => {
     api.getPreferences().then(setPrefs).catch(() => {});
+    api.getSystemStatus().then(status => setMachineId(status.machineId)).catch(() => {});
   }, []);
 
 
@@ -52,19 +52,6 @@ export function PreferencesModal({ onClose }: Props) {
     }
   };
 
-  const handleNotificationToggle = async (enabled: boolean) => {
-    try {
-      if (enabled) {
-        await notificationService.subscribeToPush();
-        await update({ notificationsEnabled: true });
-      } else {
-        await notificationService.unsubscribeFromPush();
-        await update({ notificationsEnabled: false });
-      }
-    } catch (error) {
-      console.error('Failed to toggle notifications:', error);
-    }
-  };
 
   const handleArchiveAll = async () => {
     if (!confirm('Are you sure you want to archive all sessions? This action cannot be undone.')) {
@@ -125,6 +112,80 @@ export function PreferencesModal({ onClose }: Props) {
           </div>
         );
 
+      case 'notifications':
+        return (
+          <div className={styles.tabContent}>
+            <div className={styles.settingItem}>
+              <div className={styles.settingColumn}>
+                <div className={styles.settingLabel}>Enable Notifications</div>
+                <div className={styles.settingDescription}>
+                  Receive push notifications for conversation completions and permission requests
+                </div>
+              </div>
+              <div className={styles.settingControl}>
+                <label className={styles.toggleWrapper}>
+                  <input
+                    type="checkbox"
+                    className={styles.toggleInput}
+                    checked={prefs.notifications?.enabled || false}
+                    onChange={(e) => update({ 
+                      notifications: { 
+                        ...prefs.notifications, 
+                        enabled: e.target.checked 
+                      } 
+                    })}
+                  />
+                  <span className={styles.toggleSlider}></span>
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.settingItem}>
+              <div className={styles.settingColumn}>
+                <div className={styles.settingLabel}>Ntfy Server URL</div>
+                <div className={styles.settingDescription}>
+                  Custom ntfy server URL (leave empty to use default ntfy.sh)
+                </div>
+              </div>
+              <input
+                type="url"
+                className={styles.dropdown}
+                value={prefs.notifications?.ntfyUrl || ''}
+                placeholder="https://ntfy.sh"
+                onChange={(e) => update({ 
+                  notifications: { 
+                    ...prefs.notifications, 
+                    enabled: prefs.notifications?.enabled || false,
+                    ntfyUrl: e.target.value || undefined
+                  } 
+                })}
+              />
+            </div>
+
+            {/* Topic Instructions Section */}
+            <div className={styles.sessionSection}>
+              <h3 className={styles.sectionTitle}>Setup Instructions</h3>
+              <div className={styles.settingDescription} style={{ marginBottom: '12px' }}>
+                To receive push notifications for Claude conversations and permission requests, subscribe to your personal ntfy topic:
+              </div>
+              <div style={{ 
+                backgroundColor: 'var(--color-bg-secondary)', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                fontFamily: 'monospace', 
+                fontSize: '14px',
+                border: '1px solid var(--color-border-light)',
+                marginBottom: '12px'
+              }}>
+                {machineId ? `cui-${machineId}` : 'Loading...'}
+              </div>
+              <div className={styles.settingDescription}>
+                New to ntfy? Visit <a href="https://docs.ntfy.sh" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)' }}>https://docs.ntfy.sh</a> to learn how to set up notifications on your devices.
+              </div>
+            </div>
+          </div>
+        );
+
       case 'dataControls':
         return (
           <div className={styles.tabContent}>
@@ -141,7 +202,6 @@ export function PreferencesModal({ onClose }: Props) {
             </div>
           </div>
         );
-
 
       default:
         return (

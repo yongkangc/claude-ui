@@ -81,6 +81,10 @@ export interface WorkingDirectoriesResponse {
 export interface Preferences {
   colorScheme: 'light' | 'dark' | 'system';
   language: string;
+  notifications?: {
+    enabled: boolean;
+    ntfyUrl?: string;
+  };
 }
 
 // Tool result types
