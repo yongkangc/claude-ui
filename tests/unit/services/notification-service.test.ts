@@ -71,13 +71,13 @@ describe('NotificationService', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'Title': 'CUI Permission Request',
-            'Priority': 'high',
-            'Tags': 'warning,cui-permission',
+            'Priority': 'default',
+            'Tags': 'cui-permission',
             'X-CUI-SessionId': 'session-789',
             'X-CUI-StreamingId': 'stream-456',
             'X-CUI-PermissionRequestId': 'perm-123'
           }),
-          body: expect.stringContaining('Claude wants to use Bash tool')
+          body: expect.stringContaining('Bash tool: ')
         })
       );
     });
@@ -140,7 +140,7 @@ describe('NotificationService', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: 'Working on authentication - Claude wants to use Bash tool'
+          body: 'Working on authentication - Bash'
         })
       );
     });
@@ -151,7 +151,7 @@ describe('NotificationService', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: expect.stringContaining('Claude wants to use Bash tool: {"command":"npm install express"}')
+          body: expect.stringContaining('Bash tool: {"command":"npm install express"}')
         })
       );
     });
@@ -170,13 +170,13 @@ describe('NotificationService', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Title': 'CUI Conversation Ended',
+            'Title': 'Task Finished',
             'Priority': 'default',
-            'Tags': 'white_check_mark,cui-complete',
+            'Tags': 'cui-complete',
             'X-CUI-SessionId': 'session-456',
             'X-CUI-StreamingId': 'stream-123'
           }),
-          body: 'Session session-456: Fixed authentication bug'
+          body: 'Fixed authentication bug'
         })
       );
     });
@@ -190,7 +190,7 @@ describe('NotificationService', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: 'Session session-456: Conversation completed'
+          body: 'Task completed'
         })
       );
     });
