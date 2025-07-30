@@ -95,7 +95,7 @@ export function PreferencesModal({ onClose }: Props) {
               </select>
             </div>
 
-            <div className={styles.settingItem}>
+            {/* <div className={styles.settingItem}>
               <div className={styles.settingLabel}>Language</div>
               <select
                 className={styles.dropdown}
@@ -108,7 +108,7 @@ export function PreferencesModal({ onClose }: Props) {
                 <option value="fr">French</option>
                 <option value="de">German</option>
               </select>
-            </div>
+            </div> */}
           </div>
         );
 
@@ -117,10 +117,7 @@ export function PreferencesModal({ onClose }: Props) {
           <div className={styles.tabContent}>
             <div className={styles.settingItem}>
               <div className={styles.settingColumn}>
-                <div className={styles.settingLabel}>Enable Notifications</div>
-                <div className={styles.settingDescription}>
-                  Receive push notifications for conversation completions and permission requests
-                </div>
+                <div className={styles.settingLabel}>Enable Push Notifications</div>
               </div>
               <div className={styles.settingControl}>
                 <label className={styles.toggleWrapper}>
@@ -140,49 +137,36 @@ export function PreferencesModal({ onClose }: Props) {
               </div>
             </div>
 
-            <div className={styles.settingItem}>
-              <div className={styles.settingColumn}>
-                <div className={styles.settingLabel}>Ntfy Server URL</div>
-                <div className={styles.settingDescription}>
-                  Custom ntfy server URL (leave empty to use default ntfy.sh)
-                </div>
-              </div>
-              <input
-                type="url"
-                className={styles.dropdown}
-                value={prefs.notifications?.ntfyUrl || ''}
-                placeholder="https://ntfy.sh"
-                onChange={(e) => update({ 
-                  notifications: { 
-                    ...prefs.notifications, 
-                    enabled: prefs.notifications?.enabled || false,
-                    ntfyUrl: e.target.value || undefined
-                  } 
-                })}
-              />
-            </div>
-
             {/* Topic Instructions Section */}
-            <div className={styles.sessionSection}>
-              <h3 className={styles.sectionTitle}>Setup Instructions</h3>
-              <div className={styles.settingDescription} style={{ marginBottom: '12px' }}>
-                To receive push notifications for Claude conversations and permission requests, subscribe to your personal ntfy topic:
+              <div className={styles.description}>
+                To receive push notifications, subscribe to the following <a href="https://ntfy.sh" target="_blank" rel="noopener noreferrer"><strong>ntfy</strong></a> topic: 
               </div>
-              <div style={{ 
-                backgroundColor: 'var(--color-bg-secondary)', 
-                padding: '12px', 
-                borderRadius: '8px', 
-                fontFamily: 'monospace', 
-                fontSize: '14px',
-                border: '1px solid var(--color-border-light)',
-                marginBottom: '12px'
-              }}>
+              <div className={styles.codeBlock}>
                 {machineId ? `cui-${machineId}` : 'Loading...'}
               </div>
-              <div className={styles.settingDescription}>
-                New to ntfy? Visit <a href="https://docs.ntfy.sh" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)' }}>https://docs.ntfy.sh</a> to learn how to set up notifications on your devices.
+
+            <div className={styles.sessionSection}>
+              <h3 className={styles.sectionTitle}>Advanced</h3>
+              <div className={styles.settingItem}>
+                <div className={styles.settingColumn}>
+                  <div className={styles.settingLabel}>Ntfy Server URL</div>
+                </div>
+                <input
+                  type="url"
+                  className={styles.inputText}
+                  value={prefs.notifications?.ntfyUrl || ''}
+                  placeholder="https://ntfy.sh"
+                  onChange={(e) => update({ 
+                    notifications: { 
+                      ...prefs.notifications, 
+                      enabled: prefs.notifications?.enabled || false,
+                      ntfyUrl: e.target.value || undefined
+                    } 
+                  })}
+                />
               </div>
             </div>
+
           </div>
         );
 
