@@ -16,6 +16,7 @@ function InspectorApp() {
   const [availableSessions, setAvailableSessions] = useState<any[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     status: true,
+    preferences: true,
     start: true,
     stop: true,
     list: true,
@@ -77,6 +78,12 @@ function InspectorApp() {
   
   // Commands state
   const [commandsWorkingDirectory, setCommandsWorkingDirectory] = useState('');
+  
+  // Preferences state
+  const [preferencesColorScheme, setPreferencesColorScheme] = useState('system');
+  const [preferencesLanguage, setPreferencesLanguage] = useState('en');
+  const [preferencesNotificationsEnabled, setPreferencesNotificationsEnabled] = useState(false);
+  const [preferencesNtfyUrl, setPreferencesNtfyUrl] = useState('https://ntfy.sh');
 
   const streamResultRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +122,39 @@ function InspectorApp() {
       showJson('commandsResult', data);
     } catch (e: any) {
       showJson('commandsResult', { error: e.message });
+    }
+  };
+
+  const getPreferences = async () => {
+    try {
+      const data = await api.getPreferences();
+      showJson('preferencesGetResult', data);
+      
+      // Update form fields with current values
+      setPreferencesColorScheme(data.colorScheme);
+      setPreferencesLanguage(data.language);
+      setPreferencesNotificationsEnabled(data.notifications?.enabled ?? false);
+      setPreferencesNtfyUrl(data.notifications?.ntfyUrl ?? 'https://ntfy.sh');
+    } catch (e: any) {
+      showJson('preferencesGetResult', { error: e.message });
+    }
+  };
+
+  const updatePreferences = async () => {
+    try {
+      const updates: any = {
+        colorScheme: preferencesColorScheme as 'light' | 'dark' | 'system',
+        language: preferencesLanguage,
+        notifications: {
+          enabled: preferencesNotificationsEnabled,
+          ntfyUrl: preferencesNtfyUrl
+        }
+      };
+
+      const data = await api.updatePreferences(updates);
+      showJson('preferencesUpdateResult', data);
+    } catch (e: any) {
+      showJson('preferencesUpdateResult', { error: e.message });
     }
   };
 
@@ -460,6 +500,66 @@ function InspectorApp() {
                 <div><strong>Machine ID:</strong> {results.statusResult.machineId}</div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Preferences */}
+        <div className={styles.section}>
+          <div className={`${styles.endpoint} ${styles.collapsible} ${collapsed.preferences ? styles.collapsed : ''}`} onClick={() => toggleCollapse('preferences')}>
+            GET/PUT /api/preferences
+          </div>
+          <div className={styles.collapsibleContent}>
+            <button onClick={getPreferences}>Get Preferences</button>
+            <div id="preferencesGetResult" className={styles.jsonViewerContainer}>
+              {results.preferencesGetResult && <JsonViewer data={results.preferencesGetResult} resultId="preferencesGetResult" />}
+            </div>
+            
+            <div style={{ marginTop: '15px', borderTop: '1px solid #333', paddingTop: '15px' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>Update Preferences</h4>
+              
+              <div className={styles.fieldGroup}>
+                <div className={styles.fieldLabel}>Color Scheme</div>
+                <select value={preferencesColorScheme} onChange={(e) => setPreferencesColorScheme(e.target.value)}>
+                  <option value="system">System</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+              
+              <div className={styles.fieldGroup}>
+                <div className={styles.fieldLabel}>Language</div>
+                <input type="text" value={preferencesLanguage} onChange={(e) => setPreferencesLanguage(e.target.value)} placeholder="en" />
+              </div>
+              
+              <div className={styles.fieldGroup}>
+                <div className={styles.inlineFields}>
+                  <div>
+                    <input 
+                      type="checkbox" 
+                      id="notificationsEnabled" 
+                      checked={preferencesNotificationsEnabled} 
+                      onChange={(e) => setPreferencesNotificationsEnabled(e.target.checked)} 
+                    />
+                    <label htmlFor="notificationsEnabled">Enable Notifications</label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={styles.fieldGroup}>
+                <div className={styles.fieldLabel}>Ntfy URL <span className={styles.optional}>(optional)</span></div>
+                <input 
+                  type="text" 
+                  value={preferencesNtfyUrl} 
+                  onChange={(e) => setPreferencesNtfyUrl(e.target.value)} 
+                  placeholder="https://ntfy.sh" 
+                />
+              </div>
+              
+              <button onClick={updatePreferences}>Update Preferences</button>
+              <div id="preferencesUpdateResult" className={styles.jsonViewerContainer}>
+                {results.preferencesUpdateResult && <JsonViewer data={results.preferencesUpdateResult} resultId="preferencesUpdateResult" />}
+              </div>
+            </div>
           </div>
         </div>
 
