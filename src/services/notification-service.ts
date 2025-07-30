@@ -166,7 +166,6 @@ export class NotificationService {
       headers['X-CUI-PermissionRequestId'] = notification.permissionRequestId;
     }
 
-    // eslint-disable-next-line no-undef
     const response = await fetch(url, {
       method: 'POST',
       headers,
