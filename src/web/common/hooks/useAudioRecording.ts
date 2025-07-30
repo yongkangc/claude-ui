@@ -42,22 +42,24 @@ export function useAudioRecording(): UseAudioRecordingReturn {
       setError(null);
       setState('recording');
       
-      // Request microphone access
+      // Request microphone access with optimized settings for speech
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           channelCount: 1,
-          sampleRate: 16000,
+          sampleRate: 16000, // Good for speech (vs 44.1kHz for music)
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true, // Helps normalize volume
         } 
       });
       
       streamRef.current = stream;
       audioChunksRef.current = [];
 
-      // Create MediaRecorder
+      // Create MediaRecorder with compression settings
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 16000 // Lower bitrate for better compression (default is ~128kbps)
       });
       
       mediaRecorderRef.current = mediaRecorder;
@@ -69,8 +71,8 @@ export function useAudioRecording(): UseAudioRecordingReturn {
         }
       };
 
-      // Start recording and duration tracking
-      mediaRecorder.start();
+      // Start recording with smaller time slices for better compression
+      mediaRecorder.start(250); // 250ms chunks for more granular data
       startTimeRef.current = Date.now();
       setDuration(0);
       
@@ -117,6 +119,13 @@ export function useAudioRecording(): UseAudioRecordingReturn {
           // Create audio blob from chunks
           const audioBlob = new Blob(audioChunksRef.current, { 
             type: 'audio/webm;codecs=opus' 
+          });
+          
+          // Log recording size information
+          console.log(`Audio recording completed:`, {
+            size: `${audioBlob.size} bytes (${(audioBlob.size / 1024).toFixed(2)} KB)`,
+            duration: `${Math.floor((Date.now() - startTimeRef.current) / 1000)}s`,
+            format: 'audio/webm;codecs=opus'
           });
           
           // Convert to base64
