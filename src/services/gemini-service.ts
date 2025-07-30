@@ -4,9 +4,9 @@ import { CUIError } from '@/types';
 import { createLogger, type Logger } from '@/services/logger';
 import { ConfigService } from './config-service';
 
-// Set up proxy support using environment variables
+// Set up proxy support using environment variables (production only)
 const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
-if (proxyUrl) {
+if (proxyUrl && process.env.NODE_ENV === 'production') {
   const dispatcher = new ProxyAgent({ uri: new URL(proxyUrl).toString() });
   setGlobalDispatcher(dispatcher);
 }
