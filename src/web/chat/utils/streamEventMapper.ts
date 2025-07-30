@@ -190,9 +190,6 @@ export function extractToolMetrics(events: StreamEvent[]): StreamStatus['toolMet
           } else if (toolName === 'Write' || toolName === 'NotebookEdit') {
             metrics.writeCount++;
           }
-          
-          // TODO: Extract actual lines added/removed from tool results
-          // This would require parsing the tool result messages
         }
       });
     }
