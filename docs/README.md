@@ -11,7 +11,7 @@
 [![codecov](https://codecov.io/gh/BMPixel/cui/branch/main/graph/badge.svg)](https://codecov.io/gh/BMPixel/cui)
 [![CI](https://github.com/BMPixel/cui/actions/workflows/ci.yml/badge.svg)](https://github.com/BMPixel/cui/actions/workflows/ci.yml)
 
-A web UI for agents powered by [Claude Code](https://claude.ai/code). Start the server and access claude code anywhere in your browser.
+A modern web UI for [Claude Code](https://claude.ai/code) agents. Start the server and access Claude Code anywhere in your browser.
 
 <div align="center">
   <img src="assets/demo.gif" alt="Demo" width="100%">
@@ -19,40 +19,80 @@ A web UI for agents powered by [Claude Code](https://claude.ai/code). Start the 
 
 ## Highlights
 
-- Access all your conversations and fork/resume/archive them
-- Polished, responsive UI that works anywhere
-- Stream multiple sessions simultaneously
-- Auto-completion for commands (/) and files (@)
-- Built-in Permission Mode with real-time permission granting
-- View code diff tracking in the UI
+- **Modern Design**: Polished, responsive UI that works anywhere
+- **Parallel Background Agents**: Stream multiple sessions simultaneously
+- **Manage Tasks**: Access all your conversations and fork/resume/archive them
+- **Claude Code Parity**: Familiar autocompletion and interaction with CLI
+- **Push Notifications**: Get notified when your agents are finished
+- **Dictation**: Precise dictation powered by Gemini 2.5 Flash
 
 ## Getting Started
 
-Make sure you have logged into Claude Code or have a valid Anthropic API key.
+1. Ensure you're logged into Claude Code or have a valid Anthropic API key.
 
-Start the server:
+2. With Node.js >= 20.19.0, start the server:
 
-```bash
-npx cui-server
-```
+    ```bash
+    npx cui-server
+    ```
+    or install it globally:
+    ```bash
+    npm install -g cui-server
+    ```
 
-Open http://localhost:3001/#your-token in your browser (Please find the token in the cui-server command output).
+3. Open http://localhost:3001/#your-token in your browser (the token will be displayed in the cui-server command output).
+4. (Optional) Configure the settings for notifications and dictation.
 
 ## Usage
 
-### Starting a Conversation
+### Tasks
 
-1. Click "New Conversation" on the home page
-2. Type your message and press Enter
-3. Approve or deny tool permissions as they appear
-4. View past conversations from the home page
+- **Start a New Task**
+
+  cui automatically scans your existing Claude Code history in `~/.claude/` and displays it on the home page, allowing you to resume any of your previous tasks. The dropdown menu in the input area shows all your previous working directories.
+
+- **Fork a Task**
+
+  To create a branch from an existing task (only supported for tasks started from cui), navigate to the "History" tab on the home page, find the session you want to fork, and resume it with new messages.
+
+- **Manage Tasks**
+
+  Feel free to close the page after starting a task—it will continue running in the background. When running multiple tasks (started from cui), you can check their status in the "Tasks" tab. You can also archive tasks by clicking the "Archive" button. Archived tasks remain accessible in the "Archived" tab.
+
+### Dictation
+
+cui uses [Gemini 2.5 Flash](https://deepmind.google/models/gemini/flash/) to provide highly accurate dictation, particularly effective for long sentences. To enable this feature, you'll need a [Gemini API key](https://aistudio.google.com/apikey) with generous free-tier usage. Set the `GOOGLE_API_KEY` environment variable before starting the server. Note that using this feature will share your audio data with Google.
+
+### Notifications
+
+You can receive push notifications when your task is finished or when Claude is waiting for your permission to use tools. Notifications are sent using [ntfy](https://ntfy.sh/). To receive them, install ntfy on any of your devices and subscribe to the topic (see settings).
+
+### Keyboard Shortcuts
+
+More keyboard shortcuts are coming. Currently available:
+
+- `Enter`: Enter a new line
+- `Command/Ctrl + Enter`: Send message
+- `/`: List all commands
+- `@`: List all files in the current working directory
+
+All inline syntaxes like `/init` or `@file.txt` are supported just like in the CLI.
+
+### Remote Access
+
+1. Open `~/.cui/config.json` to set the `server.host` (0.0.0.0) and `server.port`. Alternatively, you can use `--host` and `--port` flags when starting the server.
+2. Ensure you use a secure auth token if accessing the server from outside your local network. The auth token is generated when you start the server and can be changed in the `~/.cui/config.json` file.
+3. Recommended: Use HTTPS to access the server. You can use a reverse proxy like [Caddy](https://caddyserver.com/) to set this up. On iOS, the dictation feature is only available when using HTTPS.
 
 ### Configuration
 
-All configuration and data are stored in `~/.cui/`:
+All configuration and data are stored in `~/.cui/`.
+
 - `config.json` - Server settings
-- `session-info.json` - Session metadata  
+- `session-info.json` - Session metadata
 - `preferences.json` - User preferences
+
+To uninstall cui, simply delete the `~/.cui/` directory and remove the package with `npm uninstall -g cui-server`.
 
 ## Contributing
 
