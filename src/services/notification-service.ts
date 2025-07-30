@@ -1,7 +1,7 @@
 import { PermissionRequest } from '@/types';
 import { createLogger, type Logger } from './logger';
 import { PreferencesService } from './preferences-service';
-import { generateMachineId } from '@/utils/machine-id';
+import { ConfigService } from './config-service';
 
 export interface Notification {
   title: string;
@@ -19,22 +19,25 @@ export interface Notification {
 export class NotificationService {
   private logger: Logger;
   private preferencesService: PreferencesService;
+  private configService: ConfigService;
   private machineId: string | null = null;
 
   constructor(preferencesService: PreferencesService) {
     this.logger = createLogger('NotificationService');
     this.preferencesService = preferencesService;
+    this.configService = ConfigService.getInstance();
   }
 
   /**
-   * Get or generate the machine ID
+   * Get machine ID from config
    */
-  private async getMachineId(): Promise<string> {
+  private getMachineId(): string {
     if (!this.machineId) {
       try {
-        this.machineId = await generateMachineId();
+        const config = this.configService.getConfig();
+        this.machineId = config.machine_id;
       } catch (error) {
-        this.logger.error('Failed to generate machine ID', error);
+        this.logger.error('Failed to get machine ID from config', error);
         this.machineId = 'unknown';
       }
     }
@@ -71,7 +74,7 @@ export class NotificationService {
     }
 
     try {
-      const machineId = await this.getMachineId();
+      const machineId = this.getMachineId();
       const topic = `cui-${machineId}`;
       const ntfyUrl = await this.getNtfyUrl();
 
@@ -115,7 +118,7 @@ export class NotificationService {
     }
 
     try {
-      const machineId = await this.getMachineId();
+      const machineId = this.getMachineId();
       const topic = `cui-${machineId}`;
       const ntfyUrl = await this.getNtfyUrl();
 

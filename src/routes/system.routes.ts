@@ -5,7 +5,7 @@ import { ClaudeProcessManager } from '@/services/claude-process-manager';
 import { ClaudeHistoryReader } from '@/services/claude-history-reader';
 import { createLogger, type Logger } from '@/services/logger';
 import { getAvailableCommands } from '@/services/commands-service';
-import { generateMachineId } from '@/utils/machine-id';
+import { ConfigService } from '@/services/config-service';
 import { execSync } from 'child_process';
 
 export function createSystemRoutes(
@@ -108,8 +108,10 @@ async function getSystemStatus(
       });
     }
     
-    // Generate machine ID
-    const machineId = await generateMachineId();
+    // Get machine ID from config
+    const configService = ConfigService.getInstance();
+    const config = configService.getConfig();
+    const machineId = config.machine_id;
     
     return {
       claudeVersion,
