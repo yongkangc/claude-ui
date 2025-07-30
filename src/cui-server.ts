@@ -12,6 +12,8 @@ import { PreferencesService } from './services/preferences-service';
 import { ConversationStatusManager } from './services/conversation-status-manager';
 import { WorkingDirectoriesService } from './services/working-directories-service';
 import { ToolMetricsService } from './services/ToolMetricsService';
+import { NotificationService } from './services/notification-service';
+import { ConversationCache } from './services/conversation-cache';
 import { 
   StreamEvent,
   CUIError,
@@ -57,6 +59,8 @@ export class CUIServer {
   private conversationStatusManager: ConversationStatusManager;
   private workingDirectoriesService: WorkingDirectoriesService;
   private toolMetricsService: ToolMetricsService;
+  private notificationService: NotificationService;
+  private conversationCache: ConversationCache;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -98,6 +102,14 @@ export class CUIServer {
     this.permissionTracker = new PermissionTracker();
     this.mcpConfigGenerator = new MCPConfigGenerator();
     this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
+    this.notificationService = new NotificationService(this.preferencesService);
+    this.conversationCache = new ConversationCache();
+    
+    // Wire up notification service
+    this.processManager.setNotificationService(this.notificationService);
+    this.permissionTracker.setNotificationService(this.notificationService);
+    this.permissionTracker.setConversationCache(this.conversationCache);
+    
     this.logger.debug('Services initialized successfully');
     
     this.setupMiddleware();
@@ -349,6 +361,9 @@ export class CUIServer {
     this.app.use('/api/system', createSystemRoutes(this.processManager, this.historyReader));
     this.app.use('/', createSystemRoutes(this.processManager, this.historyReader)); // For /health at root
     
+    // Permission routes - before auth (needed for MCP server communication)
+    this.app.use('/api/permissions', createPermissionRoutes(this.permissionTracker));
+    
     // Apply auth middleware to all other API routes unless skipAuthToken is set
     if (!this.configOverrides?.skipAuthToken) {
       if (this.configOverrides?.token) {
@@ -372,8 +387,6 @@ export class CUIServer {
       this.conversationStatusManager,
       this.toolMetricsService
     ));
-    
-    this.app.use('/api/permissions', createPermissionRoutes(this.permissionTracker));
     this.app.use('/api/filesystem', createFileSystemRoutes(this.fileSystemService));
     this.app.use('/api/logs', createLogRoutes());
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
