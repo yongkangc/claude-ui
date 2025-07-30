@@ -2,6 +2,7 @@ import { PermissionRequest } from '@/types';
 import { createLogger, type Logger } from './logger';
 import { PreferencesService } from './preferences-service';
 import { generateMachineId } from '@/utils/machine-id';
+import { fetch } from 'undici';
 
 export interface Notification {
   title: string;

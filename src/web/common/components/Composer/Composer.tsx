@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
+import { WaveformVisualizer } from '../WaveformVisualizer';
 import type { PermissionRequest, Command } from '@/types';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useAudioRecording } from '../../hooks/useAudioRecording';
+import { api } from '../../../chat/services/api';
 import styles from './Composer.module.css';
 
 export interface FileSystemEntry {
@@ -273,6 +276,18 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     type: 'file',
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Audio recording state
+  const { 
+    state: audioState, 
+    startRecording, 
+    stopRecording, 
+    resetToIdle,
+    error: audioError, 
+    duration: recordingDuration,
+    isSupported: isAudioSupported,
+    audioData
+  } = useAudioRecording();
 
   // Expose focusInput method via ref
   useImperativeHandle(ref, () => ({
@@ -663,6 +678,70 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     onModelChange?.(model);
   };
 
+  // Audio recording handlers
+  const handleMicClick = async () => {
+    if (audioState === 'idle') {
+      await startRecording();
+    }
+  };
+
+  const handleAcceptRecording = async () => {
+    if (audioState === 'recording') {
+      const result = await stopRecording();
+      if (result) {
+        try {
+          const transcription = await api.transcribeAudio(result.audioBase64, result.mimeType);
+          
+          // Insert transcribed text at cursor position
+          if (textareaRef.current && transcription.text.trim()) {
+            const textarea = textareaRef.current;
+            const cursorPos = textarea.selectionStart;
+            const textBefore = value.substring(0, cursorPos);
+            const textAfter = value.substring(cursorPos);
+            const transcribedText = transcription.text.trim();
+            
+            // Add space before if needed
+            const needsSpaceBefore = textBefore.length > 0 && !textBefore.endsWith(' ') && !textBefore.endsWith('\n');
+            const finalText = (needsSpaceBefore ? ' ' : '') + transcribedText;
+            
+            const newText = textBefore + finalText + textAfter;
+            setValue(newText);
+            
+            // Set cursor position after inserted text
+            setTimeout(() => {
+              if (textareaRef.current) {
+                const newCursorPos = cursorPos + finalText.length;
+                textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                textareaRef.current.focus();
+                adjustTextareaHeight();
+              }
+            }, 0);
+          } else if (!transcription.text.trim()) {
+            console.warn('No speech detected in audio');
+            // Could show a toast message here
+          }
+        } catch (error) {
+          console.error('Transcription failed:', error);
+          // Could show an error toast here
+        } finally {
+          // Always reset to idle after transcription attempt
+          resetToIdle();
+        }
+      } else {
+        // If no result, also reset to idle
+        resetToIdle();
+      }
+    }
+  };
+
+  const handleRejectRecording = async () => {
+    if (audioState === 'recording' || audioState === 'processing') {
+      await stopRecording();
+      // Just stop and discard, no transcription
+      resetToIdle();
+    }
+  };
+
   return (
     <form className={styles.composer} onSubmit={(e) => {
       e.preventDefault();
@@ -682,19 +761,42 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       <div className={styles.container}>
         <div className={styles.inputWrapper}>
           <div className={styles.textAreaContainer}>
-            <textarea
-              ref={textareaRef}
-              className={styles.textarea}
-              placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
-              value={value}
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
-            />
+            {audioState === 'recording' || audioState === 'processing' ? (
+              <div className={styles.waveformContainer}>
+                <WaveformVisualizer
+                  audioData={audioData}
+                  isRecording={audioState === 'recording'}
+                  isPaused={audioState === 'processing'}
+                />
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
+                value={value}
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
+              />
+            )}
+            
+            {/* Hidden textarea during processing for text insertion */}
+            {audioState === 'processing' && (
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', top: '-9999px' }}
+                value={value}
+                onChange={handleTextChange}
+                rows={1}
+                disabled
+              />
+            )}
           </div>
 
-          {(showDirectorySelector || showModelSelector) && (
+          {(showDirectorySelector || showModelSelector) && audioState === 'idle' && (
             <div className={styles.footerActions}>
               <div className={styles.actionButtons}>
                 <div className={styles.actionGroup}>
@@ -734,6 +836,47 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
           {/* Dynamic Action Button */}
           <div className={styles.voiceButton}>
+            {audioState === 'recording' || audioState === 'processing' ? (
+              /* Recording/Processing State: Show tick and cross */
+              <div className={styles.recordingControls}>
+                <button
+                  type="button"
+                  className={styles.recordingButton}
+                  onClick={handleAcceptRecording}
+                  disabled={audioState === 'processing'}
+                  title={audioState === 'processing' ? 'Processing...' : 'Accept recording'}
+                >
+                  {audioState === 'processing' ? (
+                    <Loader2 size={16} className={styles.spinning} />
+                  ) : (
+                    <Check size={16} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={styles.recordingButton}
+                  onClick={handleRejectRecording}
+                  disabled={audioState === 'processing'}
+                  title="Discard recording"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              /* Idle State: Show mic button */
+              isAudioSupported && (
+                <button
+                  type="button"
+                  className={`${styles.micButton} ${audioError ? styles.micError : ''}`}
+                  onClick={handleMicClick}
+                  disabled={disabled}
+                  title={audioError ? `Error: ${audioError}` : 'Start voice recording'}
+                >
+                  {audioError ? <MicOff size={16} /> : <Mic size={16} />}
+                </button>
+              )
+            )}
+            
             {permissionRequest && showPermissionUI ? (
               <div className={styles.permissionButtons}>
                 <button
@@ -770,7 +913,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               >
                 <Square size={18} />
               </button>
-            ) : (
+            ) : audioState === 'idle' && (
               <div className={styles.permissionModeButtons}>
                 {/* Combined Permission Mode Button with Dropdown */}
                 <div className={styles.combinedPermissionButton}>

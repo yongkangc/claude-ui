@@ -13,6 +13,7 @@ import { ConversationStatusManager } from './services/conversation-status-manage
 import { WorkingDirectoriesService } from './services/working-directories-service';
 import { ToolMetricsService } from './services/ToolMetricsService';
 import { NotificationService } from './services/notification-service';
+import { geminiService } from './services/gemini-service';
 import { 
   StreamEvent,
   CUIError,
@@ -27,6 +28,7 @@ import { createLogRoutes } from './routes/log.routes';
 import { createStreamingRoutes } from './routes/streaming.routes';
 import { createWorkingDirectoriesRoutes } from './routes/working-directories.routes';
 import { createPreferencesRoutes } from './routes/preferences.routes';
+import { createGeminiRoutes } from './routes/gemini.routes';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { createCorsMiddleware } from './middleware/cors-setup';
@@ -136,6 +138,10 @@ export class CUIServer {
       this.logger.debug('Initializing preferences service');
       await this.preferencesService.initialize();
       this.logger.debug('Preferences service initialized successfully');
+
+      this.logger.debug('Initializing Gemini service');
+      await geminiService.initialize();
+      this.logger.debug('Gemini service initialized successfully');
 
       
       // Apply overrides if provided (for tests and CLI options)
@@ -334,7 +340,7 @@ export class CUIServer {
 
   private setupMiddleware(): void {
     this.app.use(createCorsMiddleware());
-    this.app.use(express.json());
+    this.app.use(express.json({ limit: '10mb' }));
     
     // Static file serving
     const isDev = process.env.NODE_ENV === 'development';
@@ -390,6 +396,7 @@ export class CUIServer {
     this.app.use('/api/stream', createStreamingRoutes(this.streamManager));
     this.app.use('/api/working-directories', createWorkingDirectoriesRoutes(this.workingDirectoriesService));
     this.app.use('/api/preferences', createPreferencesRoutes(this.preferencesService));
+    this.app.use('/api/gemini', createGeminiRoutes(geminiService));
     
     // React Router catch-all - must be after all API routes
     const isDev = process.env.NODE_ENV === 'development';
