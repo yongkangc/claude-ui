@@ -126,13 +126,13 @@ export class GeminiService {
           role: 'user',
           parts: [
             {
-              text: 'Please transcribe this audio file. Return transcribed text ONLY.'
-            },
-            {
               inlineData: {
                 mimeType: mimeType,
                 data: audio
               }
+            },
+            {
+              text: 'Transcribe the above audio instructions, which are likely related to software development and may include a mix of different languages and technical terms (e.g., code references, file paths, API names). Transcribe verbatim with correct punctuation, do not add explanations or non-verbal cues. Return the raw transcribed text only:'
             }
           ]
         }]
