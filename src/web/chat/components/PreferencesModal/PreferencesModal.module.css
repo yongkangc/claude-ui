@@ -156,17 +156,18 @@
   justify-content: space-between;
   min-height: 60px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--color-border-light);
 }
 
-.settingItem:last-child {
-  border-bottom: none;
-}
 
 .settingLabel {
   font-size: 14px;
   color: var(--color-text-primary);
   font-weight: 400;
+}
+
+.settingValue {
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
 .settingColumn {
@@ -311,15 +312,16 @@
 }
 
 /* Session section */
-.sessionSection {
-  padding-top: var(--spacing-lg);
+.section {
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .sectionTitle {
   font-size: var(--font-size-md);
   font-weight: 600;
-  margin: 0 0 var(--spacing-md) 0;
   color: var(--color-text-primary);
+  margin-bottom: 12px;
 }
 
 .archiveButton {

@@ -11,7 +11,7 @@ import type {
   FileSystemListQuery,
   FileSystemListResponse,
 } from '../types';
-import type { CommandsResponse } from '@/types';
+import type { CommandsResponse, GeminiHealthResponse } from '@/types';
 import { getAuthToken } from '../../hooks/useAuth';
 
 class ApiService {
@@ -211,6 +211,10 @@ class ApiService {
         mimeType: mimeType
       }),
     });
+  }
+
+  async getGeminiHealth(): Promise<GeminiHealthResponse> {
+    return this.apiCall<GeminiHealthResponse>('/api/gemini/health');
   }
 
   // For endpoints that need direct fetch with auth (like SSE streams)
