@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
+import { WaveformVisualizer } from '../WaveformVisualizer';
 import type { PermissionRequest, Command } from '@/types';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useAudioRecording } from '../../hooks/useAudioRecording';
@@ -283,7 +284,8 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     stopRecording, 
     error: audioError, 
     duration: recordingDuration,
-    isSupported: isAudioSupported 
+    isSupported: isAudioSupported,
+    audioData
   } = useAudioRecording();
 
   // Expose focusInput method via ref
@@ -679,7 +681,11 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
   const handleMicClick = async () => {
     if (audioState === 'idle') {
       await startRecording();
-    } else if (audioState === 'recording') {
+    }
+  };
+
+  const handleAcceptRecording = async () => {
+    if (audioState === 'recording') {
       const result = await stopRecording();
       if (result) {
         try {
@@ -721,6 +727,13 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     }
   };
 
+  const handleRejectRecording = async () => {
+    if (audioState === 'recording' || audioState === 'processing') {
+      await stopRecording();
+      // Just stop and discard, no transcription
+    }
+  };
+
   return (
     <form className={styles.composer} onSubmit={(e) => {
       e.preventDefault();
@@ -740,19 +753,29 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       <div className={styles.container}>
         <div className={styles.inputWrapper}>
           <div className={styles.textAreaContainer}>
-            <textarea
-              ref={textareaRef}
-              className={styles.textarea}
-              placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
-              value={value}
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
-            />
+            {audioState === 'recording' || audioState === 'processing' ? (
+              <div className={styles.waveformContainer}>
+                <WaveformVisualizer
+                  audioData={audioData}
+                  isRecording={audioState === 'recording'}
+                  isPaused={audioState === 'processing'}
+                />
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                placeholder={permissionRequest && showPermissionUI ? "Deny and tell Claude what to do" : placeholder}
+                value={value}
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
+              />
+            )}
           </div>
 
-          {(showDirectorySelector || showModelSelector) && (
+          {(showDirectorySelector || showModelSelector) && audioState === 'idle' && (
             <div className={styles.footerActions}>
               <div className={styles.actionButtons}>
                 <div className={styles.actionGroup}>
@@ -792,30 +815,45 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
           {/* Dynamic Action Button */}
           <div className={styles.voiceButton}>
-            {/* Mic Button */}
-            {isAudioSupported && (
-              <button
-                type="button"
-                className={`${styles.micButton} ${audioState === 'recording' ? styles.micRecording : ''} ${audioState === 'processing' ? styles.micProcessing : ''} ${audioError ? styles.micError : ''}`}
-                onClick={handleMicClick}
-                disabled={disabled || audioState === 'processing'}
-                title={
-                  audioError ? `Error: ${audioError}` :
-                  audioState === 'idle' ? 'Start voice recording' :
-                  audioState === 'recording' ? `Recording... ${recordingDuration}s` :
-                  'Processing audio...'
-                }
-              >
-                {audioState === 'processing' ? (
-                  <Loader2 size={16} className={styles.spinning} />
-                ) : audioState === 'recording' ? (
-                  <Square size={16} />
-                ) : audioError ? (
-                  <MicOff size={16} />
-                ) : (
-                  <Mic size={16} />
-                )}
-              </button>
+            {audioState === 'recording' || audioState === 'processing' ? (
+              /* Recording/Processing State: Show tick and cross */
+              <div className={styles.recordingControls}>
+                <button
+                  type="button"
+                  className={styles.recordingButton}
+                  onClick={handleAcceptRecording}
+                  disabled={audioState === 'processing'}
+                  title={audioState === 'processing' ? 'Processing...' : 'Accept recording'}
+                >
+                  {audioState === 'processing' ? (
+                    <Loader2 size={16} className={styles.spinning} />
+                  ) : (
+                    <Check size={16} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={styles.recordingButton}
+                  onClick={handleRejectRecording}
+                  disabled={audioState === 'processing'}
+                  title="Discard recording"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              /* Idle State: Show mic button */
+              isAudioSupported && (
+                <button
+                  type="button"
+                  className={`${styles.micButton} ${audioError ? styles.micError : ''}`}
+                  onClick={handleMicClick}
+                  disabled={disabled}
+                  title={audioError ? `Error: ${audioError}` : 'Start voice recording'}
+                >
+                  {audioError ? <MicOff size={16} /> : <Mic size={16} />}
+                </button>
+              )
             )}
             
             {permissionRequest && showPermissionUI ? (
@@ -854,7 +892,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               >
                 <Square size={18} />
               </button>
-            ) : (
+            ) : audioState === 'idle' && (
               <div className={styles.permissionModeButtons}>
                 {/* Combined Permission Mode Button with Dropdown */}
                 <div className={styles.combinedPermissionButton}>

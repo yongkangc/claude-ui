@@ -16,18 +16,23 @@ export interface UseAudioRecordingReturn {
   error: string | null;
   duration: number;
   isSupported: boolean;
+  audioData: Uint8Array | null;
 }
 
 export function useAudioRecording(): UseAudioRecordingReturn {
   const [state, setState] = useState<AudioRecordingState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
+  const [audioData, setAudioData] = useState<Uint8Array | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const startTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Check if MediaRecorder is supported
   const isSupported = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
@@ -56,6 +61,18 @@ export function useAudioRecording(): UseAudioRecordingReturn {
       streamRef.current = stream;
       audioChunksRef.current = [];
 
+      // Set up audio analysis
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+
       // Create MediaRecorder with compression settings
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
@@ -70,6 +87,17 @@ export function useAudioRecording(): UseAudioRecordingReturn {
           audioChunksRef.current.push(event.data);
         }
       };
+
+      // Start audio analysis loop
+      const updateAudioData = () => {
+        if (analyserRef.current) {
+          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+          analyserRef.current.getByteFrequencyData(dataArray);
+          setAudioData(dataArray);
+          animationFrameRef.current = requestAnimationFrame(updateAudioData);
+        }
+      };
+      updateAudioData();
 
       // Start recording with smaller time slices for better compression
       mediaRecorder.start(250); // 250ms chunks for more granular data
@@ -158,6 +186,21 @@ export function useAudioRecording(): UseAudioRecordingReturn {
           setState('idle');
           resolve(null);
         } finally {
+          // Clean up audio analysis
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+          }
+          
+          // Clean up audio context
+          if (audioContextRef.current) {
+            audioContextRef.current.close();
+            audioContextRef.current = null;
+          }
+          
+          analyserRef.current = null;
+          setAudioData(null);
+          
           // Clean up stream
           if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
@@ -176,6 +219,7 @@ export function useAudioRecording(): UseAudioRecordingReturn {
     stopRecording,
     error,
     duration,
-    isSupported
+    isSupported,
+    audioData
   };
 }
