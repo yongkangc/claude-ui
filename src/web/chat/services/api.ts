@@ -203,6 +203,16 @@ class ApiService {
     });
   }
 
+  async transcribeAudio(audioBase64: string, mimeType: string): Promise<{ text: string }> {
+    return this.apiCall('/api/gemini/transcribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        audio: audioBase64,
+        mimeType: mimeType
+      }),
+    });
+  }
+
   // For endpoints that need direct fetch with auth (like SSE streams)
   async fetchWithAuth(url: string, options?: RequestInit): Promise<Response> {
     const authToken = getAuthToken();

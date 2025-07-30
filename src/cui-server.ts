@@ -330,7 +330,7 @@ export class CUIServer {
 
   private setupMiddleware(): void {
     this.app.use(createCorsMiddleware());
-    this.app.use(express.json());
+    this.app.use(express.json({ limit: '10mb' }));
     
     // Static file serving
     const isDev = process.env.NODE_ENV === 'development';
