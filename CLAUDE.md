@@ -118,3 +118,4 @@ Sessions are automatically migrated to include these fields when the schema vers
 ## Project Memories
 
 - Migration is not needed for project at this stage
+- The auth is disabled in unit tests
