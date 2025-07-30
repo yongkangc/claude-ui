@@ -6,7 +6,7 @@ import { ConfigService } from './config-service';
 
 // Set up proxy support using environment variables (production only)
 const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
-if (proxyUrl && process.env.NODE_ENV === 'production') {
+if (proxyUrl && process.env.NODE_ENV !== 'test') {
   const dispatcher = new ProxyAgent({ uri: new URL(proxyUrl).toString() });
   setGlobalDispatcher(dispatcher);
 }
