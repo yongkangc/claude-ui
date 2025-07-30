@@ -190,7 +190,6 @@ describe('Authentication Integration E2E', () => {
   describe('Protected Endpoints', () => {
     const protectedEndpoints = [
       '/api/conversations',
-      '/api/permissions',
       '/api/filesystem',
       '/api/logs/recent',
       '/api/working-directories',
@@ -211,6 +210,30 @@ describe('Authentication Integration E2E', () => {
         });
         expect(authorizedResponse.status).not.toBe(401);
       });
+    });
+  });
+
+  describe('Unprotected Endpoints', () => {
+    it('should allow /api/permissions endpoints without auth', async () => {
+      // /api/permissions/notify should be accessible without auth
+      const notifyResponse = await fetch(`${baseUrl}/api/permissions/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      // Should return 400 for invalid payload, not 401
+      expect(notifyResponse.status).not.toBe(401);
+      expect([200, 400]).toContain(notifyResponse.status);
+
+      // /api/permissions/:requestId/decision should be accessible without auth
+      const decisionResponse = await fetch(`${baseUrl}/api/permissions/test-id/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: true })
+      });
+      // Should return 400 for invalid request, not 401
+      expect(decisionResponse.status).not.toBe(401);
+      expect(decisionResponse.status).toBe(400);
     });
   });
 

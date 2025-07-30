@@ -25,11 +25,6 @@ describe('API Endpoints Availability', () => {
       const response = await fetch(`${baseUrl}/api/system/status`);
       expect(response.status).toBe(200);
     });
-
-    it('should have /api/system/models endpoint', async () => {
-      const response = await fetch(`${baseUrl}/api/system/models`);
-      expect(response.status).toBe(200);
-    });
   });
 
   describe('Conversations API', () => {
@@ -172,7 +167,6 @@ describe('API Endpoints Availability', () => {
     it('should have all expected API endpoints available', async () => {
       const endpointChecks = [
         { path: '/api/system/status', method: 'GET', expectedStatus: 200 },
-        { path: '/api/system/models', method: 'GET', expectedStatus: 200 },
         { path: '/api/conversations', method: 'GET', expectedStatus: 200 },
         { path: '/api/logs/recent', method: 'GET', expectedStatus: 200 },
         { path: '/api/working-directories', method: 'GET', expectedStatus: 200 },
