@@ -13,6 +13,7 @@ export interface UseAudioRecordingReturn {
   state: AudioRecordingState;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<AudioRecordingResult | null>;
+  resetToIdle: () => void;
   error: string | null;
   duration: number;
   isSupported: boolean;
@@ -169,7 +170,7 @@ export function useAudioRecording(): UseAudioRecordingReturn {
               duration: Math.floor((Date.now() - startTimeRef.current) / 1000)
             };
             
-            setState('idle');
+            // Don't set state to 'idle' here - let the caller handle it
             resolve(result);
           };
           
@@ -213,10 +214,15 @@ export function useAudioRecording(): UseAudioRecordingReturn {
     });
   }, [state]);
 
+  const resetToIdle = useCallback(() => {
+    setState('idle');
+  }, []);
+
   return {
     state,
     startRecording,
     stopRecording,
+    resetToIdle,
     error,
     duration,
     isSupported,

@@ -282,6 +282,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     state: audioState, 
     startRecording, 
     stopRecording, 
+    resetToIdle,
     error: audioError, 
     duration: recordingDuration,
     isSupported: isAudioSupported,
@@ -722,7 +723,13 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
         } catch (error) {
           console.error('Transcription failed:', error);
           // Could show an error toast here
+        } finally {
+          // Always reset to idle after transcription attempt
+          resetToIdle();
         }
+      } else {
+        // If no result, also reset to idle
+        resetToIdle();
       }
     }
   };
@@ -731,6 +738,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     if (audioState === 'recording' || audioState === 'processing') {
       await stopRecording();
       // Just stop and discard, no transcription
+      resetToIdle();
     }
   };
 
@@ -771,6 +779,19 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                 onKeyDown={handleKeyDown}
                 rows={1}
                 disabled={(isLoading || disabled) && !(permissionRequest && showPermissionUI)}
+              />
+            )}
+            
+            {/* Hidden textarea during processing for text insertion */}
+            {audioState === 'processing' && (
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', top: '-9999px' }}
+                value={value}
+                onChange={handleTextChange}
+                rows={1}
+                disabled
               />
             )}
           </div>
