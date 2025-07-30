@@ -282,6 +282,17 @@ export interface SessionUpdateResponse {
   updatedFields: SessionInfo;    // Returns the complete updated session info
 }
 
+// Notification types
+export interface Notification {
+  title: string;
+  message: string;
+  priority: 'min' | 'low' | 'default' | 'high' | 'urgent';
+  tags: string[];
+  sessionId: string;
+  streamingId: string;
+  permissionRequestId?: string;
+}
+
 // Working directories API types
 export interface WorkingDirectory {
   path: string;              // Full absolute path (e.g., "/home/user/projects/myapp")

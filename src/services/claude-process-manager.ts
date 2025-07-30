@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent } from '@/types';
+import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent, ConversationMessage } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
@@ -10,6 +10,7 @@ import { ConversationStatusManager } from './conversation-status-manager';
 import { ToolMetricsService } from './ToolMetricsService';
 import { SessionInfoService } from './session-info-service';
 import { FileSystemService } from './file-system-service';
+import { NotificationService } from './notification-service';
 
 /**
  * Manages Claude CLI processes and their lifecycle
@@ -29,6 +30,7 @@ export class ClaudeProcessManager extends EventEmitter {
   private toolMetricsService?: ToolMetricsService;
   private sessionInfoService?: SessionInfoService;
   private fileSystemService?: FileSystemService;
+  private notificationService?: NotificationService;
 
   constructor(historyReader: ClaudeHistoryReader, statusTracker: ConversationStatusManager, claudeExecutablePath?: string, envOverrides?: Record<string, string | undefined>, toolMetricsService?: ToolMetricsService, sessionInfoService?: SessionInfoService, fileSystemService?: FileSystemService) {
     super();
@@ -56,6 +58,14 @@ export class ClaudeProcessManager extends EventEmitter {
   setConversationStatusManager(service: ConversationStatusManager): void {
     this.conversationStatusManager = service;
     this.logger.debug('Conversation status manager set');
+  }
+
+  /**
+   * Set the notification service
+   */
+  setNotificationService(service: NotificationService): void {
+    this.notificationService = service;
+    this.logger.debug('Notification service set');
   }
 
 
@@ -877,7 +887,43 @@ export class ClaudeProcessManager extends EventEmitter {
     
     this.processes.delete(streamingId);
     this.outputBuffers.delete(streamingId);
+    const config = this.conversationConfigs.get(streamingId);
     this.conversationConfigs.delete(streamingId);
+    
+    // Send notification if service is available
+    if (this.notificationService && config) {
+      // Get session ID from conversation status or config
+      const sessionId = this.statusTracker.getSessionId(streamingId) || 'unknown';
+      
+      // Try to get conversation summary from history
+      this.historyReader.fetchConversation(sessionId)
+        .then((messages: ConversationMessage[]) => {
+          if (this.notificationService) {
+            let summary = 'Conversation completed';
+            
+            // Try to find a user message for summary
+            const userMessage = messages.find(m => m.type === 'user');
+            if (userMessage && userMessage.message && 'content' in userMessage.message) {
+              const content = userMessage.message.content;
+              if (typeof content === 'string') {
+                summary = content.substring(0, 100);
+              } else if (Array.isArray(content) && content.length > 0 && content[0].type === 'text') {
+                summary = content[0].text.substring(0, 100);
+              }
+            }
+            
+            return this.notificationService.sendConversationEndNotification(
+              streamingId,
+              sessionId,
+              summary
+            );
+          }
+        })
+        .catch((error: Error) => {
+          this.logger.error('Failed to send conversation end notification', error);
+        });
+    }
+    
     this.emit('process-closed', { streamingId, code });
   }
 

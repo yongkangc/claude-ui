@@ -2,15 +2,33 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { PermissionRequest } from '@/types';
 import { logger } from '@/services/logger';
+import { NotificationService } from './notification-service';
+import { ConversationCache } from './conversation-cache';
 
 /**
  * Service to track permission requests from Claude CLI via MCP
  */
 export class PermissionTracker extends EventEmitter {
   private permissionRequests: Map<string, PermissionRequest> = new Map();
+  private notificationService?: NotificationService;
+  private conversationCache?: ConversationCache;
 
   constructor() {
     super();
+  }
+
+  /**
+   * Set the notification service
+   */
+  setNotificationService(service: NotificationService): void {
+    this.notificationService = service;
+  }
+
+  /**
+   * Set the conversation cache
+   */
+  setConversationCache(cache: ConversationCache): void {
+    this.conversationCache = cache;
   }
 
   /**
@@ -32,6 +50,16 @@ export class PermissionTracker extends EventEmitter {
 
     // Emit event for new permission request
     this.emit('permission_request', request);
+
+    // Send notification if service is available
+    if (this.notificationService) {
+      // Send notification asynchronously without conversation summary for now
+      // TODO: Implement proper conversation summary lookup
+      this.notificationService.sendPermissionNotification(request, undefined)
+        .catch(error => {
+          logger.error('Failed to send permission notification', error);
+        });
+    }
 
     return request;
   }
