@@ -1,4 +1,4 @@
-import { PermissionRequest, ConversationSummary } from '@/types';
+import { PermissionRequest } from '@/types';
 import { createLogger, type Logger } from './logger';
 import { PreferencesService } from './preferences-service';
 import { generateMachineId } from '@/utils/machine-id';
@@ -62,7 +62,8 @@ export class NotificationService {
    */
   async sendPermissionNotification(
     request: PermissionRequest,
-    conversationSummary?: ConversationSummary
+    sessionId?: string,
+    summary?: string
   ): Promise<void> {
     if (!(await this.isEnabled())) {
       this.logger.debug('Notifications disabled, skipping permission notification');
@@ -76,10 +77,12 @@ export class NotificationService {
 
       const notification: Notification = {
         title: 'CUI Permission Request',
-        message: `Claude wants to use ${request.toolName} tool: ${JSON.stringify(request.toolInput).substring(0, 100)}...`,
+        message: summary 
+          ? `${summary} - Claude wants to use ${request.toolName} tool`
+          : `Claude wants to use ${request.toolName} tool: ${JSON.stringify(request.toolInput).substring(0, 100)}...`,
         priority: 'high',
         tags: ['warning', 'cui-permission'],
-        sessionId: conversationSummary?.sessionId || 'unknown',
+        sessionId: sessionId || 'unknown',
         streamingId: request.streamingId,
         permissionRequestId: request.id
       };

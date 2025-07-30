@@ -1,6 +1,6 @@
 import { NotificationService } from '@/services/notification-service';
 import { PreferencesService } from '@/services/preferences-service';
-import { PermissionRequest, ConversationSummary } from '@/types';
+import { PermissionRequest } from '@/types';
 import { generateMachineId } from '@/utils/machine-id';
 
 // Mock dependencies
@@ -62,32 +62,8 @@ describe('NotificationService', () => {
       status: 'pending'
     };
 
-    const mockConversationSummary: ConversationSummary = {
-      sessionId: 'session-789',
-      projectPath: '/home/user/project',
-      summary: 'Working on authentication feature',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-      messageCount: 5,
-      totalDuration: 300,
-      model: 'claude-3',
-      status: 'ongoing',
-      streamingId: 'stream-456',
-      sessionInfo: {
-        custom_name: 'Auth Feature',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-        version: 1,
-        pinned: false,
-        archived: false,
-        continuation_session_id: '',
-        initial_commit_head: '',
-        permission_mode: 'default'
-      }
-    };
-
     it('should send permission notification when enabled', async () => {
-      await service.sendPermissionNotification(mockPermissionRequest, mockConversationSummary);
+      await service.sendPermissionNotification(mockPermissionRequest, 'session-789');
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringMatching(/^https:\/\/ntfy\.sh\/cui-.+$/),
@@ -115,7 +91,7 @@ describe('NotificationService', () => {
         }
       });
 
-      await service.sendPermissionNotification(mockPermissionRequest);
+      await service.sendPermissionNotification(mockPermissionRequest, undefined);
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
@@ -124,7 +100,7 @@ describe('NotificationService', () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       // Should not throw
-      await expect(service.sendPermissionNotification(mockPermissionRequest))
+      await expect(service.sendPermissionNotification(mockPermissionRequest, undefined, undefined))
         .resolves.not.toThrow();
     });
 
@@ -136,7 +112,7 @@ describe('NotificationService', () => {
       });
 
       // Should not throw
-      await expect(service.sendPermissionNotification(mockPermissionRequest))
+      await expect(service.sendPermissionNotification(mockPermissionRequest, undefined, undefined))
         .resolves.not.toThrow();
     });
 
@@ -150,11 +126,33 @@ describe('NotificationService', () => {
         }
       });
 
-      await service.sendPermissionNotification(mockPermissionRequest);
+      await service.sendPermissionNotification(mockPermissionRequest, undefined, undefined);
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringMatching(/^https:\/\/custom\.ntfy\.server\/cui-.+$/),
         expect.any(Object)
+      );
+    });
+
+    it('should include summary in message when provided', async () => {
+      await service.sendPermissionNotification(mockPermissionRequest, 'session-789', 'Working on authentication');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: 'Working on authentication - Claude wants to use Bash tool'
+        })
+      );
+    });
+
+    it('should show tool input when summary not provided', async () => {
+      await service.sendPermissionNotification(mockPermissionRequest, 'session-789');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('Claude wants to use Bash tool: {"command":"npm install express"}')
+        })
       );
     });
   });
@@ -237,7 +235,7 @@ describe('NotificationService', () => {
         status: 'pending'
       };
 
-      await service.sendPermissionNotification(mockRequest);
+      await service.sendPermissionNotification(mockRequest, undefined);
       await service.sendConversationEndNotification('stream-123', 'session-456');
 
       expect(global.fetch).not.toHaveBeenCalled();

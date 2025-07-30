@@ -13,7 +13,6 @@ import { ConversationStatusManager } from './services/conversation-status-manage
 import { WorkingDirectoriesService } from './services/working-directories-service';
 import { ToolMetricsService } from './services/ToolMetricsService';
 import { NotificationService } from './services/notification-service';
-import { ConversationCache } from './services/conversation-cache';
 import { 
   StreamEvent,
   CUIError,
@@ -60,7 +59,6 @@ export class CUIServer {
   private workingDirectoriesService: WorkingDirectoriesService;
   private toolMetricsService: ToolMetricsService;
   private notificationService: NotificationService;
-  private conversationCache: ConversationCache;
   private logger: Logger;
   private port: number;
   private host: string;
@@ -103,12 +101,12 @@ export class CUIServer {
     this.mcpConfigGenerator = new MCPConfigGenerator();
     this.workingDirectoriesService = new WorkingDirectoriesService(this.historyReader, this.logger);
     this.notificationService = new NotificationService(this.preferencesService);
-    this.conversationCache = new ConversationCache();
     
     // Wire up notification service
     this.processManager.setNotificationService(this.notificationService);
     this.permissionTracker.setNotificationService(this.notificationService);
-    this.permissionTracker.setConversationCache(this.conversationCache);
+    this.permissionTracker.setConversationStatusManager(this.conversationStatusManager);
+    this.permissionTracker.setHistoryReader(this.historyReader);
     
     this.logger.debug('Services initialized successfully');
     

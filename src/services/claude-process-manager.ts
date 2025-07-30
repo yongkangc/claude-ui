@@ -895,27 +895,14 @@ export class ClaudeProcessManager extends EventEmitter {
       // Get session ID from conversation status or config
       const sessionId = this.statusTracker.getSessionId(streamingId) || 'unknown';
       
-      // Try to get conversation summary from history
-      this.historyReader.fetchConversation(sessionId)
-        .then((messages: ConversationMessage[]) => {
-          if (this.notificationService) {
-            let summary = 'Conversation completed';
-            
-            // Try to find a user message for summary
-            const userMessage = messages.find(m => m.type === 'user');
-            if (userMessage && userMessage.message && 'content' in userMessage.message) {
-              const content = userMessage.message.content;
-              if (typeof content === 'string') {
-                summary = content.substring(0, 100);
-              } else if (Array.isArray(content) && content.length > 0 && content[0].type === 'text') {
-                summary = content[0].text.substring(0, 100);
-              }
-            }
-            
+      // Try to get conversation metadata for summary
+      this.historyReader.getConversationMetadata(sessionId)
+        .then((metadata) => {
+          if (this.notificationService && metadata) {
             return this.notificationService.sendConversationEndNotification(
               streamingId,
               sessionId,
-              summary
+              metadata.summary
             );
           }
         })
