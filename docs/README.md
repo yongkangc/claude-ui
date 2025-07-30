@@ -96,4 +96,6 @@ To uninstall cui, simply delete the `~/.cui/` directory and remove the package w
 
 ## Contributing
 
-Please make sure you (or your fellow AI) have read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
+The best way to contribute is to suggest improvements or report bugs in the [issues](https://github.com/BMPixel/cui/issues) and give us a star ⭐!
+
+Before submitting a PR, please make sure you (or your fellow AI) have read [CONTRIBUTING.md](CONTRIBUTING.md).
