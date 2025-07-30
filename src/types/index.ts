@@ -307,3 +307,28 @@ export interface CommandsResponse {
 }
 
 export * from './preferences';
+
+// Gemini API types
+export interface GeminiHealthResponse {
+  status: 'healthy' | 'unhealthy';
+  message: string;
+  apiKeyValid: boolean;
+}
+
+export interface GeminiTranscribeRequest {
+  audio: string; // base64 encoded audio
+  mimeType: string; // audio mime type
+}
+
+export interface GeminiTranscribeResponse {
+  text: string;
+}
+
+export interface GeminiSummarizeRequest {
+  text: string;
+}
+
+export interface GeminiSummarizeResponse {
+  title: string;
+  keypoints: string[];
+}

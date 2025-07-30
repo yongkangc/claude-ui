@@ -7,6 +7,20 @@ export interface ServerConfig {
   port: number;
 }
 
+export interface GeminiConfig {
+  /**
+   * Google API key for Gemini
+   * Can also be set via GOOGLE_API_KEY environment variable
+   */
+  apiKey?: string;
+  
+  /**
+   * Gemini model to use
+   * Default: 'gemini-2.5-flash'
+   */
+  model?: string;
+}
+
 export interface CUIConfig {
   /**
    * Unique machine identifier
@@ -25,6 +39,11 @@ export interface CUIConfig {
    * 32-character random string generated on first run
    */
   authToken: string;
+
+  /**
+   * Gemini API configuration (optional)
+   */
+  gemini?: GeminiConfig;
 }
 
 /**
