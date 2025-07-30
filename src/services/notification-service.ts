@@ -78,10 +78,10 @@ export class NotificationService {
       const notification: Notification = {
         title: 'CUI Permission Request',
         message: summary 
-          ? `${summary} - Claude wants to use ${request.toolName} tool`
-          : `Claude wants to use ${request.toolName} tool: ${JSON.stringify(request.toolInput).substring(0, 100)}...`,
-        priority: 'high',
-        tags: ['warning', 'cui-permission'],
+          ? `${summary} - ${request.toolName}`
+          : `${request.toolName} tool: ${JSON.stringify(request.toolInput).substring(0, 100)}...`,
+        priority: 'default',
+        tags: ['cui-permission'],
         sessionId: sessionId || 'unknown',
         streamingId: request.streamingId,
         permissionRequestId: request.id
@@ -120,10 +120,10 @@ export class NotificationService {
       const ntfyUrl = await this.getNtfyUrl();
 
       const notification: Notification = {
-        title: 'CUI Conversation Ended',
-        message: `Session ${sessionId}: ${summary || 'Conversation completed'}`,
+        title: 'Task Finished',
+        message: summary || 'Task completed',
         priority: 'default',
-        tags: ['white_check_mark', 'cui-complete'],
+        tags: ['cui-complete'],
         sessionId,
         streamingId
       };
