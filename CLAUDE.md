@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CUI (Claude Code Web UI) is a web interface for the Claude CLI tool. It consists of:
 - TypeScript Express backend that manages Claude CLI processes
-- React frontend with TUI-inspired design
+- React frontend with ultra clean minimalistic design
 - Single-port architecture (port 3001)
   - Development: Uses vite-express for hot reloading
   - Production: Serves pre-built static files from dist/web
@@ -52,7 +52,7 @@ npx jest -t "test name"                                    # Run test by name pa
 - **chat/**: Main chat application components
 - **inspector/**: Inspector/log monitor components  
 - **api/**: API client using fetch for backend communication
-- **styles/**: CSS modules with TUI-inspired design
+- **styles/**: CSS modules with ultra clean minimalistic and modern design. Muted with mostly black and white colors.
 
 ### API Routes (`src/routes/`)
 - Conversations API: Start, list, get, continue, stop conversations

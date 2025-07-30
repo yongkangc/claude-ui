@@ -14,7 +14,7 @@ Thank you for your interest in contributing to CUI! This guide will help you get
 
 CUI is a web interface for the Claude CLI tool, consisting of:
 - TypeScript Express backend that manages Claude CLI processes
-- React frontend with TUI-inspired design
+- React frontend with ultra clean minimalistic design
 - Single-port architecture (port 3001)
 - Real-time streaming of Claude responses via newline-delimited JSON
 - MCP (Model Context Protocol) integration for permission management
@@ -32,7 +32,7 @@ CUI is a web interface for the Claude CLI tool, consisting of:
 - **chat/**: Main chat application components
 - **console/**: Console/log viewer components  
 - **api/**: API client using fetch for backend communication
-- **styles/**: CSS modules with TUI-inspired design
+- **styles/**: CSS modules with ultra clean minimalistic design
 
 #### API Routes (`src/routes/`)
 - Conversations API: Start, list, get, continue, stop conversations
