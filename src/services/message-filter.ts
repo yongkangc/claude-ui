@@ -43,14 +43,6 @@ export class MessageFilter {
       textContent.trim().startsWith(prefix)
     );
 
-    if (shouldFilter) {
-      this.logger.debug('Filtering out message', {
-        uuid: message.uuid,
-        prefix: this.filteredPrefixes.find(p => textContent.trim().startsWith(p)),
-        contentPreview: textContent.substring(0, 50) + '...'
-      });
-    }
-
     return !shouldFilter;
   }
 
