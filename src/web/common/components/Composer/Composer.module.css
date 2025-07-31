@@ -87,7 +87,7 @@
 
 .actionGroup {
   display: flex;
-  gap: 16px;
+  gap: 8px;
 }
 
 .actionButton {
@@ -124,7 +124,7 @@
   white-space: nowrap;
 }
 
-.voiceButton {
+.actionGroupRight {
   position: absolute;
   right: 10px;
   bottom: 8px;
@@ -132,22 +132,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-}
-
-.micButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  position: relative;
 }
 
 .micButton:hover:not(:disabled) {
@@ -453,6 +437,20 @@
   opacity: 0.8;
 }
 
+/* Model dropdown option styles */
+.modelOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.modelOptionLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
 /* Waveform container */
 .waveformContainer {
   width: 100%;
@@ -501,4 +499,11 @@
 .recordingButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .buttonText {
+    display: none;
+  }
 }

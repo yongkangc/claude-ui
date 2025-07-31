@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff, Zap, Bot, Drone } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
 import { WaveformVisualizer } from '../WaveformVisualizer';
@@ -133,8 +133,79 @@ function DirectoryDropdown({
           <Laptop size={14} />
           <span className={styles.buttonText}>
             <span className={styles.buttonLabel}>{displayText}</span>
+            <ChevronDown size={14} />
           </span>
-          <ChevronDown size={14} />
+        </button>
+      )}
+    />
+  );
+}
+
+interface ModelDropdownProps {
+  selectedModel: string;
+  availableModels: string[];
+  onModelSelect: (model: string) => void;
+}
+
+function ModelDropdown({
+  selectedModel,
+  availableModels,
+  onModelSelect
+}: ModelDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Get icon for model
+  const getModelIcon = (model: string) => {
+    switch (model) {
+      case 'sonnet':
+        return <Zap size={14} />;
+      case 'opus':
+        return <Drone size={14} />;
+      case 'default':
+        return <Bot size={14} />;
+      default:
+        return <Bot size={14} />;
+    }
+  };
+
+  // Create options from available models
+  const options: DropdownOption<string>[] = availableModels.map(model => ({
+    value: model,
+    label: model === 'default' ? 'Default' : model.charAt(0).toUpperCase() + model.slice(1),
+  }));
+
+  // Get display text for the selected model
+  const displayText = selectedModel === 'default' ? 'Default' : selectedModel.charAt(0).toUpperCase() + selectedModel.slice(1);
+
+  return (
+    <DropdownSelector
+      options={options}
+      value={selectedModel}
+      onChange={(value) => {
+        onModelSelect(value);
+        setIsOpen(false);
+      }}
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      showFilterInput={false}
+      renderOption={(option) => (
+        <div className={styles.modelOption}>
+          {getModelIcon(option.value)}
+          <span className={styles.modelOptionLabel}>{option.label}</span>
+        </div>
+      )}
+      renderTrigger={({ onClick }) => (
+        <button
+          type="button"
+          className={styles.actionButton}
+          onClick={onClick}
+          aria-label="Select AI model"
+        >
+          {getModelIcon(selectedModel)}
+          <span className={styles.buttonText}>
+            <span className={styles.buttonLabel}>{displayText}</span>
+            <ChevronDown size={14} />
+          </span>
         </button>
       )}
     />
@@ -811,23 +882,11 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
                   {/* Model Selector */}
                   {showModelSelector && (
-                    <button
-                      type="button"
-                      className={styles.actionButton}
-                      aria-label="Select AI model"
-                      onClick={() => {
-                        // Toggle between models for now
-                        const currentIndex = availableModels.indexOf(selectedModel);
-                        const nextIndex = (currentIndex + 1) % availableModels.length;
-                        handleModelSelect(availableModels[nextIndex]);
-                      }}
-                    >
-                      <Sparkles size={14} />
-                      <span className={styles.buttonText}>
-                        <span className={styles.buttonLabel}>{selectedModel}</span>
-                      </span>
-                      <ChevronDown size={14} />
-                    </button>
+                    <ModelDropdown
+                      selectedModel={selectedModel}
+                      availableModels={availableModels}
+                      onModelSelect={handleModelSelect}
+                    />
                   )}
                 </div>
               </div>
@@ -835,7 +894,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
           )}
 
           {/* Dynamic Action Button */}
-          <div className={styles.voiceButton}>
+          <div className={styles.actionGroupRight}>
             {audioState === 'recording' || audioState === 'processing' ? (
               /* Recording/Processing State: Show tick and cross */
               <div className={styles.recordingControls}>
@@ -867,7 +926,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
               isAudioSupported && (
                 <button
                   type="button"
-                  className={`${styles.micButton} ${audioError ? styles.micError : ''}`}
+                  className={`${styles.actionButton} ${audioError ? styles.micError : ''}`}
                   onClick={handleMicClick}
                   disabled={disabled}
                   title={audioError ? `Error: ${audioError}` : 'Start voice recording'}
@@ -956,9 +1015,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                         disabled={!value.trim() || isLoading || disabled || (showDirectorySelector && selectedDirectory === 'Select directory')}
                         aria-label="Select permission mode"
                       >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M4.5 5.5L8 9L11.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                        </svg>
+                        <ChevronDown size={14} />
                       </button>
                     )}
                   />
