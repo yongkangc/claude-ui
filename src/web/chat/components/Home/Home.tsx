@@ -141,7 +141,7 @@ export function Home() {
                     </svg>
                   </div>
                 </div>
-                <h1 className={styles.heading}>Where are we heading next?</h1>
+                <h1 className={styles.heading}>What is the next task?</h1>
               </div>
               
               <div className={styles.composerWrapper}>
@@ -150,7 +150,7 @@ export function Home() {
                   workingDirectory={recentWorkingDirectory}
                   onSubmit={handleComposerSubmit}
                   isLoading={isSubmitting}
-                  placeholder="Describe another task"
+                  placeholder="Describe your task"
                   showDirectorySelector={true}
                   showModelSelector={true}
                   enableFileAutocomplete={true}
