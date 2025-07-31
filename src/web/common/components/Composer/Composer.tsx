@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff, Zap, Bot, Drone } from 'lucide-react';
+import { ChevronDown, Mic, Send, Loader2, Sparkles, Laptop, Square, Check, X, MicOff, Zap, Bot, Drone, Code2, Gauge, Rocket, FileText } from 'lucide-react';
 import { DropdownSelector, DropdownOption } from '../DropdownSelector';
 import { PermissionDialog } from '../PermissionDialog';
 import { WaveformVisualizer } from '../WaveformVisualizer';
@@ -540,21 +540,36 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
 
   const getPermissionModeLabel = (mode: string): string => {
     switch (mode) {
-      case 'default': return 'Code';
+      case 'default': return 'Ask';
       case 'acceptEdits': return 'Auto';
       case 'bypassPermissions': return 'Yolo';
       case 'plan': return 'Plan';
-      default: return 'Code';
+      default: return 'Ask';
     }
   };
 
   const getPermissionModeTitle = (mode: string): string => {
     switch (mode) {
-      case 'default': return 'Code - Ask for permissions as needed';
+      case 'default': return 'Ask - Ask for permissions as needed';
       case 'acceptEdits': return 'Auto - Allow Claude to make changes directly';
       case 'bypassPermissions': return 'Yolo - Skip all permission prompts';
       case 'plan': return 'Plan - Create a plan without executing';
-      default: return 'Code - Ask for permissions as needed';
+      default: return 'Ask - Ask for permissions as needed';
+    }
+  };
+
+  const getPermissionModeIcon = (mode: string) => {
+    switch (mode) {
+      case 'default':
+        return <Code2 size={14} />;
+      case 'acceptEdits':
+        return <Gauge size={14} />;
+      case 'bypassPermissions':
+        return <Rocket size={14} />;
+      case 'plan':
+        return <FileText size={14} />;
+      default:
+        return <Code2 size={14} />;
     }
   };
 
@@ -984,12 +999,16 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                     onClick={() => handleSubmit(selectedPermissionMode)}
                   >
                     <div className={styles.btnContent}>
-                      {isLoading ? <Loader2 size={14} className={styles.spinning} /> : getPermissionModeLabel(selectedPermissionMode)}
+                      {isLoading ? <Loader2 size={14} className={styles.spinning} /> : (
+                        <>
+                          {getPermissionModeLabel(selectedPermissionMode)}
+                        </>
+                      )}
                     </div>
                   </button>
                   <DropdownSelector
                     options={[
-                      { value: 'default', label: 'Code', description: 'Ask before making changes' },
+                      { value: 'default', label: 'Ask', description: 'Ask before making changes' },
                       { value: 'acceptEdits', label: 'Auto', description: 'Apply edits automatically' },
                       { value: 'bypassPermissions', label: 'Yolo', description: 'No permission prompts' },
                       { value: 'plan', label: 'Plan', description: 'Planning mode only' },
@@ -1001,7 +1020,10 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
                     showFilterInput={false}
                     renderOption={(option) => (
                       <div className={styles.permissionOption}>
-                        <span className={styles.permissionOptionLabel}>{option.label}</span>
+                        <div className={styles.permissionOptionHeader}>
+                          {getPermissionModeIcon(option.value)}
+                          <span className={styles.permissionOptionLabel}>{option.label}</span>
+                        </div>
                         {option.description && (
                           <span className={styles.permissionOptionDescription}>{option.description}</span>
                         )}
