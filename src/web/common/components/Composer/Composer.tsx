@@ -580,7 +580,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
     
     if (autocomplete.type === 'command') {
       // For commands, replace the entire trigger sequence (including the /) with the selected command
-      const newText = value.substring(0, autocomplete.triggerIndex) + selection + value.substring(cursorPos);
+      const newText = value.substring(0, autocomplete.triggerIndex) + selection + ' ' + value.substring(cursorPos);
       setValue(newText);
       
       // Reset autocomplete state immediately
@@ -589,7 +589,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       // Set cursor position after the inserted selection and adjust height
       setTimeout(() => {
         if (textareaRef.current) {
-          const newCursorPos = autocomplete.triggerIndex + selection.length;
+          const newCursorPos = autocomplete.triggerIndex + selection.length + 1;
           textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
           textareaRef.current.focus();
           adjustTextareaHeight();
@@ -597,7 +597,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       }, 0);
     } else {
       // For files, keep the existing behavior (append after the @ symbol)
-      const newText = value.substring(0, autocomplete.triggerIndex + 1) + selection + value.substring(cursorPos);
+      const newText = value.substring(0, autocomplete.triggerIndex + 1) + selection + ' ' + value.substring(cursorPos);
       setValue(newText);
       
       // Reset autocomplete state immediately
@@ -606,7 +606,7 @@ export const Composer = forwardRef<ComposerRef, ComposerProps>(function Composer
       // Set cursor position after the inserted selection and adjust height
       setTimeout(() => {
         if (textareaRef.current) {
-          const newCursorPos = autocomplete.triggerIndex + 1 + selection.length;
+          const newCursorPos = autocomplete.triggerIndex + 1 + selection.length + 1;
           textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
           textareaRef.current.focus();
           adjustTextareaHeight();
