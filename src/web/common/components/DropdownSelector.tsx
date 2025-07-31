@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Check } from 'lucide-react';
+import { Check, ArrowUp } from 'lucide-react';
 import styles from './DropdownSelector.module.css';
 import { useDropdownPosition } from '../hooks/useDropdownPosition';
 
@@ -288,6 +288,10 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
               onChange(option.value);
               setIsOpen(false);
             }
+          } else if (focusedIndex === -1 && filterText.trim()) {
+            // If no option is focused but there's text in the input, use the input text as value
+            onChange(filterText.trim() as T);
+            setIsOpen(false);
           }
           break;
         case 'Escape':
@@ -319,8 +323,6 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
         setIsOpen(false);
       }
     };
-
-    const selectedOption = options.find(opt => opt.value === value);
 
     return (
       <>
@@ -371,6 +373,19 @@ export const DropdownSelector = forwardRef<HTMLDivElement, DropdownSelectorProps
                       onChange={(e) => setFilterText(e.target.value)}
                       aria-label="Filter options"
                     />
+                    {filterText.trim() && (
+                      <button
+                        type="button"
+                        className={styles.selectTextButton}
+                        onClick={() => {
+                          onChange(filterText.trim() as T);
+                          setIsOpen(false);
+                        }}
+                        aria-label="Select input text"
+                      >
+                        <ArrowUp size={18} />
+                      </button>
+                    )}
                   </div>
                   <div className={styles.divider} />
                 </>

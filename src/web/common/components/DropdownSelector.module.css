@@ -22,10 +22,13 @@
 .inputSection {
   padding: 6px 8px;
   background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .filterInput {
-  width: 100%;
+  flex: 1;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -34,6 +37,18 @@
   color: var(--color-text-primary);
   outline: none;
   transition: all 0.15s ease;
+}
+
+.selectTextButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  border-radius: 50%;
 }
 
 .filterInput:focus {
