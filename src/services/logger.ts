@@ -119,51 +119,26 @@ class LoggerService {
       }
     });
     
-    // Check if we should use pretty formatting
-    const isDevelopment = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
+    const formatter = new LogFormatter();
+    formatter.pipe(process.stdout);
     
-    if (isDevelopment) {
-      // Create formatter for development
-      const formatter = new LogFormatter();
-      
-      // Pipe formatter to stdout
-      formatter.pipe(process.stdout);
-      
-      // Create multi-stream configuration with formatter
-      const streams = [
-        { level: logLevel as pino.Level, stream: formatter },
-        { level: logLevel as pino.Level, stream: this.logInterceptStream }
-      ];
-      
-      this.baseLogger = pino({
-        level: logLevel,
-        formatters: {
-          level: (label) => {
-            return { level: label };
-          }
-        },
-        timestamp: pino.stdTimeFunctions.isoTime,
-        enabled: true
-      }, pino.multistream(streams));
-    } else {
-      // Production/test configuration
-      const streams = [
-        { level: logLevel as pino.Level, stream: process.stdout },
-        { level: logLevel as pino.Level, stream: this.logInterceptStream }
-      ];
-      
-      this.baseLogger = pino({
-        level: logLevel,
-        formatters: {
-          level: (label) => {
-            return { level: label };
-          }
-        },
-        timestamp: pino.stdTimeFunctions.isoTime,
-        // Enable in test environment if debug level, otherwise suppress
-        enabled: process.env.NODE_ENV !== 'test' || logLevel === 'debug'
-      }, pino.multistream(streams));
-    }
+    // Create multi-stream configuration with formatter
+    const streams = [
+      { level: logLevel as pino.Level, stream: formatter },
+      { level: logLevel as pino.Level, stream: this.logInterceptStream }
+    ];
+    
+    this.baseLogger = pino({
+      level: logLevel,
+      formatters: {
+        level: (label) => {
+          return { level: label };
+        }
+      },
+      timestamp: pino.stdTimeFunctions.isoTime,
+      // Enable in test environment if debug level, otherwise suppress
+      enabled: process.env.NODE_ENV !== 'test' || logLevel === 'debug'
+    }, pino.multistream(streams));
   }
 
   /**
