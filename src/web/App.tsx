@@ -2,7 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import InspectorApp from './inspector/InspectorApp';
 import ChatApp from './chat/ChatApp';
-import { useAuth, getAuthToken } from './hooks/useAuth';
+import Login from './components/Login/Login';
+import { useAuth, getAuthToken, setAuthToken } from './hooks/useAuth';
 
 function App() {
   // Handle auth token extraction from URL fragment
@@ -12,7 +13,7 @@ function App() {
   const authToken = getAuthToken();
   
   if (!authToken) {
-    return 'Unauthorized';
+    return <Login onLogin={setAuthToken} />;
   }
 
   return (

@@ -19,7 +19,7 @@ export function getAuthToken(): string | null {
 /**
  * Set auth token in cookie with security flags
  */
-function setAuthToken(token: string): void {
+export function setAuthToken(token: string): void {
   const expires = new Date();
   expires.setDate(expires.getDate() + 7); // 7 days expiration
   
