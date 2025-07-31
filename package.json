@@ -103,6 +103,7 @@
     "tsx": "^4.6.2",
     "typescript": "^5.3.3",
     "vite": "^7.0.6",
-    "vite-express": "^0.21.1"
+    "vite-express": "^0.21.1",
+    "vite-plugin-pwa": "^1.0.2"
   }
 }
