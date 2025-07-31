@@ -44,9 +44,43 @@
   background: var(--color-bg-primary);
 }
 
-.heading {
+.headingContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
   padding-top: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.logoIcon {
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoText {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.heading {
   font-size: 24px;
   font-weight: 600;
   font-family: var(--font-sans);
@@ -58,4 +92,11 @@
   padding-top: 1px;
   padding-left: 12px;
   padding-right: 12px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .logoText {
+    display: none;
+  }
 }
