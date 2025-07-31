@@ -38,12 +38,6 @@
   font-size: 14px;
 }
 
-@media (min-width: 768px) {
-  .content {
-    padding: 14px 12px;
-  }
-}
-
 .details {
   display: flex;
   flex-direction: column;

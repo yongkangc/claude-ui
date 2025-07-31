@@ -59,24 +59,6 @@
   opacity: 0;
 }
 
-/* Responsive desktop widths */
-@media (min-width: 768px) {
-  .dialog.desktop {
-    width: calc(100vw - 32px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .dialog.desktop {
-    width: 83.333333%; /* 5/6 */
-  }
-}
-
-@media (min-width: 1536px) {
-  .dialog.desktop {
-    max-width: 800px;
-  }
-}
 
 /* Mobile dialog styles - bottom sheet */
 .dialog.mobile {

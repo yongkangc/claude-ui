@@ -97,9 +97,3 @@
 .button:active:not(:disabled) {
   transform: translateY(0);
 }
-
-@media (max-width: 768px) {
-  .dialog {
-    padding: 32px 24px;
-  }
-}

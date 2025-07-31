@@ -17,12 +17,6 @@
   scrollbar-color: var(--color-border) transparent;
 }
 
-@media (min-width: 768px) {
-  .container {
-    margin-top: 24px;
-  }
-}
-
 .tabs {
   display: flex;
   align-items: center;

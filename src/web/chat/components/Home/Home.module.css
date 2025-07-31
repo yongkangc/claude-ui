@@ -53,37 +53,9 @@
   color: var(--color-text-primary);
 }
 
-@media (min-width: 1536px) {
-  .heading {
-    margin-bottom: 32px;
-    padding-top: 32px;
-    font-size: 30px;
-  }
-}
-
-@media (max-height: 550px) {
-  .heading {
-    display: none;
-  }
-}
-
 .composerWrapper {
   width: 100%;
   padding-top: 1px;
   padding-left: 12px;
   padding-right: 12px;
-}
-
-@media (min-width: 768px) {
-  .composerWrapper {
-    padding-left: 0;
-    padding-right: 0;
-  }
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .contentWrapper {
-    padding: 0;
-  }
 }

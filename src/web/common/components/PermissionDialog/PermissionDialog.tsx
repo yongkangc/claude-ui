@@ -18,23 +18,17 @@ export function PermissionDialog({ permissionRequest, isVisible }: PermissionDia
     <div className={styles.overlay}>
       <div className={styles.dialog}>
         <div className={styles.header}>
-          <h3 className={styles.title}>Permission Request</h3>
+          <div className={styles.title}>PERMISSION REQUEST:</div>
         </div>
-        
         <div className={styles.content}>
-          <div className={styles.toolSection}>
-            <ToolLabel 
-              toolName={permissionRequest.toolName}
-              toolInput={permissionRequest.toolInput}
-            />
-          </div>
-          
-            <div className={styles.toolInputDisplay}>
-              <ToolContent
-                toolName={permissionRequest.toolName}
-                toolInput={permissionRequest.toolInput}
-              />
-            </div>
+          <ToolLabel 
+            toolName={permissionRequest.toolName}
+            toolInput={permissionRequest.toolInput}
+          />
+          <ToolContent
+            toolName={permissionRequest.toolName}
+            toolInput={permissionRequest.toolInput}
+          />
         </div>
       </div>
     </div>
