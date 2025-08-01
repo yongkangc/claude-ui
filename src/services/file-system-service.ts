@@ -270,13 +270,12 @@ export class FileSystemService {
     const entries: FileSystemEntry[] = [];
     
     for (const dirent of dirents) {
-      const fullPath = path.join(dirPath, dirent.name);
-      
-      // Check gitignore if enabled
+      // Check gitignore BEFORE any expensive operations
       if (ig && ig.ignores(dirent.name)) {
         continue;
       }
       
+      const fullPath = path.join(dirPath, dirent.name);
       const stats = await fs.stat(fullPath);
       entries.push({
         name: dirent.name,
@@ -306,8 +305,9 @@ export class FileSystemService {
         const fullPath = path.join(currentPath, dirent.name);
         const relativePath = path.relative(basePath, fullPath);
         
-        // Check gitignore if enabled
+        // Check gitignore BEFORE any expensive operations
         if (ig && ig.ignores(relativePath)) {
+          // Skip this entry entirely - don't stat, don't recurse into directories
           continue;
         }
         
@@ -319,7 +319,7 @@ export class FileSystemService {
           lastModified: stats.mtime.toISOString()
         });
         
-        // Recurse into subdirectories
+        // Recurse into subdirectories (already checked it's not ignored)
         if (dirent.isDirectory()) {
           await traverse(fullPath);
         }
