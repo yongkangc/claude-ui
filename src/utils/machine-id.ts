@@ -62,8 +62,11 @@ async function getPrimaryMacAddress(): Promise<string> {
  * Example: "wenbomacbook-a1b2c3d4e5f6g7h8"
  */
 export async function generateMachineId(): Promise<string> {
-  // Get hostname (lowercase)
-  const hostname = os.hostname().toLowerCase();
+  // Get hostname (lowercase) and sanitize it
+  // Remove dots and other special characters, keeping only alphanumeric and hyphens
+  const hostname = os.hostname()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
   
   // Get MAC address
   const macAddress = await getPrimaryMacAddress();

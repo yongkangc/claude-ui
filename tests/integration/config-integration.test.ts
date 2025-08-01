@@ -108,9 +108,9 @@ describe('Configuration System Basic Integration', () => {
       const pattern = /^[a-z0-9\-]+\-[a-f0-9]{16}$/;
       expect(machineId).toMatch(pattern);
       
-      // Should start with lowercase hostname
-      const hostname = os.hostname().toLowerCase();
-      expect(machineId).toMatch(new RegExp(`^${hostname.replace(/[\\s\\(\\)\\[\\]{}]/g, '')}`));
+      // Should start with lowercase sanitized hostname
+      const hostname = os.hostname().toLowerCase().replace(/[^a-z0-9-]/g, '');
+      expect(machineId).toMatch(new RegExp(`^${hostname}`));
     });
 
     it('should generate the same machine ID on multiple calls', async () => {
@@ -216,7 +216,7 @@ describe('Configuration System Basic Integration', () => {
       const hostname = os.hostname().toLowerCase();
       
       // Machine ID should start with hostname (with invalid chars removed)
-      const cleanHostname = hostname.replace(/[\s\(\)\[\]{}]/g, '').toLowerCase();
+      const cleanHostname = hostname.replace(/[^a-z0-9-]/g, '');
       expect(config.machine_id).toMatch(new RegExp(`^${cleanHostname}`));
     });
   });

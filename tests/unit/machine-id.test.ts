@@ -100,6 +100,21 @@ describe('generateMachineId', () => {
       expect(machineId.startsWith('mymacbook-pro-')).toBe(true);
     });
 
+    it('should sanitize hostnames with dots and special characters', async () => {
+      osMock.hostname.mockReturnValue('dedens-kgpwgmw6ft.local');
+      execMock.mockImplementation((cmd, callback) => {
+        callback(null, 'aa:bb:cc:dd:ee:ff\n', '');
+      });
+
+      const machineId = await generateMachineId();
+      expect(machineId.startsWith('dedens-kgpwgmw6ftlocal-')).toBe(true);
+      
+      // Test with more special characters
+      osMock.hostname.mockReturnValue('my.host@name#123');
+      const machineId2 = await generateMachineId();
+      expect(machineId2.startsWith('myhostname123-')).toBe(true);
+    });
+
     it('should fallback to os.networkInterfaces on command failure', async () => {
       execMock.mockImplementation((cmd, callback) => {
         callback(new Error('Command failed'), '', 'error');
