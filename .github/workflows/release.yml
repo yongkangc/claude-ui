@@ -19,7 +19,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.1.x'
+          bun-version: '1.1.35'
 
       - name: Install dependencies
         run: bun install
@@ -76,7 +76,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.1.x'
+          bun-version: '1.1.35'
 
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v4
