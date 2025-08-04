@@ -16,20 +16,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20.x'
-          cache: 'npm'
+          bun-version: '1.1.x'
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Build project
-        run: npm run build
+        run: bun run build
 
       - name: Run tests
-        run: npm test
+        run: bun test
 
       - name: Package release artifacts
         run: |
@@ -40,7 +39,7 @@ jobs:
           cp -r dist release/
           cp -r config release/
           cp package.json release/
-          cp package-lock.json release/
+          cp bun.lockb release/ || echo "bun.lockb not found"
           cp docs/README.md release/README.md || echo "README.md not found"
           cp LICENSE release/ || echo "LICENSE not found"
           cp CLAUDE.md release/
@@ -74,18 +73,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.x'
+
+      - name: Setup Node.js for npm publish
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Build project
-        run: npm run build
+        run: bun run build
 
       - name: Publish to npm
         run: npm publish --access public
