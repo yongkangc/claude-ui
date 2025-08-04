@@ -120,10 +120,31 @@ export class CUIServer {
   }
 
   /**
-   * Start the server
+   * Get the Express app instance
    */
-  async start(): Promise<void> {
-    this.logger.debug('Start method called');
+  getApp(): Express {
+    return this.app;
+  }
+
+  /**
+   * Get the configured port
+   */
+  getPort(): number {
+    return this.port;
+  }
+
+  /**
+   * Get the configured host
+   */
+  getHost(): string {
+    return this.host;
+  }
+
+  /**
+   * Initialize services without starting the HTTP server
+   */
+  async initialize(): Promise<void> {
+    this.logger.debug('Initialize method called');
     try {
       // Initialize configuration first
       this.logger.debug('Initializing configuration');
@@ -142,7 +163,6 @@ export class CUIServer {
       this.logger.debug('Initializing Gemini service');
       await geminiService.initialize();
       this.logger.debug('Gemini service initialized successfully');
-
       
       // Apply overrides if provided (for tests and CLI options)
       this.port = this.configOverrides?.port ?? config.server.port;
@@ -164,6 +184,37 @@ export class CUIServer {
       const mcpConfigPath = this.mcpConfigGenerator.generateConfig(this.port);
       this.processManager.setMCPConfigPath(mcpConfigPath);
       this.logger.debug('MCP config generated and set', { path: mcpConfigPath });
+      
+      // Display auth URL with token fragment
+      const authToken = this.configOverrides?.token ?? config.authToken;
+      const authUrl = `http://${this.host}:${this.port}#token=${authToken}`;
+      if (!this.configOverrides?.skipAuthToken) {
+        this.logger.info(`Access with auth token: ${authUrl}`);
+      } else {
+        this.logger.info('Authentication is disabled (--skip-auth-token)');
+      }
+    } catch (error) {
+      this.logger.error('Failed to initialize server:', error, {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error)
+      });
+      
+      if (error instanceof CUIError) {
+        throw error;
+      } else {
+        throw new CUIError('SERVER_INIT_FAILED', `Server initialization failed: ${error}`, 500);
+      }
+    }
+  }
+
+  /**
+   * Start the server
+   */
+  async start(): Promise<void> {
+    this.logger.debug('Start method called');
+    try {
+      // Initialize all services
+      await this.initialize();
 
       // Start Express server
       const isDev = process.env.NODE_ENV === 'development';
@@ -222,15 +273,8 @@ export class CUIServer {
           });
         }
       });
-      // Display auth URL with token fragment
-      const authToken = this.configOverrides?.token ?? config.authToken;
-      const authUrl = `http://${this.host}:${this.port}#token=${authToken}`;
+      
       this.logger.info(`cui server started on http://${this.host}:${this.port}`);
-      if (!this.configOverrides?.skipAuthToken) {
-        this.logger.info(`Access with auth token: ${authUrl}`);
-      } else {
-        this.logger.info('Authentication is disabled (--skip-auth-token)');
-      }
     } catch (error) {
       this.logger.error('Failed to start server:', error, {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
