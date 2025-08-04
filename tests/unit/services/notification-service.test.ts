@@ -19,8 +19,9 @@ jest.mock('@/utils/machine-id', () => ({
   generateMachineId: jest.fn().mockResolvedValue('test-machine-12345678')
 }));
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock fetch with proper typing for Bun
+const mockFetch = jest.fn() as any;
+global.fetch = mockFetch;
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -45,8 +46,8 @@ describe('NotificationService', () => {
     service = new NotificationService(mockPreferencesService);
     
     // Reset fetch mock
-    (global.fetch as jest.Mock).mockReset();
-    (global.fetch as jest.Mock).mockResolvedValue({
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
       ok: true,
       text: jest.fn().mockResolvedValue('Success')
     });
@@ -97,7 +98,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       // Should not throw
       await expect(service.sendPermissionNotification(mockPermissionRequest, undefined, undefined))
@@ -105,7 +106,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle non-ok responses', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
         text: jest.fn().mockResolvedValue('Server error')
@@ -210,7 +211,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       // Should not throw even if notification fails
       await expect(service.sendConversationEndNotification('stream-123', 'session-456'))
