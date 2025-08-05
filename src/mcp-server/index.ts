@@ -93,6 +93,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     // Get the permission request ID from the notification response
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Expected JSON response from notification endpoint but got ${contentType}: ${text.substring(0, 200)}`);
+    }
     const notificationData = await response.json() as PermissionNotificationResponse;
     const permissionRequestId = notificationData.id;
 
@@ -136,6 +141,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Failed to poll permission status: ${pollResponse.status}`);
       }
 
+      const pollContentType = pollResponse.headers.get('content-type');
+      if (!pollContentType || !pollContentType.includes('application/json')) {
+        const text = await pollResponse.text();
+        throw new Error(`Expected JSON response from permissions poll but got ${pollContentType}: ${text.substring(0, 200)}`);
+      }
       const { permissions } = await pollResponse.json() as PermissionsResponse;
       const permission = permissions.find((p) => p.id === permissionRequestId);
 
@@ -157,6 +167,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error(`Failed to fetch all permissions: ${allPermissionsResponse.status}`);
         }
 
+        const allContentType = allPermissionsResponse.headers.get('content-type');
+        if (!allContentType || !allContentType.includes('application/json')) {
+          const text = await allPermissionsResponse.text();
+          throw new Error(`Expected JSON response from all permissions but got ${allContentType}: ${text.substring(0, 200)}`);
+        }
         const { permissions: allPermissions } = await allPermissionsResponse.json() as PermissionsResponse;
         const processedPermission = allPermissions.find((p) => p.id === permissionRequestId);
 

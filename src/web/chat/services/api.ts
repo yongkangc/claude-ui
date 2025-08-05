@@ -45,6 +45,17 @@ class ApiService {
         headers,
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // If we get HTML instead of JSON, it usually means the API endpoint doesn't exist
+        const text = await response.text();
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+          throw new Error(`API endpoint not found: ${fullUrl}. Server returned HTML instead of JSON.`);
+        }
+        throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}: ${text.substring(0, 200)}`);
+      }
+
       const data = await response.json();
       
       // Log response
@@ -59,6 +70,11 @@ class ApiService {
 
       return data;
     } catch (error) {
+      // Enhanced error logging for JSON parsing issues
+      if (error instanceof SyntaxError && error.message.includes('Unexpected token')) {
+        console.error(`[API Error] JSON parsing failed for ${fullUrl}:`, error.message);
+        throw new Error(`Invalid JSON response from ${fullUrl}. This usually means the API endpoint doesn't exist or returned HTML instead of JSON.`);
+      }
       // console.error(`[API Error] ${fullUrl}:`, error);
       throw error;
     }
