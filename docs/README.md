@@ -63,6 +63,8 @@ A modern web UI for [Claude Code](https://claude.ai/code) agents. Start the serv
 
   cui automatically runs all Claude sessions within tmux for maximum persistence and accessibility:
   - **Intelligent Session Naming**: Sessions are automatically named based on your working directory (e.g., working in `/path/to/bifrost` creates session `cui-bifrost`)
+  - **Smart Session Reuse**: Automatically reuses existing tmux sessions when possible, or creates new windows in existing sessions
+  - **Conflict Resolution**: If a session exists with active Claude processes, creates numbered variants (e.g., `cui-bifrost-1`)
   - **Persistent Sessions**: Continue conversations even if the CUI server restarts
   - **Direct Terminal Access**: Attach to running Claude sessions directly via `tmux attach -t cui-bifrost`
   - **SSH Resilience**: Sessions persist across SSH disconnections

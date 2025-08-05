@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
 import { basename } from 'path';
+import { execSync } from 'child_process';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
@@ -472,7 +473,7 @@ export class ClaudeProcessManager extends EventEmitter {
         INIT_CWD: spawnConfig.cwd
       };
       
-      const process = this.spawnProcess(
+      const process = await this.spawnProcess(
         { ...spawnConfig, env: envWithStreamingId }, 
         args, 
         streamingId,
@@ -687,15 +688,46 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   /**
+   * Check if a tmux session exists
+   */
+  private tmuxSessionExists(sessionName: string): boolean {
+    try {
+      execSync(`tmux has-session -t "${sessionName}"`, { stdio: 'ignore' });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if a tmux session has any active panes running Claude
+   */
+  private async tmuxSessionHasActiveClaud(sessionName: string): Promise<boolean> {
+    try {
+      const panes = execSync(`tmux list-panes -t "${sessionName}" -F "#{pane_current_command}"`, { 
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      
+      // Check if any pane is running Claude
+      return panes.split('\n').some(command => 
+        command.trim().includes('claude') || command.trim().includes('node')
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Consolidated method to spawn Claude processes for both start and resume operations
    */
-  private spawnProcess(
+  private async spawnProcess(
     spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
     args: string[],
     streamingId: string,
     useTmux?: boolean,
     tmuxSessionName?: string
-  ): ChildProcess {
+  ): Promise<ChildProcess> {
     const { executablePath, cwd, env } = spawnConfig;
     
     // Check if MCP config is in args and validate it
@@ -759,23 +791,78 @@ export class ClaudeProcessManager extends EventEmitter {
       
       if (shouldUseTmux) {
         // Generate intelligent session name based on working directory
-        const sessionName = tmuxSessionName || this.generateTmuxSessionName(cwd, streamingId);
+        const baseSessionName = tmuxSessionName || this.generateTmuxSessionName(cwd, streamingId);
+        let finalSessionName = baseSessionName;
+        let sessionExists = false;
         
-        // Build tmux command to run Claude in a new session
-        const tmuxArgs = [
-          'new-session',
-          '-d',
-          '-s', sessionName,
-          executablePath,
-          ...args
-        ];
+        // Check if session already exists
+        if (this.tmuxSessionExists(baseSessionName)) {
+          sessionExists = true;
+          
+          // Check if the existing session has active Claude processes
+          const hasActiveClaud = await this.tmuxSessionHasActiveClaud(baseSessionName);
+          
+          if (hasActiveClaud) {
+            // Session exists and has active Claude, create a new session with suffix
+            let suffix = 1;
+            do {
+              finalSessionName = `${baseSessionName}-${suffix}`;
+              suffix++;
+            } while (this.tmuxSessionExists(finalSessionName));
+            
+            this.logger.debug('Creating new tmux session (existing has active Claude)', {
+              streamingId,
+              originalSession: baseSessionName,
+              newSession: finalSessionName,
+              workingDirectory: cwd
+            });
+          } else {
+            // Session exists but no active Claude, we can reuse it
+            finalSessionName = baseSessionName;
+            this.logger.debug('Reusing existing tmux session (no active Claude)', {
+              streamingId,
+              sessionName: finalSessionName,
+              workingDirectory: cwd
+            });
+          }
+        } else {
+          this.logger.debug('Creating new tmux session', {
+            streamingId,
+            sessionName: finalSessionName,
+            workingDirectory: cwd
+          });
+        }
+        
+        // Build tmux command - new session or send to existing window
+        let tmuxArgs: string[];
+        if (sessionExists && finalSessionName === baseSessionName) {
+          // Send command to existing session in a new window
+          tmuxArgs = [
+            'new-window',
+            '-t', finalSessionName,
+            '-c', cwd,
+            executablePath,
+            ...args
+          ];
+        } else {
+          // Create new session
+          tmuxArgs = [
+            'new-session',
+            '-d',
+            '-s', finalSessionName,
+            '-c', cwd,
+            executablePath,
+            ...args
+          ];
+        }
         
         this.logger.debug('Starting Claude in tmux session', {
           streamingId,
-          sessionName,
+          sessionName: finalSessionName,
           tmuxArgs,
           claudeCommand: `${executablePath} ${args.join(' ')}`,
-          workingDirectory: cwd
+          workingDirectory: cwd,
+          reusingSession: sessionExists && finalSessionName === baseSessionName
         });
         
         claudeProcess = spawn('tmux', tmuxArgs, {
@@ -787,7 +874,7 @@ export class ClaudeProcessManager extends EventEmitter {
         // Store session name for later use (like cleanup)
         const config = this.conversationConfigs.get(streamingId);
         if (config) {
-          config.tmuxSessionName = sessionName;
+          config.tmuxSessionName = finalSessionName;
           config.useTmux = true;
         }
       } else {
