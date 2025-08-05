@@ -59,14 +59,15 @@ A modern web UI for [Claude Code](https://claude.ai/code) agents. Start the serv
 
   Feel free to close the page after starting a task—it will continue running in the background. When running multiple tasks (started from cui), you can check their status in the "Tasks" tab. You can also archive tasks by clicking the "Archive" button. Archived tasks remain accessible in the "Archived" tab.
 
-- **Tmux Integration**
+- **Tmux Integration (Default)**
 
-  cui supports running Claude sessions within tmux, allowing you to:
-  - Continue conversations even if the CUI server restarts
-  - Attach to running Claude sessions directly via terminal
-  - Persist sessions across SSH disconnections
+  cui automatically runs all Claude sessions within tmux for maximum persistence and accessibility:
+  - **Intelligent Session Naming**: Sessions are automatically named based on your working directory (e.g., working in `/path/to/bifrost` creates session `cui-bifrost`)
+  - **Persistent Sessions**: Continue conversations even if the CUI server restarts
+  - **Direct Terminal Access**: Attach to running Claude sessions directly via `tmux attach -t cui-bifrost`
+  - **SSH Resilience**: Sessions persist across SSH disconnections
   
-  To enable tmux support, include `useTmux: true` in your conversation configuration. You can optionally specify a custom session name with `tmuxSessionName`.
+  Tmux sessions are automatically managed - no configuration required. To disable tmux for a specific conversation, set `useTmux: false`.
 
 ### Dictation
 

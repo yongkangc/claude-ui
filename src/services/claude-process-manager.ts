@@ -3,6 +3,7 @@ import { ConversationConfig, CUIError, SystemInitMessage, StreamEvent } from '@/
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
+import { basename } from 'path';
 import { JsonLinesParser } from './json-lines-parser';
 import { createLogger, type Logger } from './logger';
 import { ClaudeHistoryReader } from './claude-history-reader';
@@ -183,9 +184,9 @@ export class ClaudeProcessManager extends EventEmitter {
         this.timeouts.delete(streamingId);
       }
 
-      // Clean up tmux session if it was used
+      // Clean up tmux session if it was used (now the default)
       const config = this.conversationConfigs.get(streamingId);
-      if (config?.useTmux && config.tmuxSessionName) {
+      if (config?.tmuxSessionName) {
         try {
           this.logger.debug('Killing tmux session', { streamingId, sessionName: config.tmuxSessionName });
           const { spawn } = await import('child_process');
@@ -670,6 +671,22 @@ export class ClaudeProcessManager extends EventEmitter {
   }
 
   /**
+   * Generate intelligent tmux session name based on working directory
+   */
+  private generateTmuxSessionName(workingDirectory: string, streamingId: string): string {
+    // Get the base directory name
+    const dirName = basename(workingDirectory);
+    
+    // Clean the directory name to be tmux-safe (alphanumeric and hyphens only)
+    const cleanDirName = dirName.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
+    
+    // Use directory name if it's meaningful, otherwise fall back to streaming ID
+    const sessionBase = cleanDirName && cleanDirName !== '-' ? cleanDirName : `cui-${streamingId.substring(0, 8)}`;
+    
+    return `cui-${sessionBase}`;
+  }
+
+  /**
    * Consolidated method to spawn Claude processes for both start and resume operations
    */
   private spawnProcess(
@@ -735,11 +752,14 @@ export class ClaudeProcessManager extends EventEmitter {
         }, {} as Record<string, string | undefined>)
       });
       
+      // Always use tmux for session persistence
+      const shouldUseTmux = useTmux !== false; // Default to true unless explicitly disabled
+      
       let claudeProcess: ChildProcess;
       
-      if (useTmux) {
-        // Generate unique session name if not provided
-        const sessionName = tmuxSessionName || `cui-claude-${streamingId.substring(0, 8)}`;
+      if (shouldUseTmux) {
+        // Generate intelligent session name based on working directory
+        const sessionName = tmuxSessionName || this.generateTmuxSessionName(cwd, streamingId);
         
         // Build tmux command to run Claude in a new session
         const tmuxArgs = [
@@ -754,7 +774,8 @@ export class ClaudeProcessManager extends EventEmitter {
           streamingId,
           sessionName,
           tmuxArgs,
-          claudeCommand: `${executablePath} ${args.join(' ')}`
+          claudeCommand: `${executablePath} ${args.join(' ')}`,
+          workingDirectory: cwd
         });
         
         claudeProcess = spawn('tmux', tmuxArgs, {
@@ -764,7 +785,11 @@ export class ClaudeProcessManager extends EventEmitter {
         });
         
         // Store session name for later use (like cleanup)
-        this.conversationConfigs.get(streamingId)!.tmuxSessionName = sessionName;
+        const config = this.conversationConfigs.get(streamingId);
+        if (config) {
+          config.tmuxSessionName = sessionName;
+          config.useTmux = true;
+        }
       } else {
         claudeProcess = spawn(executablePath, args, {
           cwd,
