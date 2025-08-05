@@ -183,6 +183,23 @@ export class ClaudeProcessManager extends EventEmitter {
         this.timeouts.delete(streamingId);
       }
 
+      // Clean up tmux session if it was used
+      const config = this.conversationConfigs.get(streamingId);
+      if (config?.useTmux && config.tmuxSessionName) {
+        try {
+          this.logger.debug('Killing tmux session', { streamingId, sessionName: config.tmuxSessionName });
+          const { spawn } = await import('child_process');
+          const tmuxKill = spawn('tmux', ['kill-session', '-t', config.tmuxSessionName], {
+            stdio: 'ignore'
+          });
+          tmuxKill.on('error', (error) => {
+            this.logger.warn('Failed to kill tmux session', { streamingId, sessionName: config.tmuxSessionName, error: error.message });
+          });
+        } catch (error) {
+          this.logger.warn('Error cleaning up tmux session', { streamingId, error });
+        }
+      }
+      
       // Clean up
       this.processes.delete(streamingId);
       this.outputBuffers.delete(streamingId);
@@ -457,7 +474,9 @@ export class ClaudeProcessManager extends EventEmitter {
       const process = this.spawnProcess(
         { ...spawnConfig, env: envWithStreamingId }, 
         args, 
-        streamingId
+        streamingId,
+        config.useTmux,
+        config.tmuxSessionName
       );
       
       this.processes.set(streamingId, process);
@@ -656,7 +675,9 @@ export class ClaudeProcessManager extends EventEmitter {
   private spawnProcess(
     spawnConfig: { executablePath: string; cwd: string; env: NodeJS.ProcessEnv },
     args: string[],
-    streamingId: string
+    streamingId: string,
+    useTmux?: boolean,
+    tmuxSessionName?: string
   ): ChildProcess {
     const { executablePath, cwd, env } = spawnConfig;
     
@@ -714,11 +735,43 @@ export class ClaudeProcessManager extends EventEmitter {
         }, {} as Record<string, string | undefined>)
       });
       
-      const claudeProcess = spawn(executablePath, args, {
-        cwd,
-        env,
-        stdio: ['inherit', 'pipe', 'pipe'] // stdin inherited, stdout/stderr piped for capture
-      });
+      let claudeProcess: ChildProcess;
+      
+      if (useTmux) {
+        // Generate unique session name if not provided
+        const sessionName = tmuxSessionName || `cui-claude-${streamingId.substring(0, 8)}`;
+        
+        // Build tmux command to run Claude in a new session
+        const tmuxArgs = [
+          'new-session',
+          '-d',
+          '-s', sessionName,
+          executablePath,
+          ...args
+        ];
+        
+        this.logger.debug('Starting Claude in tmux session', {
+          streamingId,
+          sessionName,
+          tmuxArgs,
+          claudeCommand: `${executablePath} ${args.join(' ')}`
+        });
+        
+        claudeProcess = spawn('tmux', tmuxArgs, {
+          cwd,
+          env,
+          stdio: ['inherit', 'pipe', 'pipe']
+        });
+        
+        // Store session name for later use (like cleanup)
+        this.conversationConfigs.get(streamingId)!.tmuxSessionName = sessionName;
+      } else {
+        claudeProcess = spawn(executablePath, args, {
+          cwd,
+          env,
+          stdio: ['inherit', 'pipe', 'pipe'] // stdin inherited, stdout/stderr piped for capture
+        });
+      }
       
       // Handle spawn errors (like ENOENT when claude is not found)
       claudeProcess.on('error', (error: Error & NodeJS.ErrnoException) => {

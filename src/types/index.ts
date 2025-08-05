@@ -110,6 +110,8 @@ export interface ConversationConfig {
   claudeExecutablePath?: string;
   previousMessages?: ConversationMessage[]; // Messages from previous session for resume context
   permissionMode?: string; // Permission mode: "acceptEdits" | "bypassPermissions" | "default" | "plan"
+  useTmux?: boolean; // Whether to run Claude in tmux session
+  tmuxSessionName?: string; // Custom tmux session name
 }
 
 // API request/response types
@@ -122,6 +124,8 @@ export interface StartConversationRequest {
   systemPrompt?: string;
   permissionMode?: string; // Permission mode: "acceptEdits" | "bypassPermissions" | "default" | "plan"
   resumedSessionId?: string; // Optional: session ID to resume from
+  useTmux?: boolean; // Whether to run Claude in tmux session
+  tmuxSessionName?: string; // Custom tmux session name
 }
 
 

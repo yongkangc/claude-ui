@@ -59,6 +59,15 @@ A modern web UI for [Claude Code](https://claude.ai/code) agents. Start the serv
 
   Feel free to close the page after starting a task—it will continue running in the background. When running multiple tasks (started from cui), you can check their status in the "Tasks" tab. You can also archive tasks by clicking the "Archive" button. Archived tasks remain accessible in the "Archived" tab.
 
+- **Tmux Integration**
+
+  cui supports running Claude sessions within tmux, allowing you to:
+  - Continue conversations even if the CUI server restarts
+  - Attach to running Claude sessions directly via terminal
+  - Persist sessions across SSH disconnections
+  
+  To enable tmux support, include `useTmux: true` in your conversation configuration. You can optionally specify a custom session name with `tmuxSessionName`.
+
 ### Dictation
 
 cui uses [Gemini 2.5 Flash](https://deepmind.google/models/gemini/flash/) to provide highly accurate dictation, particularly effective for long sentences. To enable this feature, you'll need a [Gemini API key](https://aistudio.google.com/apikey) with generous free-tier usage. Set the `GOOGLE_API_KEY` environment variable before starting the server. Note that using this feature will share your audio data with Google.
@@ -80,9 +89,75 @@ All inline syntaxes like `/init` or `@file.txt` are supported just like in the C
 
 ### Remote Access
 
+#### Option 1: Direct Network Access
+
 1. Open `~/.cui/config.json` to set the `server.host` (0.0.0.0) and `server.port`. Alternatively, you can use `--host` and `--port` flags when starting the server.
 2. Ensure you use a secure auth token if accessing the server from outside your local network. The auth token is generated when you start the server and can be changed in the `~/.cui/config.json` file.
 3. Recommended: Use HTTPS to access the server. You can use a reverse proxy like [Caddy](https://caddyserver.com/) to set this up. On iOS, the dictation feature is only available when using HTTPS.
+
+#### Option 2: Cloudflare Tunnel (Recommended)
+
+Cloudflare Tunnel provides secure, encrypted access to your CUI instance without opening firewall ports or configuring complex networking.
+
+**Prerequisites:**
+- A Cloudflare account (free tier works)
+- A domain added to Cloudflare
+- `cloudflared` installed on your server
+
+**Setup Steps:**
+
+1. **Install cloudflared** (if not already installed):
+   ```bash
+   # On Linux/macOS
+   curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+   sudo dpkg -i cloudflared.deb
+   ```
+
+2. **Authenticate with Cloudflare:**
+   ```bash
+   cloudflared tunnel login
+   ```
+   This opens a browser window to authorize cloudflared with your Cloudflare account.
+
+3. **Create a tunnel:**
+   ```bash
+   cloudflared tunnel create cui
+   ```
+   Note the tunnel ID that's generated.
+
+4. **Configure the tunnel:**
+   Create `/etc/cloudflared/config.yml`:
+   ```yaml
+   tunnel: <your-tunnel-id>
+   credentials-file: /etc/cloudflared/<your-tunnel-id>.json
+   
+   ingress:
+     - hostname: cui.your-domain.com
+       service: http://localhost:3001
+     - service: http_status:404
+   ```
+
+5. **Set up DNS routing:**
+   ```bash
+   cloudflared tunnel route dns <tunnel-id> cui.your-domain.com
+   ```
+
+6. **Install and start the tunnel service:**
+   ```bash
+   sudo cloudflared service install
+   sudo systemctl enable cloudflared
+   sudo systemctl start cloudflared
+   ```
+
+7. **Access your CUI instance:**
+   Visit `https://cui.your-domain.com#token=your-auth-token`
+
+**Benefits of Cloudflare Tunnel:**
+- ✅ No firewall configuration needed
+- ✅ Automatic HTTPS with Cloudflare's certificates
+- ✅ DDoS protection and caching
+- ✅ Works from anywhere with internet access
+- ✅ Built-in access controls and security features
 
 ### Configuration
 
